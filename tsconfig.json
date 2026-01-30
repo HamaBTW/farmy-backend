@@ -14,8 +14,12 @@
     "moduleResolution": "nodenext",
     "esModuleInterop": true
   },
+  "include": [
+    "src/**/*"
+  ],
   "exclude": [
     "node_modules",
-    "exampeles"
+    "dist",
+    "examples"
   ]
 }
