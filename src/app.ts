@@ -6,10 +6,10 @@ import compression from 'compression';
 import responseTime from 'response-time';
 import { swaggerUi, swaggerSpec, swaggerUiOptions } from './config/swagger.js';
 import { requestLogger } from './middlewares/requestLogger.middleware.js';
-import { envCheckMiddleware, checkEnvVariables } from './middlewares/envCheck.middleware.js';
+import { envCheckMiddleware } from './middlewares/envCheck.middleware.js';
 import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
-import authRoutes from './routes/auth.routes.js';
+import routes from './routes/index.js';
 
 const app: Application = express();
 
@@ -80,7 +80,7 @@ app.use(envCheckMiddleware);
 app.use(generalLimiter);
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/api', routes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 app.get('/', (req: Request, res: Response) => {

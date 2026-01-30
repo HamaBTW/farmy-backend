@@ -1,9 +1,9 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { AppDataSource } from '../config/db.config.js';
-import { User, UserRole } from '../models/User.js';
-import { RefreshToken } from '../models/RefreshToken.js';
-import { AppError } from '../middlewares/error.middleware.js';
+import { AppDataSource } from '../../config/db.config.js';
+import { User, UserRole } from '../../models/User.js';
+import { RefreshToken } from '../../models/RefreshToken.js';
+import { AppError } from '../../middlewares/error.middleware.js';
 
 class AuthService {
     private userRepository = AppDataSource.getRepository(User);

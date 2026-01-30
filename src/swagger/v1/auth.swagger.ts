@@ -7,7 +7,7 @@
 
 /**
  * @swagger
- * /auth/register:
+ * /v1/auth/register:
  *   post:
  *     summary: Register a new user
  *     tags: [Auth]
@@ -50,7 +50,7 @@
 
 /**
  * @swagger
- * /auth/login:
+ * /v1/auth/login:
  *   post:
  *     summary: Login user and get tokens
  *     tags: [Auth]
@@ -78,7 +78,7 @@
 
 /**
  * @swagger
- * /auth/logout:
+ * /v1/auth/logout:
  *   post:
  *     summary: Logout user and invalidate refresh token
  *     tags: [Auth]
@@ -102,7 +102,7 @@
 
 /**
  * @swagger
- * /auth/refresh:
+ * /v1/auth/refresh:
  *   post:
  *     summary: Refresh access token using refresh token
  *     tags: [Auth]

@@ -31,9 +31,6 @@ Thumbs.db
 uploads/**/*
 !uploads/.gitkeep
 
-# Logs
-/logs
-
 # Playground
 playground/**/*
 !playground/.gitkeep

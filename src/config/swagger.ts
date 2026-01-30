@@ -43,10 +43,10 @@ A comprehensive farm management platform API.
         ],
     },
     apis: [
-        path.join(__dirname, '../routes/*.ts'),
-        path.join(__dirname, '../routes/*.js'),
-        path.join(__dirname, '../swagger/*.ts'),
-        path.join(__dirname, '../swagger/*.js'),
+        path.join(__dirname, '../routes/**/*.ts'),
+        path.join(__dirname, '../routes/**/*.js'),
+        path.join(__dirname, '../swagger/**/*.ts'),
+        path.join(__dirname, '../swagger/**/*.js'),
     ],
 };
 
