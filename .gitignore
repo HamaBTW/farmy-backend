@@ -30,3 +30,9 @@ Thumbs.db
 # Uploads
 uploads/**/*
 !uploads/.gitkeep
+
+# Playground
+playground/**/*
+!playground/.gitkeep
+exampeles/**/*
+!exampeles/.gitkeep
