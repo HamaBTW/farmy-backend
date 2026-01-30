@@ -107,6 +107,35 @@ class AuthService {
         return { message: 'Email verified successfully' };
     }
 
+    async resendVerificationCode(email: string) {
+        const user = await this.userRepository.findOne({ where: { email } });
+
+        if (!user) {
+            throw new AppError(404, 'User not found');
+        }
+
+        if (user.is_verified) {
+            throw new AppError(400, 'Email already verified');
+        }
+
+        const verificationCode = this.generateCode();
+        const verificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+        user.verification_code = verificationCode;
+        user.verification_code_expires = verificationExpires;
+
+        await this.userRepository.save(user);
+
+        try {
+            await emailService.sendVerificationCode(email, verificationCode);
+        } catch (error) {
+            console.error('Failed to send verification email:', error);
+            throw new AppError(500, 'Failed to send verification email');
+        }
+
+        return { message: 'Verification code resent successfully' };
+    }
+
     async forgotPassword(email: string) {
         const user = await this.userRepository.findOne({ where: { email } });
 

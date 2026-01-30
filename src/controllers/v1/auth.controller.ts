@@ -112,3 +112,31 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
+
+export const resendVerificationCode = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email } = req.body;
+        const result = await authService.resendVerificationCode(email);
+
+        res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const resendResetCode = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email } = req.body;
+        const result = await authService.forgotPassword(email);
+
+        res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        next(error);
+    }
+};

@@ -203,3 +203,51 @@
  *       400:
  *         description: Invalid or expired code
  */
+
+/**
+ * @swagger
+ * /v1/auth/resend-verification:
+ *   post:
+ *     summary: Resend email verification code
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Verification code resent successfully
+ *       404:
+ *         description: User not found
+ */
+
+/**
+ * @swagger
+ * /v1/auth/resend-reset-code:
+ *   post:
+ *     summary: Resend password reset code
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset code resent successfully
+ *       404:
+ *         description: User not found
+ */
