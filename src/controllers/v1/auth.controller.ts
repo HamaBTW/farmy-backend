@@ -70,3 +70,45 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
         next(error);
     }
 };
+
+export const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, code } = req.body;
+        const result = await authService.verifyEmail(email, code);
+
+        res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email } = req.body;
+        const result = await authService.forgotPassword(email);
+
+        res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, code, newPassword } = req.body;
+        const result = await authService.resetPassword(email, code, newPassword);
+
+        res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        next(error);
+    }
+};

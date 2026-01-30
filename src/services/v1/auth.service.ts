@@ -4,10 +4,15 @@ import { AppDataSource } from '../../config/db.config.js';
 import { User, UserRole } from '../../models/User.js';
 import { RefreshToken } from '../../models/RefreshToken.js';
 import { AppError } from '../../middlewares/error.middleware.js';
+import { emailService } from './EmailService.js';
 
 class AuthService {
     private userRepository = AppDataSource.getRepository(User);
     private refreshTokenRepository = AppDataSource.getRepository(RefreshToken);
+
+    private generateCode(): string {
+        return Math.floor(100000 + Math.random() * 900000).toString();
+    }
 
     async generateTokens(user: User) {
         const accessToken = jwt.sign(
@@ -47,6 +52,9 @@ class AuthService {
         const salt = await bcrypt.genSalt(10);
         const password_hash = await bcrypt.hash(password, salt);
 
+        const verificationCode = this.generateCode();
+        const verificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
         const user = this.userRepository.create({
             email,
             password_hash,
@@ -54,13 +62,98 @@ class AuthService {
             role: role || UserRole.CUSTOMER,
             profile,
             location,
-            is_verified: false
+            is_verified: false,
+            verification_code: verificationCode,
+            verification_code_expires: verificationExpires
         });
 
         await this.userRepository.save(user);
+
+        // Send verification email
+        try {
+            await emailService.sendVerificationCode(email, verificationCode);
+        } catch (error) {
+            console.error('Failed to send verification email:', error);
+            // We don't throw here to avoid failing registration if email fails
+            // But in production, you might want to handle this more strictly
+        }
+
         const tokens = await this.generateTokens(user);
 
         return { user, tokens };
+    }
+
+    async verifyEmail(email: string, code: string) {
+        const user = await this.userRepository.findOne({ where: { email } });
+
+        if (!user) {
+            throw new AppError(404, 'User not found');
+        }
+
+        if (user.is_verified) {
+            throw new AppError(400, 'Email already verified');
+        }
+
+        if (user.verification_code !== code || (user.verification_code_expires && user.verification_code_expires < new Date())) {
+            throw new AppError(400, 'Invalid or expired verification code');
+        }
+
+        user.is_verified = true;
+        user.verification_code = null;
+        user.verification_code_expires = null;
+
+        await this.userRepository.save(user);
+
+        return { message: 'Email verified successfully' };
+    }
+
+    async forgotPassword(email: string) {
+        const user = await this.userRepository.findOne({ where: { email } });
+
+        if (!user) {
+            throw new AppError(404, 'User not found');
+        }
+
+        const resetCode = this.generateCode();
+        const resetExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+        user.reset_password_code = resetCode;
+        user.reset_password_code_expires = resetExpires;
+
+        await this.userRepository.save(user);
+
+        try {
+            await emailService.sendPasswordResetCode(email, resetCode);
+        } catch (error) {
+            console.error('Failed to send reset email:', error);
+            throw new AppError(500, 'Failed to send reset email');
+        }
+
+        return { message: 'Password reset code sent to your email' };
+    }
+
+    async resetPassword(email: string, code: string, newPassword: any) {
+        const user = await this.userRepository.findOne({
+            where: { email },
+            select: ['id', 'email', 'reset_password_code', 'reset_password_code_expires', 'password_hash']
+        });
+
+        if (!user) {
+            throw new AppError(404, 'User not found');
+        }
+
+        if (user.reset_password_code !== code || (user.reset_password_code_expires && user.reset_password_code_expires < new Date())) {
+            throw new AppError(400, 'Invalid or expired reset code');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password_hash = await bcrypt.hash(newPassword, salt);
+        user.reset_password_code = null;
+        user.reset_password_code_expires = null;
+
+        await this.userRepository.save(user);
+
+        return { message: 'Password reset successfully' };
     }
 
     async loginUser(credentials: any) {
@@ -68,7 +161,7 @@ class AuthService {
 
         const user = await this.userRepository.findOne({
             where: { email },
-            select: ['id', 'email', 'password_hash', 'role', 'is_banned']
+            select: ['id', 'email', 'password_hash', 'role', 'is_banned', 'is_verified']
         });
 
         if (!user || !(await bcrypt.compare(password, user.password_hash))) {
@@ -77,6 +170,10 @@ class AuthService {
 
         if (user.is_banned) {
             throw new AppError(403, 'Your account has been banned');
+        }
+
+        if (!user.is_verified) {
+            throw new AppError(403, 'Please verify your email address');
         }
 
         const tokens = await this.generateTokens(user);

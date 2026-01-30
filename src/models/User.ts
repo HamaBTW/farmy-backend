@@ -53,4 +53,17 @@ export class User extends BaseEntity {
 
     @Column({ type: 'boolean', default: false })
     is_banned!: boolean;
+
+    @Column({ type: 'varchar', length: 6, nullable: true })
+    verification_code!: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    verification_code_expires!: Date | null;
+
+    @Column({ type: 'varchar', length: 6, nullable: true })
+    reset_password_code!: string | null;
+
+    @Column({ type: 'timestamp', nullable: true })
+    reset_password_code_expires!: Date | null;
+
 }

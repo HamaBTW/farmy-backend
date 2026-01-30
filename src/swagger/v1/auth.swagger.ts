@@ -123,3 +123,83 @@
  *       401:
  *         description: Invalid or expired refresh token
  */
+/**
+ * @swagger
+ * /v1/auth/verify-email:
+ *   post:
+ *     summary: Verify user email with 6-digit code
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - code
+ *             properties:
+ *               email:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *       400:
+ *         description: Invalid or expired code
+ */
+
+/**
+ * @swagger
+ * /v1/auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset code
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reset code sent to email
+ *       404:
+ *         description: User not found
+ */
+
+/**
+ * @swagger
+ * /v1/auth/reset-password:
+ *   post:
+ *     summary: Reset password using reset code
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - code
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid or expired code
+ */
