@@ -1,0 +1,13 @@
+{"level":"info","message":"✅ Database connected successfully","timestamp":"2026-01-30 23:26:57"}
+{"level":"info","message":"🚀 Server is running at http://localhost:3001","timestamp":"2026-01-30 23:26:57"}
+{"level":"info","message":"📖 Swagger docs available at http://localhost:3001/api-docs","timestamp":"2026-01-30 23:26:57"}
+{"level":"info","message":"✅ Database connected successfully","timestamp":"2026-01-30 23:27:32"}
+{"level":"info","message":"🚀 Server is running at http://localhost:3001","timestamp":"2026-01-30 23:27:32"}
+{"level":"info","message":"📖 Swagger docs available at http://localhost:3001/api-docs","timestamp":"2026-01-30 23:27:32"}
+{"level":"info","message":"GET /api-docs 301 10ms","timestamp":"2026-01-30 23:27:36"}
+{"level":"info","message":"GET /api-docs/ 200 20ms","timestamp":"2026-01-30 23:27:36"}
+{"level":"info","message":"GET /api-docs/swagger-ui-init.js 200 2ms","timestamp":"2026-01-30 23:27:36"}
+{"level":"info","message":"GET /api-docs/swagger-ui.css 200 38ms","timestamp":"2026-01-30 23:27:36"}
+{"level":"info","message":"GET /api-docs/swagger-ui-standalone-preset.js 200 41ms","timestamp":"2026-01-30 23:27:36"}
+{"level":"info","message":"GET /api-docs/swagger-ui-bundle.js 200 89ms","timestamp":"2026-01-30 23:27:37"}
+{"level":"info","message":"GET /api-docs/favicon-32x32.png 200 4ms","timestamp":"2026-01-30 23:27:37"}
