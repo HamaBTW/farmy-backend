@@ -146,3 +146,7 @@
 {"level":"info","message":"GET /api-docs/swagger-ui-bundle.js 304 10ms","timestamp":"2026-01-31 00:02:20"}
 {"level":"info","message":"GET /api-docs/swagger-ui-init.js 200 13ms","timestamp":"2026-01-31 00:02:20"}
 {"level":"info","message":"GET /api-docs/favicon-32x32.png 304 1ms","timestamp":"2026-01-31 00:02:20"}
+{"level":"info","message":"✅ Database connected successfully","timestamp":"2026-01-31 00:04:22"}
+{"level":"info","message":"🔌 Socket.io initialized","timestamp":"2026-01-31 00:04:22"}
+{"level":"info","message":"🚀 Server is running at http://localhost:3001","timestamp":"2026-01-31 00:04:22"}
+{"level":"info","message":"📖 Swagger docs available at http://localhost:3001/api-docs","timestamp":"2026-01-31 00:04:22"}
