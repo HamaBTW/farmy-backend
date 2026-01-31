@@ -17,6 +17,9 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/resend-verification', authController.resendVerificationCode);
 router.post('/resend-reset-code', authController.resendResetCode);
 router.post('/google', authController.googleLogin);
+router.get('/google/login', authController.googleLoginInit);
+router.get('/google/callback', authController.googleLoginCallback);
+router.get('/google/status', authController.googleLoginStatus);
 router.post('/github', authController.githubLogin);
 
 export default router;

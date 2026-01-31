@@ -4,6 +4,20 @@ import { AppError } from '../../middlewares/error.middleware.js';
 
 class OAuthService {
     private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    private pendingLogins = new Map<string, any>();
+
+    storeLogin(requestId: string, data: any) {
+        this.pendingLogins.set(requestId, { ...data, timestamp: Date.now() });
+    }
+
+    retrieveLogin(requestId: string) {
+        const data = this.pendingLogins.get(requestId);
+        if (data) {
+            this.pendingLogins.delete(requestId);
+            return data;
+        }
+        return null;
+    }
 
     async verifyGoogleToken(idToken: string) {
         try {
@@ -88,7 +102,7 @@ class OAuthService {
         }
     }
 
-    async getGoogleAccessToken(code: string) {
+    async getGoogleAccessToken(code: string, redirectUri: string = 'farmyapp://auth') {
         try {
             const response = await axios.post(
                 'https://oauth2.googleapis.com/token',
@@ -97,12 +111,13 @@ class OAuthService {
                     client_secret: process.env.GOOGLE_CLIENT_SECRET,
                     code,
                     grant_type: 'authorization_code',
-                    redirect_uri: 'farmyapp://auth',
+                    redirect_uri: redirectUri,
                 }
             );
 
             return response.data.access_token;
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Google Token Exchange Error:', error.response?.data || error.message);
             throw new AppError(401, 'Failed to exchange Google code');
         }
     }

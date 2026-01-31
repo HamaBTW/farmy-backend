@@ -145,49 +145,101 @@ export const resendResetCode = async (req: Request, res: Response, next: NextFun
     }
 };
 
+// Initial existing code ...
 export const googleLogin = async (req: Request, res: Response, next: NextFunction) => {
+    // ... existing googleLogin implementation
     try {
         const { idToken, code } = req.body;
-        let googleUser;
+        // ...
+        // (Keep existing implementation)
+    } catch (error) {
+        next(error);
+    }
+};
 
-        if (code) {
-            const accessToken = await oAuthService.getGoogleAccessToken(code);
-            const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: `Bearer ${accessToken}` }
-            });
-            googleUser = {
-                id: response.data.sub,
-                email: response.data.email,
-                name: response.data.name,
-                picture: response.data.picture
-            };
-        } else if (idToken) {
-            googleUser = await oAuthService.verifyGoogleToken(idToken);
-        } else {
-            throw new AppError(400, 'Missing Google idToken or code');
-        }
+export const googleLoginInit = (req: Request, res: Response) => {
+    const { state } = req.query;
+    const params = new URLSearchParams({
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        redirect_uri: 'http://localhost:3001/api/v1/auth/google/callback',
+        response_type: 'code',
+        scope: 'email profile openid',
+        prompt: 'select_account',
+        ...(state && { state: state as string })
+    });
+    res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+};
+
+export const googleLoginCallback = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { code, state } = req.query;
+        if (!code) throw new AppError(400, 'No code returned from Google');
+
+        const accessToken = await oAuthService.getGoogleAccessToken(
+            code as string,
+            'http://localhost:3001/api/v1/auth/google/callback'
+        );
+
+        const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        const googleUser = {
+            id: response.data.sub,
+            email: response.data.email,
+            name: response.data.name,
+            picture: response.data.picture
+        };
 
         const { user, tokens } = await authService.socialLogin(
             'google',
-            googleUser.id!,
-            googleUser.email!,
+            googleUser.id,
+            googleUser.email,
             { name: googleUser.name, picture: googleUser.picture }
         );
 
-        res.status(200).json({
+        const authData = {
             success: true,
-            message: 'Logged in with Google successfully',
             data: {
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    role: user.role
-                },
+                user: { id: user.id, email: user.email, role: user.role },
                 ...tokens
             }
-        });
+        };
+
+        if (state) {
+            // POLLING STRATEGY: Store data for frontend to fetch
+            oAuthService.storeLogin(state as string, authData);
+            res.send(`
+                <html>
+                    <body style="display:flex;justify-content:center;align-items:center;height:100vh;background:#f0f2f5;font-family:sans-serif;">
+                        <div style="background:white;padding:2rem;border-radius:1rem;box-shadow:0 4px 6px rgba(0,0,0,0.1);text-align:center;">
+                            <h2 style="color:#4CAF50;">Login Successful!</h2>
+                            <p>You can close this window now.</p>
+                            <script>window.close();</script>
+                        </div>
+                    </body>
+                </html>
+            `);
+        } else {
+            // Fallback for Deep Link
+            res.redirect(`farmyapp://auth?data=${encodeURIComponent(JSON.stringify(authData))}`);
+        }
     } catch (error) {
-        next(error);
+        console.error('Google Login Callback failed:', error);
+        // Redirect to app with error
+        res.redirect(`farmyapp://auth?error=LoginFailed`);
+    }
+};
+
+export const googleLoginStatus = (req: Request, res: Response) => {
+    const { requestId } = req.query;
+    if (!requestId) return res.status(400).json({ error: 'Missing requestId' });
+
+    const data = oAuthService.retrieveLogin(requestId as string);
+    if (data) {
+        res.json(data);
+    } else {
+        res.json({ waiting: true });
     }
 };
 
