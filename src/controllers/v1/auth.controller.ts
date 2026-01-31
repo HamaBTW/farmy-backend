@@ -22,6 +22,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
             }
         });
     } catch (error) {
+        console.error('Error in register:', error);
         next(error);
     }
 };
@@ -43,6 +44,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
             }
         });
     } catch (error) {
+        console.error('Error in login:', error);
         next(error);
     }
 };
@@ -57,6 +59,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction) =>
             message: 'Logged out successfully'
         });
     } catch (error) {
+        console.error('Error in logout:', error);
         next(error);
     }
 };
@@ -71,6 +74,7 @@ export const refresh = async (req: Request, res: Response, next: NextFunction) =
             data: tokens
         });
     } catch (error) {
+        console.error('Error in refresh:', error);
         next(error);
     }
 };
@@ -85,6 +89,7 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
             ...result
         });
     } catch (error) {
+        console.error('Error in verifyEmail:', error);
         next(error);
     }
 };
@@ -99,6 +104,7 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
             ...result
         });
     } catch (error) {
+        console.error('Error in forgotPassword:', error);
         next(error);
     }
 };
@@ -113,6 +119,7 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
             ...result
         });
     } catch (error) {
+        console.error('Error in resetPassword:', error);
         next(error);
     }
 };
@@ -127,6 +134,7 @@ export const resendVerificationCode = async (req: Request, res: Response, next: 
             ...result
         });
     } catch (error) {
+        console.error('Error in resendVerificationCode:', error);
         next(error);
     }
 };
@@ -141,6 +149,7 @@ export const resendResetCode = async (req: Request, res: Response, next: NextFun
             ...result
         });
     } catch (error) {
+        console.error('Error in resendResetCode:', error);
         next(error);
     }
 };
@@ -153,6 +162,7 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
         // ...
         // (Keep existing implementation)
     } catch (error) {
+        console.error('Error in googleLogin:', error);
         next(error);
     }
 };
@@ -256,6 +266,7 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
             }
         });
     } catch (error) {
+        console.error('Error in getProfile:', error);
         next(error);
     }
 };
@@ -293,6 +304,7 @@ export const githubLogin = async (req: Request, res: Response, next: NextFunctio
             }
         });
     } catch (error) {
+        console.error('Error in githubLogin:', error);
         next(error);
     }
 };

@@ -20,6 +20,8 @@ export const validateRequest = (schema: Joi.ObjectSchema) => {
                 message: detail.message
             }));
 
+            console.error('Validation Error:', JSON.stringify(errorMessages, null, 2));
+
             return res.status(400).json({
                 success: false,
                 error: 'Validation failed',
