@@ -71,4 +71,7 @@ export class User extends BaseEntity {
 
     @Column({ type: 'varchar', unique: true, nullable: true })
     github_id!: string | null;
+
+    @Column({ type: 'varchar', unique: true, nullable: true })
+    firebase_uid!: string | null;
 }

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../../services/v1/auth.service.js';
-import { oAuthService } from '../../services/v1/OAuthService.js';
+import { firebaseService } from '../../services/v1/FirebaseService.js';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -142,48 +142,19 @@ export const resendResetCode = async (req: Request, res: Response, next: NextFun
     }
 };
 
-export const googleLogin = async (req: Request, res: Response, next: NextFunction) => {
+export const firebaseAuth = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { idToken } = req.body;
-        const googleUser = await oAuthService.verifyGoogleToken(idToken);
-        const { user, tokens } = await authService.socialLogin(
-            'google',
-            googleUser.id,
-            googleUser.email,
-            { name: googleUser.name, picture: googleUser.picture }
+        const firebaseUser = await firebaseService.verifyFirebaseToken(idToken);
+        const { user, tokens } = await authService.firebaseLogin(
+            firebaseUser.uid,
+            firebaseUser.email,
+            { name: firebaseUser.name, picture: firebaseUser.picture }
         );
 
         res.status(200).json({
             success: true,
-            message: 'Logged in with Google successfully',
-            data: {
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    role: user.role
-                },
-                ...tokens
-            }
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-export const githubLogin = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const { accessToken } = req.body;
-        const githubUser = await oAuthService.verifyGithubToken(accessToken);
-        const { user, tokens } = await authService.socialLogin(
-            'github',
-            githubUser.id,
-            githubUser.email,
-            { name: githubUser.name, picture: githubUser.picture }
-        );
-
-        res.status(200).json({
-            success: true,
-            message: 'Logged in with GitHub successfully',
+            message: 'Firebase authentication successful',
             data: {
                 user: {
                     id: user.id,
