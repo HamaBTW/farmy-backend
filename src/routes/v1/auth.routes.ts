@@ -14,5 +14,7 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 router.post('/resend-verification', authController.resendVerificationCode);
 router.post('/resend-reset-code', authController.resendResetCode);
+router.post('/google', authController.googleLogin);
+router.post('/github', authController.githubLogin);
 
 export default router;

@@ -66,4 +66,9 @@ export class User extends BaseEntity {
     @Column({ type: 'timestamp', nullable: true })
     reset_password_code_expires!: Date | null;
 
+    @Column({ type: 'varchar', unique: true, nullable: true })
+    google_id!: string | null;
+
+    @Column({ type: 'varchar', unique: true, nullable: true })
+    github_id!: string | null;
 }

@@ -246,8 +246,54 @@
  *               email:
  *                 type: string
  *     responses:
- *       200:
- *         description: Reset code resent successfully
  *       404:
  *         description: User not found
+ */
+
+/**
+ * @swagger
+ * /v1/auth/google:
+ *   post:
+ *     summary: Authenticate with Google
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: Google authentication failed
+ */
+
+/**
+ * @swagger
+ * /v1/auth/github:
+ *   post:
+ *     summary: Authenticate with GitHub
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accessToken
+ *             properties:
+ *               accessToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: GitHub authentication failed
  */

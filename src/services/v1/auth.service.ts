@@ -232,6 +232,46 @@ class AuthService {
         await this.refreshTokenRepository.remove(refreshToken);
         return this.generateTokens(refreshToken.user);
     }
+
+    async socialLogin(provider: 'google' | 'github', providerId: string, email: string, profile: any) {
+        let user = await this.userRepository.findOne({
+            where: provider === 'google' ? { google_id: providerId } : { github_id: providerId }
+        });
+
+        if (!user) {
+            // Check if user exists with the same email
+            user = await this.userRepository.findOne({ where: { email } });
+
+            if (user) {
+                // Link the provider to the existing user
+                if (provider === 'google') user.google_id = providerId;
+                else user.github_id = providerId;
+            } else {
+                // Create a new user
+                const salt = await bcrypt.genSalt(10);
+                const randomPassword = Math.random().toString(36).slice(-10);
+                const password_hash = await bcrypt.hash(randomPassword, salt);
+
+                user = this.userRepository.create({
+                    email,
+                    password_hash,
+                    is_verified: true, // Social logins are verified by the provider
+                    role: UserRole.CUSTOMER,
+                    profile,
+                    google_id: provider === 'google' ? providerId : null,
+                    github_id: provider === 'github' ? providerId : null
+                });
+            }
+            await this.userRepository.save(user);
+        }
+
+        if (user.is_banned) {
+            throw new AppError(403, 'Your account has been banned');
+        }
+
+        const tokens = await this.generateTokens(user);
+        return { user, tokens };
+    }
 }
 
 export const authService = new AuthService();
