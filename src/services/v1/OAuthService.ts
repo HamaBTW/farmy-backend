@@ -60,6 +60,33 @@ class OAuthService {
             throw new AppError(401, 'GitHub authentication failed');
         }
     }
+
+    async getGithubAccessToken(code: string) {
+        try {
+            const response = await axios.post(
+                'https://github.com/login/oauth/access_token',
+                {
+                    client_id: process.env.GITHUB_CLIENT_ID,
+                    client_secret: process.env.GITHUB_CLIENT_SECRET,
+                    code,
+                },
+                {
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                }
+            );
+
+            if (response.data.error) {
+                throw new AppError(401, `GitHub OAuth error: ${response.data.error_description}`);
+            }
+
+            return response.data.access_token;
+        } catch (error) {
+            if (error instanceof AppError) throw error;
+            throw new AppError(401, 'Failed to exchange GitHub code');
+        }
+    }
 }
 
 export const oAuthService = new OAuthService();

@@ -2,9 +2,11 @@ import { Router } from 'express';
 import * as authController from '../../controllers/v1/auth.controller.js';
 import { validateRequest } from '../../middlewares/validation.middleware.js';
 import { registerSchema, loginSchema } from '../../validators/v1/auth.validator.js';
+import { authenticate } from '../../middlewares/auth.middleware.js';
 
 const router = Router();
 
+router.get('/me', authenticate, authController.getProfile);
 router.post('/register', validateRequest(registerSchema), authController.register);
 router.post('/login', validateRequest(loginSchema), authController.login);
 router.post('/logout', authController.logout);

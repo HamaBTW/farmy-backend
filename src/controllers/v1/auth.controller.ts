@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { authService } from '../../services/v1/auth.service.js';
 import { oAuthService } from '../../services/v1/OAuthService.js';
+import { AuthRequest } from '../../middlewares/auth.middleware.js';
+import { AppError } from '../../middlewares/error.middleware.js';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -170,9 +172,35 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
+export const getProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const user = req.user;
+        res.status(200).json({
+            success: true,
+            data: {
+                id: user?.id,
+                email: user?.email,
+                role: user?.role,
+                profile: user?.profile
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const githubLogin = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { accessToken } = req.body;
+        let { accessToken, code } = req.body;
+
+        if (code && !accessToken) {
+            accessToken = await oAuthService.getGithubAccessToken(code);
+        }
+
+        if (!accessToken) {
+            throw new AppError(400, 'GitHub access token or code is required');
+        }
+
         const githubUser = await oAuthService.verifyGithubToken(accessToken);
         const { user, tokens } = await authService.socialLogin(
             'github',
