@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import axios from 'axios';
 import { authService } from '../../services/v1/auth.service.js';
 import { oAuthService } from '../../services/v1/OAuthService.js';
 import { AuthRequest } from '../../middlewares/auth.middleware.js';
@@ -146,12 +147,30 @@ export const resendResetCode = async (req: Request, res: Response, next: NextFun
 
 export const googleLogin = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { idToken } = req.body;
-        const googleUser = await oAuthService.verifyGoogleToken(idToken);
+        const { idToken, code } = req.body;
+        let googleUser;
+
+        if (code) {
+            const accessToken = await oAuthService.getGoogleAccessToken(code);
+            const response = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            googleUser = {
+                id: response.data.sub,
+                email: response.data.email,
+                name: response.data.name,
+                picture: response.data.picture
+            };
+        } else if (idToken) {
+            googleUser = await oAuthService.verifyGoogleToken(idToken);
+        } else {
+            throw new AppError(400, 'Missing Google idToken or code');
+        }
+
         const { user, tokens } = await authService.socialLogin(
             'google',
-            googleUser.id,
-            googleUser.email,
+            googleUser.id!,
+            googleUser.email!,
             { name: googleUser.name, picture: googleUser.picture }
         );
 
