@@ -233,19 +233,21 @@ class AuthService {
         return this.generateTokens(refreshToken.user);
     }
 
-    async firebaseLogin(firebaseUid: string, email: string, profile: any) {
-        let user = await this.userRepository.findOne({ where: { firebase_uid: firebaseUid } });
+    async socialLogin(provider: 'google' | 'github', providerId: string, email: string, profile: any) {
+        let user = await this.userRepository.findOne({
+            where: provider === 'google' ? { google_id: providerId } : { github_id: providerId }
+        });
 
         if (!user) {
             // Check if user exists with the same email
             user = await this.userRepository.findOne({ where: { email } });
 
             if (user) {
-                // Link Firebase UID to existing user
-                user.firebase_uid = firebaseUid;
-                user.is_verified = true; // Mark verified as they are authenticated via Firebase
+                // Link the provider to the existing user
+                if (provider === 'google') user.google_id = providerId;
+                else user.github_id = providerId;
             } else {
-                // Create new user
+                // Create a new user
                 const salt = await bcrypt.genSalt(10);
                 const randomPassword = Math.random().toString(36).slice(-10);
                 const password_hash = await bcrypt.hash(randomPassword, salt);
@@ -253,10 +255,11 @@ class AuthService {
                 user = this.userRepository.create({
                     email,
                     password_hash,
-                    firebase_uid: firebaseUid,
-                    is_verified: true,
+                    is_verified: true, // Social logins are verified by the provider
                     role: UserRole.CUSTOMER,
-                    profile
+                    profile,
+                    google_id: provider === 'google' ? providerId : null,
+                    github_id: provider === 'github' ? providerId : null
                 });
             }
             await this.userRepository.save(user);

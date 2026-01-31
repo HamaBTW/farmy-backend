@@ -252,9 +252,9 @@
 
 /**
  * @swagger
- * /v1/auth/firebase:
+ * /v1/auth/google:
  *   post:
- *     summary: Authenticate with Firebase (FlutterFire)
+ *     summary: Authenticate with Google
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -271,5 +271,29 @@
  *       200:
  *         description: Login successful
  *       401:
- *         description: Firebase authentication failed
+ *         description: Google authentication failed
+ */
+
+/**
+ * @swagger
+ * /v1/auth/github:
+ *   post:
+ *     summary: Authenticate with GitHub
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accessToken
+ *             properties:
+ *               accessToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       401:
+ *         description: GitHub authentication failed
  */
