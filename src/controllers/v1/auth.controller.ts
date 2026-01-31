@@ -307,6 +307,9 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
                 id: user?.id,
                 email: user?.email,
                 role: user?.role,
+                is_verified: user?.is_verified,
+                is_banned: user?.is_banned,
+                auth_provider: user?.auth_provider,
                 profile: user?.profile
             }
         });
