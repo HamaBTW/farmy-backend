@@ -14,7 +14,11 @@ class AuthService {
         return Math.floor(100000 + Math.random() * 900000).toString();
     }
 
-    async generateTokens(user: User) {
+    async generateTokens(user: User, cleanupOldTokens: boolean = false) {
+        if (cleanupOldTokens) {
+            await this.refreshTokenRepository.delete({ userId: user.id });
+        }
+
         const accessToken = jwt.sign(
             { userId: user.id, role: user.role },
             process.env.JWT_SECRET!,
@@ -78,7 +82,7 @@ class AuthService {
             // But in production, you might want to handle this more strictly
         }
 
-        const tokens = await this.generateTokens(user);
+        const tokens = await this.generateTokens(user, true);
 
         return { user, tokens };
     }
@@ -205,7 +209,7 @@ class AuthService {
             throw new AppError(403, 'Please verify your email address');
         }
 
-        const tokens = await this.generateTokens(user);
+        const tokens = await this.generateTokens(user, true);
 
         return { user, tokens };
     }
@@ -269,7 +273,7 @@ class AuthService {
             throw new AppError(403, 'Your account has been banned');
         }
 
-        const tokens = await this.generateTokens(user);
+        const tokens = await this.generateTokens(user, true);
         return { user, tokens };
     }
 }
