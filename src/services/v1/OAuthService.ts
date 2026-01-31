@@ -63,6 +63,8 @@ class OAuthService {
 
     async getGithubAccessToken(code: string) {
         try {
+            console.log('DEBUG: Exchanging GitHub code:', code);
+            console.log('DEBUG: Using Redirect URI:', 'farmyapp://auth');
             const response = await axios.post(
                 'https://github.com/login/oauth/access_token',
                 {
@@ -79,12 +81,21 @@ class OAuthService {
             );
 
             if (response.data.error) {
+                console.error('DEBUG: GitHub Token Response Error Data:', response.data);
                 throw new AppError(401, `GitHub OAuth error: ${response.data.error_description}`);
             }
 
             return response.data.access_token;
         } catch (error: any) {
             console.error('GitHub Token Exchange Error:', error.response?.data || error.message);
+            if (error.response) {
+                console.error('DEBUG: Full Error Response:', {
+                    status: error.response.status,
+                    statusText: error.response.statusText,
+                    headers: error.response.headers,
+                    data: error.response.data
+                });
+            }
             if (error instanceof AppError) throw error;
             throw new AppError(401, 'Failed to exchange GitHub code');
         }
