@@ -260,8 +260,15 @@ class AuthService {
                 // Link the provider to the existing user
                 if (provider === 'google') user.google_id = providerId;
                 else user.github_id = providerId;
-                // Update auth_provider if it was email before
-                if (user.auth_provider === 'email') user.auth_provider = provider;
+
+                // Only set it if it was null/empty (unlikely) 
+                // We DON'T change 'email' to 'google'/'github' to avoid locking them out of password login
+                if (!user.auth_provider) {
+                    user.auth_provider = provider;
+                }
+
+                // Social login confirms the email is valid
+                user.is_verified = true;
             } else {
                 // Create a new user
                 const salt = await bcrypt.genSalt(10);
