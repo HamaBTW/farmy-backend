@@ -169,7 +169,7 @@ class AuthService {
     async resetPassword(email: string, code: string, newPassword: any) {
         const user = await this.userRepository.findOne({
             where: { email },
-            select: ['id', 'email', 'reset_password_code', 'reset_password_code_expires', 'password_hash']
+            select: ['id', 'email', 'reset_password_code', 'reset_password_code_expires', 'password_hash', 'auth_provider']
         });
 
         if (!user) {
@@ -184,6 +184,7 @@ class AuthService {
         user.password_hash = await bcrypt.hash(newPassword, salt);
         user.reset_password_code = null;
         user.reset_password_code_expires = null;
+        user.auth_provider = 'email';
 
         await this.userRepository.save(user);
 
