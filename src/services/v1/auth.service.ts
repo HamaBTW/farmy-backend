@@ -68,7 +68,8 @@ class AuthService {
             location,
             is_verified: false,
             verification_code: verificationCode,
-            verification_code_expires: verificationExpires
+            verification_code_expires: verificationExpires,
+            auth_provider: 'email'
         });
 
         await this.userRepository.save(user);
@@ -250,6 +251,8 @@ class AuthService {
                 // Link the provider to the existing user
                 if (provider === 'google') user.google_id = providerId;
                 else user.github_id = providerId;
+                // Update auth_provider if it was email before
+                if (user.auth_provider === 'email') user.auth_provider = provider;
             } else {
                 // Create a new user
                 const salt = await bcrypt.genSalt(10);
@@ -263,7 +266,8 @@ class AuthService {
                     role: UserRole.CUSTOMER,
                     profile,
                     google_id: provider === 'google' ? providerId : null,
-                    github_id: provider === 'github' ? providerId : null
+                    github_id: provider === 'github' ? providerId : null,
+                    auth_provider: provider
                 });
             }
             await this.userRepository.save(user);

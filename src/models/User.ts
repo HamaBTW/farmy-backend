@@ -71,4 +71,7 @@ export class User extends BaseEntity {
 
     @Column({ type: 'varchar', unique: true, nullable: true })
     github_id!: string | null;
+
+    @Column({ type: 'varchar', default: 'email' })
+    auth_provider!: string; // 'email', 'google', 'github'
 }

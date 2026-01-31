@@ -18,7 +18,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
                     email: user.email,
                     role: user.role,
                     is_verified: user.is_verified,
-                    is_banned: user.is_banned
+                    is_banned: user.is_banned,
+                    auth_provider: user.auth_provider
                 },
                 ...tokens
             }
@@ -42,7 +43,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
                     email: user.email,
                     role: user.role,
                     is_verified: user.is_verified,
-                    is_banned: user.is_banned
+                    is_banned: user.is_banned,
+                    auth_provider: user.auth_provider
                 },
                 ...tokens
             }
@@ -163,8 +165,40 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
     // ... existing googleLogin implementation
     try {
         const { idToken, code } = req.body;
-        // ...
-        // (Keep existing implementation)
+
+        let accessToken;
+        if (code && !idToken) {
+            accessToken = await oAuthService.getGoogleAccessToken(code, 'postmessage');
+        }
+
+        const tokenToVerify = idToken || accessToken;
+        if (!tokenToVerify) {
+            throw new AppError(400, 'Google ID token or code is required');
+        }
+
+        const googleUser = await oAuthService.verifyGoogleToken(tokenToVerify);
+        const { user, tokens } = await authService.socialLogin(
+            'google',
+            googleUser.id,
+            googleUser.email,
+            { name: googleUser.name, picture: googleUser.picture }
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Logged in with Google successfully',
+            data: {
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                    is_verified: user.is_verified,
+                    is_banned: user.is_banned,
+                    auth_provider: user.auth_provider
+                },
+                ...tokens
+            }
+        });
     } catch (error) {
         console.error('Error in googleLogin:', error);
         next(error);
@@ -220,7 +254,8 @@ export const googleLoginCallback = async (req: Request, res: Response, next: Nex
                     email: user.email,
                     role: user.role,
                     is_verified: user.is_verified,
-                    is_banned: user.is_banned
+                    is_banned: user.is_banned,
+                    auth_provider: user.auth_provider
                 },
                 ...tokens
             }
@@ -310,7 +345,8 @@ export const githubLogin = async (req: Request, res: Response, next: NextFunctio
                     email: user.email,
                     role: user.role,
                     is_verified: user.is_verified,
-                    is_banned: user.is_banned
+                    is_banned: user.is_banned,
+                    auth_provider: user.auth_provider
                 },
                 ...tokens
             }
