@@ -195,10 +195,19 @@ class AuthService {
 
         const user = await this.userRepository.findOne({
             where: { email },
-            select: ['id', 'email', 'password_hash', 'role', 'is_banned', 'is_verified']
+            select: ['id', 'email', 'password_hash', 'role', 'is_banned', 'is_verified', 'auth_provider']
         });
 
-        if (!user || !(await bcrypt.compare(password, user.password_hash))) {
+        if (!user) {
+            throw new AppError(401, 'Invalid email or password');
+        }
+
+        // Prevent OAuth users from logging in with password
+        if (user.auth_provider !== 'email') {
+            throw new AppError(401, `This account was created with ${user.auth_provider}. Please sign in with ${user.auth_provider}.`);
+        }
+
+        if (!(await bcrypt.compare(password, user.password_hash))) {
             throw new AppError(401, 'Invalid email or password');
         }
 
