@@ -82,7 +82,8 @@ class OAuthService {
             }
 
             return response.data.access_token;
-        } catch (error) {
+        } catch (error: any) {
+            console.error('GitHub Token Exchange Error:', error.response?.data || error.message);
             if (error instanceof AppError) throw error;
             throw new AppError(401, 'Failed to exchange GitHub code');
         }
