@@ -205,9 +205,9 @@ class AuthService {
             throw new AppError(403, 'Your account has been banned');
         }
 
-        if (!user.is_verified) {
-            throw new AppError(403, 'Please verify your email address');
-        }
+        // if (!user.is_verified) {
+        //     throw new AppError(403, 'Please verify your email address');
+        // }
 
         const tokens = await this.generateTokens(user, true);
 

@@ -16,7 +16,9 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
                 user: {
                     id: user.id,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    is_verified: user.is_verified,
+                    is_banned: user.is_banned
                 },
                 ...tokens
             }
@@ -38,7 +40,9 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
                 user: {
                     id: user.id,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    is_verified: user.is_verified,
+                    is_banned: user.is_banned
                 },
                 ...tokens
             }
@@ -211,7 +215,13 @@ export const googleLoginCallback = async (req: Request, res: Response, next: Nex
         const authData = {
             success: true,
             data: {
-                user: { id: user.id, email: user.email, role: user.role },
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                    is_verified: user.is_verified,
+                    is_banned: user.is_banned
+                },
                 ...tokens
             }
         };
@@ -298,7 +308,9 @@ export const githubLogin = async (req: Request, res: Response, next: NextFunctio
                 user: {
                     id: user.id,
                     email: user.email,
-                    role: user.role
+                    role: user.role,
+                    is_verified: user.is_verified,
+                    is_banned: user.is_banned
                 },
                 ...tokens
             }
