@@ -23,7 +23,10 @@ class OAuthService {
         try {
             const ticket = await this.googleClient.verifyIdToken({
                 idToken,
-                audience: process.env.GOOGLE_CLIENT_ID,
+                audience: [
+                    process.env.GOOGLE_CLIENT_ID!,
+                    process.env.GOOGLE_IOS_CLIENT_ID!
+                ],
             });
             const payload = ticket.getPayload();
             if (!payload) throw new AppError(401, 'Invalid Google token');
@@ -35,6 +38,7 @@ class OAuthService {
                 picture: payload.picture,
             };
         } catch (error) {
+            console.error('Verify Google Token Error:', error);
             throw new AppError(401, 'Google authentication failed');
         }
     }
