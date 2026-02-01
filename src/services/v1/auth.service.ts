@@ -213,9 +213,6 @@ class AuthService {
             throw new AppError(401, 'Invalid email or password');
         }
 
-        if (user.is_banned) {
-            throw new AppError(403, 'Your account has been banned');
-        }
 
         if (user.is_two_factor_enabled) {
             return {
@@ -265,9 +262,6 @@ class AuthService {
             throw new AppError(401, 'Invalid or expired refresh token');
         }
 
-        if (refreshToken.user.is_banned) {
-            throw new AppError(403, 'Your account has been banned');
-        }
 
         await this.refreshTokenRepository.remove(refreshToken);
         return this.generateTokens(refreshToken.user);
@@ -315,9 +309,6 @@ class AuthService {
             await this.userRepository.save(user);
         }
 
-        if (user.is_banned) {
-            throw new AppError(403, 'Your account has been banned');
-        }
 
         const tokens = await this.generateTokens(user, true);
         return { user, tokens };
