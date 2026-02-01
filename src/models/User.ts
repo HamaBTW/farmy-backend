@@ -74,4 +74,10 @@ export class User extends BaseEntity {
 
     @Column({ type: 'varchar', default: 'email' })
     auth_provider!: string; // 'email', 'google', 'github'
+
+    @Column({ type: 'varchar', nullable: true, select: false })
+    two_factor_secret!: string | null;
+
+    @Column({ type: 'boolean', default: false })
+    is_two_factor_enabled!: boolean;
 }

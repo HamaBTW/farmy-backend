@@ -5,6 +5,7 @@ import { User, UserRole } from '../../models/User.js';
 import { RefreshToken } from '../../models/RefreshToken.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { emailService } from './EmailService.js';
+import { twoFactorService } from './twoFactor.service.js';
 
 class AuthService {
     private userRepository = AppDataSource.getRepository(User);
@@ -216,9 +217,33 @@ class AuthService {
             throw new AppError(403, 'Your account has been banned');
         }
 
-        // if (!user.is_verified) {
-        //     throw new AppError(403, 'Please verify your email address');
-        // }
+        if (user.is_two_factor_enabled) {
+            return {
+                require2fa: true,
+                userId: user.id
+            };
+        }
+
+        const tokens = await this.generateTokens(user, true);
+
+        return { user, tokens };
+    }
+
+    async verify2faLogin(userId: string, token: string) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            select: ['id', 'email', 'role', 'is_banned', 'two_factor_secret', 'is_two_factor_enabled']
+        });
+
+        if (!user || !user.is_two_factor_enabled || !user.two_factor_secret) {
+            throw new AppError(400, '2FA is not enabled for this user');
+        }
+
+        const isValid = twoFactorService.verifyToken(token, user.two_factor_secret);
+
+        if (!isValid) {
+            throw new AppError(401, 'Invalid 2FA token');
+        }
 
         const tokens = await this.generateTokens(user, true);
 

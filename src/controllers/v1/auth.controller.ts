@@ -32,7 +32,20 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { user, tokens } = await authService.loginUser(req.body);
+        const result = await authService.loginUser(req.body);
+
+        if ('require2fa' in result && result.require2fa) {
+            return res.status(200).json({
+                success: true,
+                message: '2FA required',
+                data: {
+                    require2fa: true,
+                    userId: result.userId
+                }
+            });
+        }
+
+        const { user, tokens } = result as { user: any, tokens: any };
 
         res.status(200).json({
             success: true,
@@ -51,6 +64,35 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
         });
     } catch (error) {
         console.error('Error in login:', error);
+        next(error);
+    }
+};
+
+export const verify2fa = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { userId, token } = req.body;
+        if (!userId || !token) {
+            throw new AppError(400, 'UserId and token are required');
+        }
+        const { user, tokens } = await authService.verify2faLogin(userId, token);
+
+        res.status(200).json({
+            success: true,
+            message: '2FA verified successfully',
+            data: {
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                    is_verified: user.is_verified,
+                    is_banned: user.is_banned,
+                    auth_provider: user.auth_provider
+                },
+                ...tokens
+            }
+        });
+    } catch (error) {
+        console.error('Error in verify2fa:', error);
         next(error);
     }
 };
