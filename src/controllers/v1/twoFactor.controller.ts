@@ -7,7 +7,7 @@ import { AppError } from '../../middlewares/error.middleware.js';
 const userRepository = AppDataSource.getRepository(User);
 
 export const setup2FA = async (req: Request, res: Response) => {
-    const userId = (req as any).user.userId;
+    const userId = (req as any).user.id;
     const user = await userRepository.findOne({
         where: { id: userId },
         select: ['id', 'email', 'is_two_factor_enabled']
@@ -36,7 +36,7 @@ export const setup2FA = async (req: Request, res: Response) => {
 };
 
 export const verifyAndEnable2FA = async (req: Request, res: Response) => {
-    const userId = (req as any).user.userId;
+    const userId = (req as any).user.id;
     const { token } = req.body;
 
     if (!token) {
@@ -66,7 +66,7 @@ export const verifyAndEnable2FA = async (req: Request, res: Response) => {
 };
 
 export const disable2FA = async (req: Request, res: Response) => {
-    const userId = (req as any).user.userId;
+    const userId = (req as any).user.id;
     const { token } = req.body;
 
     const user = await userRepository.findOne({
