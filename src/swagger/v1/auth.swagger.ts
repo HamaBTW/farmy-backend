@@ -206,6 +206,33 @@
 
 /**
  * @swagger
+ * /v1/auth/change-password:
+ *   post:
+ *     summary: Change user password
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ */
+
+/**
+ * @swagger
  * /v1/auth/resend-verification:
  *   post:
  *     summary: Resend email verification code

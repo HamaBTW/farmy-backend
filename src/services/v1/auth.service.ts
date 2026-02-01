@@ -316,6 +316,31 @@ class AuthService {
         const tokens = await this.generateTokens(user, true);
         return { user, tokens };
     }
+    async changePassword(userId: string, oldPassword: any, newPassword: any) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            select: ['id', 'email', 'password_hash', 'auth_provider']
+        });
+
+        if (!user) {
+            throw new AppError(404, 'User not found');
+        }
+
+        if (user.auth_provider !== 'email') {
+            throw new AppError(400, `This account uses ${user.auth_provider} login. Password change is not applicable.`);
+        }
+
+        if (!(await bcrypt.compare(oldPassword, user.password_hash))) {
+            throw new AppError(400, 'Invalid old password');
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        user.password_hash = await bcrypt.hash(newPassword, salt);
+
+        await this.userRepository.save(user);
+
+        return { message: 'Password changed successfully' };
+    }
 }
 
 export const authService = new AuthService();

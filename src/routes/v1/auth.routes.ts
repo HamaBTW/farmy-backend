@@ -2,7 +2,7 @@ import { Router } from 'express';
 import * as authController from '../../controllers/v1/auth.controller.js';
 import * as twoFactorController from '../../controllers/v1/twoFactor.controller.js';
 import { validateRequest } from '../../middlewares/validation.middleware.js';
-import { registerSchema, loginSchema } from '../../validators/v1/auth.validator.js';
+import { registerSchema, loginSchema, changePasswordSchema } from '../../validators/v1/auth.validator.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -16,6 +16,7 @@ router.post('/refresh', authController.refresh);
 router.post('/verify-email', authController.verifyEmail);
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
+router.post('/change-password', authenticate, validateRequest(changePasswordSchema), authController.changePassword);
 router.post('/resend-verification', authController.resendVerificationCode);
 router.post('/resend-reset-code', authController.resendResetCode);
 router.post('/google', authController.googleLogin);
