@@ -16,3 +16,11 @@ export const loginSchema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().required()
 });
+
+export const changePasswordSchema = Joi.object({
+    oldPassword: Joi.string().required(),
+    newPassword: Joi.string().min(6).required().invalid(Joi.ref('oldPassword'))
+        .messages({
+            'any.invalid': 'New password must be different from the old password'
+        })
+});

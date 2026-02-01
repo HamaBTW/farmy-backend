@@ -447,3 +447,20 @@ export const githubLogin = async (req: Request, res: Response, next: NextFunctio
         next(error);
     }
 };
+
+export const changePassword = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const userId = req.user!.id;
+
+        const result = await authService.changePassword(userId, oldPassword, newPassword);
+
+        res.status(200).json({
+            success: true,
+            ...result
+        });
+    } catch (error) {
+        console.error('Error in changePassword:', error);
+        next(error);
+    }
+};
