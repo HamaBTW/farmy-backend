@@ -23,7 +23,6 @@ export const setup2FA = async (req: Request, res: Response) => {
 
     const secret = twoFactorService.generateSecret();
     const otpUri = twoFactorService.generateOTPUri(user.email, 'Farmy', secret);
-    const qrCodeDataUrl = await twoFactorService.generateQRCode(otpUri);
 
     // Temporarily save secret to user (not enabled yet)
     user.two_factor_secret = secret;
@@ -31,7 +30,7 @@ export const setup2FA = async (req: Request, res: Response) => {
 
     res.json({
         secret,
-        qrCode: qrCodeDataUrl
+        otpUri
     });
 };
 

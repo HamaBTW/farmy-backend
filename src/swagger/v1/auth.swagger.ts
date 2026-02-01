@@ -297,3 +297,97 @@
  *       401:
  *         description: GitHub authentication failed
  */
+
+/**
+ * @swagger
+ * /v1/auth/login/verify-2fa:
+ *   post:
+ *     summary: Verify 2FA token after initial login
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *               - token
+ *             properties:
+ *               userId:
+ *                 type: string
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 2FA verification successful, tokens returned
+ *       401:
+ *         description: Invalid 2FA token
+ */
+
+/**
+ * @swagger
+ * /v1/auth/2fa/setup:
+ *   get:
+ *     summary: Initiate 2FA setup (returns secret and otpUri)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 2FA setup details
+ *       401:
+ *         description: Not authenticated
+ */
+
+/**
+ * @swagger
+ * /v1/auth/2fa/verify:
+ *   post:
+ *     summary: Verify 2FA token and enable 2FA for the user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 2FA enabled successfully
+ *       400:
+ *         description: Invalid token or already enabled
+ */
+
+/**
+ * @swagger
+ * /v1/auth/2fa/disable:
+ *   post:
+ *     summary: Disable 2FA for the user
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *             properties:
+ *               token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: 2FA disabled successfully
+ *       400:
+ *         description: Invalid token or not enabled
+ */
