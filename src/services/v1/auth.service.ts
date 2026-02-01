@@ -197,7 +197,7 @@ class AuthService {
 
         const user = await this.userRepository.findOne({
             where: { email },
-            select: ['id', 'email', 'password_hash', 'role', 'is_banned', 'is_verified', 'auth_provider']
+            select: ['id', 'email', 'password_hash', 'role', 'is_banned', 'is_verified', 'auth_provider', 'is_two_factor_enabled']
         });
 
         if (!user) {

@@ -25,8 +25,9 @@ export const setup2FA = async (req: Request, res: Response) => {
     const otpUri = twoFactorService.generateOTPUri(user.email, 'Farmy', secret);
 
     // Temporarily save secret to user (not enabled yet)
-    user.two_factor_secret = secret;
-    await userRepository.save(user);
+    console.log('Saving 2FA secret for user:', userId);
+    await userRepository.update(userId, { two_factor_secret: secret });
+    console.log('2FA secret saved in DB');
 
     res.json({
         secret,
@@ -57,8 +58,9 @@ export const verifyAndEnable2FA = async (req: Request, res: Response) => {
         throw new AppError(400, 'Invalid 2FA token');
     }
 
-    user.is_two_factor_enabled = true;
-    await userRepository.save(user);
+    console.log('Enabling 2FA for user:', userId);
+    await userRepository.update(userId, { is_two_factor_enabled: true });
+    console.log('2FA enabled in DB');
 
     res.json({ message: '2FA enabled successfully' });
 };
@@ -82,9 +84,12 @@ export const disable2FA = async (req: Request, res: Response) => {
         throw new AppError(400, 'Invalid 2FA token');
     }
 
-    user.is_two_factor_enabled = false;
-    user.two_factor_secret = null;
-    await userRepository.save(user);
+    console.log('Disabling 2FA for user:', userId);
+    await userRepository.update(userId, {
+        is_two_factor_enabled: false,
+        two_factor_secret: null
+    });
+    console.log('2FA disabled in DB');
 
     res.json({ message: '2FA disabled successfully' });
 };

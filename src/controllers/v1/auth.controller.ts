@@ -19,7 +19,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
                     role: user.role,
                     is_verified: user.is_verified,
                     is_banned: user.is_banned,
-                    auth_provider: user.auth_provider
+                    auth_provider: user.auth_provider,
+                    is_two_factor_enabled: user.is_two_factor_enabled
                 },
                 ...tokens
             }
@@ -57,7 +58,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
                     role: user.role,
                     is_verified: user.is_verified,
                     is_banned: user.is_banned,
-                    auth_provider: user.auth_provider
+                    auth_provider: user.auth_provider,
+                    is_two_factor_enabled: user.is_two_factor_enabled
                 },
                 ...tokens
             }
@@ -86,7 +88,8 @@ export const verify2fa = async (req: Request, res: Response, next: NextFunction)
                     role: user.role,
                     is_verified: user.is_verified,
                     is_banned: user.is_banned,
-                    auth_provider: user.auth_provider
+                    auth_provider: user.auth_provider,
+                    is_two_factor_enabled: user.is_two_factor_enabled
                 },
                 ...tokens
             }
@@ -236,7 +239,8 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
                     role: user.role,
                     is_verified: user.is_verified,
                     is_banned: user.is_banned,
-                    auth_provider: user.auth_provider
+                    auth_provider: user.auth_provider,
+                    is_two_factor_enabled: user.is_two_factor_enabled
                 },
                 ...tokens
             }
@@ -297,7 +301,8 @@ export const googleLoginCallback = async (req: Request, res: Response, next: Nex
                     role: user.role,
                     is_verified: user.is_verified,
                     is_banned: user.is_banned,
-                    auth_provider: user.auth_provider
+                    auth_provider: user.auth_provider,
+                    is_two_factor_enabled: user.is_two_factor_enabled
                 },
                 ...tokens
             }
@@ -352,6 +357,7 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
                 is_verified: user?.is_verified,
                 is_banned: user?.is_banned,
                 auth_provider: user?.auth_provider,
+                is_two_factor_enabled: user?.is_two_factor_enabled,
                 profile: user?.profile
             }
         });
@@ -391,7 +397,8 @@ export const githubLogin = async (req: Request, res: Response, next: NextFunctio
                     role: user.role,
                     is_verified: user.is_verified,
                     is_banned: user.is_banned,
-                    auth_provider: user.auth_provider
+                    auth_provider: user.auth_provider,
+                    is_two_factor_enabled: user.is_two_factor_enabled
                 },
                 ...tokens
             }
