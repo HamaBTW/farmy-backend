@@ -229,7 +229,7 @@ class AuthService {
     async verify2faLogin(userId: string, token: string) {
         const user = await this.userRepository.findOne({
             where: { id: userId },
-            select: ['id', 'email', 'role', 'is_banned', 'two_factor_secret', 'is_two_factor_enabled']
+            select: ['id', 'email', 'role', 'is_banned', 'two_factor_secret', 'is_two_factor_enabled', 'is_verified', 'auth_provider']
         });
 
         if (!user || !user.is_two_factor_enabled || !user.two_factor_secret) {
