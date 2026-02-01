@@ -222,12 +222,25 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
         }
 
         const googleUser = await oAuthService.verifyGoogleToken(tokenToVerify);
-        const { user, tokens } = await authService.socialLogin(
+        const result = await authService.socialLogin(
             'google',
             googleUser.id,
             googleUser.email,
             { name: googleUser.name, picture: googleUser.picture }
         );
+
+        if ('require2fa' in result && result.require2fa) {
+            return res.status(200).json({
+                success: true,
+                message: '2FA required',
+                data: {
+                    require2fa: true,
+                    userId: result.userId
+                }
+            });
+        }
+
+        const { user, tokens } = result as { user: any, tokens: any };
 
         res.status(200).json({
             success: true,
@@ -285,28 +298,41 @@ export const googleLoginCallback = async (req: Request, res: Response, next: Nex
             picture: response.data.picture
         };
 
-        const { user, tokens } = await authService.socialLogin(
+        const result = await authService.socialLogin(
             'google',
             googleUser.id,
             googleUser.email,
             { name: googleUser.name, picture: googleUser.picture }
         );
 
-        const authData = {
-            success: true,
-            data: {
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    role: user.role,
-                    is_verified: user.is_verified,
-                    is_banned: user.is_banned,
-                    auth_provider: user.auth_provider,
-                    is_two_factor_enabled: user.is_two_factor_enabled
-                },
-                ...tokens
-            }
-        };
+        let authData;
+        if ('require2fa' in result && result.require2fa) {
+            authData = {
+                success: true,
+                message: '2FA required',
+                data: {
+                    require2fa: true,
+                    userId: result.userId
+                }
+            };
+        } else {
+            const { user, tokens } = result as { user: any, tokens: any };
+            authData = {
+                success: true,
+                data: {
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        role: user.role,
+                        is_verified: user.is_verified,
+                        is_banned: user.is_banned,
+                        auth_provider: user.auth_provider,
+                        is_two_factor_enabled: user.is_two_factor_enabled
+                    },
+                    ...tokens
+                }
+            };
+        }
 
         if (state) {
             // POLLING STRATEGY: Store data for frontend to fetch
@@ -380,12 +406,25 @@ export const githubLogin = async (req: Request, res: Response, next: NextFunctio
         }
 
         const githubUser = await oAuthService.verifyGithubToken(accessToken);
-        const { user, tokens } = await authService.socialLogin(
+        const result = await authService.socialLogin(
             'github',
             githubUser.id,
             githubUser.email,
             { name: githubUser.name, picture: githubUser.picture }
         );
+
+        if ('require2fa' in result && result.require2fa) {
+            return res.status(200).json({
+                success: true,
+                message: '2FA required',
+                data: {
+                    require2fa: true,
+                    userId: result.userId
+                }
+            });
+        }
+
+        const { user, tokens } = result as { user: any, tokens: any };
 
         res.status(200).json({
             success: true,

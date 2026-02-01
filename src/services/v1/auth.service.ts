@@ -309,6 +309,9 @@ class AuthService {
             await this.userRepository.save(user);
         }
 
+        if (user.is_two_factor_enabled) {
+            return { require2fa: true, userId: user.id };
+        }
 
         const tokens = await this.generateTokens(user, true);
         return { user, tokens };
