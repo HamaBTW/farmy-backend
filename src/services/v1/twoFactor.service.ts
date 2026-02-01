@@ -19,7 +19,8 @@ class TwoFactorService {
     }
 
     verifyToken(token: string, secret: string): boolean {
-        return Boolean(verifySync({ token, secret }));
+        const result = verifySync({ token, secret });
+        return (result as any).valid === true;
     }
 }
 
