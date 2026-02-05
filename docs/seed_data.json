@@ -1,0 +1,605 @@
+{
+    "product_types": [
+        {
+            "name": "Milk",
+            "unit": "liters",
+            "description": "Fresh dairy milk"
+        },
+        {
+            "name": "Eggs",
+            "unit": "units",
+            "description": "Farm fresh eggs"
+        },
+        {
+            "name": "Honey",
+            "unit": "kg",
+            "description": "Natural honey"
+        },
+        {
+            "name": "Wool",
+            "unit": "kg",
+            "description": "Sheep wool"
+        },
+        {
+            "name": "Meat",
+            "unit": "kg",
+            "description": "Animal meat"
+        },
+        {
+            "name": "Wheat",
+            "unit": "kg",
+            "description": "Harvested wheat grain"
+        },
+        {
+            "name": "Corn",
+            "unit": "kg",
+            "description": "Sweet corn"
+        },
+        {
+            "name": "Tomatoes",
+            "unit": "kg",
+            "description": "Fresh tomatoes"
+        },
+        {
+            "name": "Apples",
+            "unit": "units",
+            "description": "Fresh apples"
+        },
+        {
+            "name": "Olives",
+            "unit": "kg",
+            "description": "Olive fruit"
+        },
+        {
+            "name": "Wood",
+            "unit": "logs",
+            "description": "Timber logs"
+        },
+        {
+            "name": "Manure",
+            "unit": "kg",
+            "description": "Organic fertilizer"
+        }
+    ],
+    "animal_types": [
+        {
+            "name": "Cow",
+            "description": "Dairy and beef cattle",
+            "icon_url": "/icons/cow.png"
+        },
+        {
+            "name": "Chicken",
+            "description": "Poultry for eggs and meat",
+            "icon_url": "/icons/chicken.png"
+        },
+        {
+            "name": "Sheep",
+            "description": "Wool and meat production",
+            "icon_url": "/icons/sheep.png"
+        },
+        {
+            "name": "Goat",
+            "description": "Milk and meat",
+            "icon_url": "/icons/goat.png"
+        },
+        {
+            "name": "Pig",
+            "description": "Pork production",
+            "icon_url": "/icons/pig.png"
+        },
+        {
+            "name": "Bee",
+            "description": "Honey production",
+            "icon_url": "/icons/bee.png"
+        }
+    ],
+    "animal_variants": [
+        {
+            "type_name": "Cow",
+            "variant_code": "cow_dairy_jersey",
+            "base_price": 1500,
+            "attributes": {
+                "lifespan_days": 3650,
+                "feed_consumption": 5,
+                "mature_age_days": 365,
+                "size": "large",
+                "habitat": "pasture"
+            }
+        },
+        {
+            "type_name": "Cow",
+            "variant_code": "cow_dairy_holstein",
+            "base_price": 2000,
+            "attributes": {
+                "lifespan_days": 4000,
+                "feed_consumption": 6,
+                "mature_age_days": 400,
+                "size": "large",
+                "habitat": "pasture"
+            }
+        },
+        {
+            "type_name": "Chicken",
+            "variant_code": "chicken_layer",
+            "base_price": 50,
+            "attributes": {
+                "lifespan_days": 730,
+                "feed_consumption": 0.2,
+                "mature_age_days": 120,
+                "size": "small",
+                "habitat": "coop"
+            }
+        },
+        {
+            "type_name": "Chicken",
+            "variant_code": "chicken_broiler",
+            "base_price": 40,
+            "attributes": {
+                "lifespan_days": 365,
+                "feed_consumption": 0.3,
+                "mature_age_days": 60,
+                "size": "small",
+                "habitat": "coop"
+            }
+        },
+        {
+            "type_name": "Sheep",
+            "variant_code": "sheep_merino",
+            "base_price": 800,
+            "attributes": {
+                "lifespan_days": 3650,
+                "feed_consumption": 2,
+                "mature_age_days": 365,
+                "size": "medium",
+                "habitat": "pasture"
+            }
+        },
+        {
+            "type_name": "Bee",
+            "variant_code": "bee_honeybee",
+            "base_price": 300,
+            "attributes": {
+                "lifespan_days": 180,
+                "feed_consumption": 0,
+                "mature_age_days": 21,
+                "size": "small",
+                "habitat": "hive"
+            }
+        }
+    ],
+    "vegetation_types": [
+        {
+            "name": "Wheat",
+            "description": "Cereal grain crop",
+            "icon_url": "/icons/wheat.png"
+        },
+        {
+            "name": "Corn",
+            "description": "Maize crop",
+            "icon_url": "/icons/corn.png"
+        },
+        {
+            "name": "Tomato",
+            "description": "Vegetable crop",
+            "icon_url": "/icons/tomato.png"
+        },
+        {
+            "name": "Carrot",
+            "description": "Root vegetable",
+            "icon_url": "/icons/carrot.png"
+        },
+        {
+            "name": "Potato",
+            "description": "Starch crop",
+            "icon_url": "/icons/potato.png"
+        }
+    ],
+    "vegetation_variants": [
+        {
+            "type_name": "Wheat",
+            "variant_code": "wheat_winter",
+            "base_price": 10,
+            "attributes": {
+                "growth_days": 90,
+                "water_needs": 3,
+                "soil_type": "loam",
+                "planting_season": "fall",
+                "is_perennial": false
+            }
+        },
+        {
+            "type_name": "Wheat",
+            "variant_code": "wheat_spring",
+            "base_price": 12,
+            "attributes": {
+                "growth_days": 75,
+                "water_needs": 4,
+                "soil_type": "loam",
+                "planting_season": "spring",
+                "is_perennial": false
+            }
+        },
+        {
+            "type_name": "Corn",
+            "variant_code": "corn_sweet",
+            "base_price": 15,
+            "attributes": {
+                "growth_days": 80,
+                "water_needs": 5,
+                "soil_type": "loam",
+                "planting_season": "spring",
+                "is_perennial": false
+            }
+        },
+        {
+            "type_name": "Tomato",
+            "variant_code": "tomato_cherry",
+            "base_price": 20,
+            "attributes": {
+                "growth_days": 60,
+                "water_needs": 6,
+                "soil_type": "sandy",
+                "planting_season": "spring",
+                "is_perennial": false
+            }
+        }
+    ],
+    "tree_types": [
+        {
+            "name": "Apple Tree",
+            "description": "Fruit tree for apples",
+            "icon_url": "/icons/apple-tree.png"
+        },
+        {
+            "name": "Olive Tree",
+            "description": "Mediterranean olive tree",
+            "icon_url": "/icons/olive-tree.png"
+        },
+        {
+            "name": "Oak Tree",
+            "description": "Hardwood timber tree",
+            "icon_url": "/icons/oak-tree.png"
+        },
+        {
+            "name": "Pine Tree",
+            "description": "Softwood timber tree",
+            "icon_url": "/icons/pine-tree.png"
+        },
+        {
+            "name": "Orange Tree",
+            "description": "Citrus fruit tree",
+            "icon_url": "/icons/orange-tree.png"
+        }
+    ],
+    "tree_variants": [
+        {
+            "type_name": "Apple Tree",
+            "variant_code": "apple_red_delicious",
+            "base_price": 200,
+            "attributes": {
+                "growth_years": 4,
+                "harvest_season": "fall",
+                "max_height": 8,
+                "water_needs": 5,
+                "lifespan_years": 50
+            }
+        },
+        {
+            "type_name": "Apple Tree",
+            "variant_code": "apple_granny_smith",
+            "base_price": 180,
+            "attributes": {
+                "growth_years": 3,
+                "harvest_season": "fall",
+                "max_height": 6,
+                "water_needs": 4,
+                "lifespan_years": 40
+            }
+        },
+        {
+            "type_name": "Olive Tree",
+            "variant_code": "olive_kalamata",
+            "base_price": 350,
+            "attributes": {
+                "growth_years": 5,
+                "harvest_season": "fall",
+                "max_height": 10,
+                "water_needs": 3,
+                "lifespan_years": 100
+            }
+        },
+        {
+            "type_name": "Oak Tree",
+            "variant_code": "oak_english",
+            "base_price": 500,
+            "attributes": {
+                "growth_years": 20,
+                "harvest_season": "winter",
+                "max_height": 25,
+                "water_needs": 4,
+                "lifespan_years": 300
+            }
+        }
+    ],
+    "structure_types": [
+        {
+            "name": "Barn",
+            "description": "Animal housing",
+            "icon_url": "/icons/barn.png"
+        },
+        {
+            "name": "Silo",
+            "description": "Grain storage",
+            "icon_url": "/icons/silo.png"
+        },
+        {
+            "name": "Greenhouse",
+            "description": "Protected growing area",
+            "icon_url": "/icons/greenhouse.png"
+        },
+        {
+            "name": "Well",
+            "description": "Water source",
+            "icon_url": "/icons/well.png"
+        },
+        {
+            "name": "Fence",
+            "description": "Land boundary",
+            "icon_url": "/icons/fence.png"
+        }
+    ],
+    "structure_variants": [
+        {
+            "type_name": "Barn",
+            "variant_code": "barn_small",
+            "base_price": 5000,
+            "attributes": {
+                "capacity": 10,
+                "durability": 100,
+                "size_width": 4,
+                "size_height": 4,
+                "upgrade_level": 1,
+                "max_upgrade": 3
+            }
+        },
+        {
+            "type_name": "Barn",
+            "variant_code": "barn_large",
+            "base_price": 15000,
+            "attributes": {
+                "capacity": 30,
+                "durability": 150,
+                "size_width": 6,
+                "size_height": 6,
+                "upgrade_level": 1,
+                "max_upgrade": 3
+            }
+        },
+        {
+            "type_name": "Silo",
+            "variant_code": "silo_grain",
+            "base_price": 3000,
+            "attributes": {
+                "capacity": 1000,
+                "durability": 100,
+                "size_width": 2,
+                "size_height": 2,
+                "upgrade_level": 1,
+                "max_upgrade": 5
+            }
+        },
+        {
+            "type_name": "Greenhouse",
+            "variant_code": "greenhouse_basic",
+            "base_price": 8000,
+            "attributes": {
+                "capacity": 20,
+                "durability": 80,
+                "size_width": 5,
+                "size_height": 3,
+                "upgrade_level": 1,
+                "max_upgrade": 3
+            }
+        }
+    ],
+    "machine_types": [
+        {
+            "name": "Tractor",
+            "description": "Multi-purpose farm vehicle",
+            "icon_url": "/icons/tractor.png"
+        },
+        {
+            "name": "Harvester",
+            "description": "Crop harvesting machine",
+            "icon_url": "/icons/harvester.png"
+        },
+        {
+            "name": "Irrigation System",
+            "description": "Automated watering",
+            "icon_url": "/icons/irrigation.png"
+        },
+        {
+            "name": "Plow",
+            "description": "Soil preparation",
+            "icon_url": "/icons/plow.png"
+        }
+    ],
+    "machine_variants": [
+        {
+            "type_name": "Tractor",
+            "variant_code": "tractor_basic",
+            "base_price": 25000,
+            "attributes": {
+                "speed": 1.0,
+                "efficiency": 70,
+                "fuel_type": "diesel",
+                "fuel_consumption": 5,
+                "durability": 100
+            }
+        },
+        {
+            "type_name": "Tractor",
+            "variant_code": "tractor_advanced",
+            "base_price": 50000,
+            "attributes": {
+                "speed": 1.5,
+                "efficiency": 90,
+                "fuel_type": "diesel",
+                "fuel_consumption": 7,
+                "durability": 150
+            }
+        },
+        {
+            "type_name": "Harvester",
+            "variant_code": "harvester_wheat",
+            "base_price": 80000,
+            "attributes": {
+                "speed": 0.8,
+                "efficiency": 95,
+                "fuel_type": "diesel",
+                "fuel_consumption": 10,
+                "durability": 120
+            }
+        },
+        {
+            "type_name": "Irrigation System",
+            "variant_code": "irrigation_drip",
+            "base_price": 5000,
+            "attributes": {
+                "speed": 1.0,
+                "efficiency": 90,
+                "fuel_type": "electric",
+                "fuel_consumption": 2,
+                "durability": 80
+            }
+        }
+    ],
+    "asset_productions": [
+        {
+            "variant_code": "cow_dairy_jersey",
+            "product_name": "Milk",
+            "rate_per_cycle": 15,
+            "cycle_days": 1,
+            "on_harvest_only": false
+        },
+        {
+            "variant_code": "cow_dairy_jersey",
+            "product_name": "Manure",
+            "rate_per_cycle": 5,
+            "cycle_days": 1,
+            "on_harvest_only": false
+        },
+        {
+            "variant_code": "cow_dairy_jersey",
+            "product_name": "Meat",
+            "rate_per_cycle": 200,
+            "cycle_days": 1,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "cow_dairy_holstein",
+            "product_name": "Milk",
+            "rate_per_cycle": 25,
+            "cycle_days": 1,
+            "on_harvest_only": false
+        },
+        {
+            "variant_code": "cow_dairy_holstein",
+            "product_name": "Meat",
+            "rate_per_cycle": 250,
+            "cycle_days": 1,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "chicken_layer",
+            "product_name": "Eggs",
+            "rate_per_cycle": 1,
+            "cycle_days": 1,
+            "on_harvest_only": false
+        },
+        {
+            "variant_code": "chicken_broiler",
+            "product_name": "Meat",
+            "rate_per_cycle": 2,
+            "cycle_days": 1,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "sheep_merino",
+            "product_name": "Wool",
+            "rate_per_cycle": 5,
+            "cycle_days": 90,
+            "on_harvest_only": false
+        },
+        {
+            "variant_code": "sheep_merino",
+            "product_name": "Meat",
+            "rate_per_cycle": 40,
+            "cycle_days": 1,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "bee_honeybee",
+            "product_name": "Honey",
+            "rate_per_cycle": 2,
+            "cycle_days": 30,
+            "on_harvest_only": false
+        },
+        {
+            "variant_code": "wheat_winter",
+            "product_name": "Wheat",
+            "rate_per_cycle": 50,
+            "cycle_days": 90,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "wheat_spring",
+            "product_name": "Wheat",
+            "rate_per_cycle": 40,
+            "cycle_days": 75,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "corn_sweet",
+            "product_name": "Corn",
+            "rate_per_cycle": 30,
+            "cycle_days": 80,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "tomato_cherry",
+            "product_name": "Tomatoes",
+            "rate_per_cycle": 10,
+            "cycle_days": 7,
+            "on_harvest_only": false
+        },
+        {
+            "variant_code": "apple_red_delicious",
+            "product_name": "Apples",
+            "rate_per_cycle": 100,
+            "cycle_days": 365,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "apple_granny_smith",
+            "product_name": "Apples",
+            "rate_per_cycle": 80,
+            "cycle_days": 365,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "olive_kalamata",
+            "product_name": "Olives",
+            "rate_per_cycle": 50,
+            "cycle_days": 365,
+            "on_harvest_only": true
+        },
+        {
+            "variant_code": "oak_english",
+            "product_name": "Wood",
+            "rate_per_cycle": 20,
+            "cycle_days": 365,
+            "on_harvest_only": true
+        }
+    ]
+}
