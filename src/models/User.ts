@@ -1,6 +1,13 @@
 import { Entity, Column } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 
+export enum KYCStatus {
+    NONE = 'none',
+    PENDING = 'pending',
+    APPROVED = 'approved',
+    REJECTED = 'rejected'
+}
+
 export enum UserRole {
     FARMER = 'farmer',
     INVESTOR = 'investor',
@@ -80,4 +87,26 @@ export class User extends BaseEntity {
 
     @Column({ type: 'boolean', default: false })
     is_two_factor_enabled!: boolean;
+
+    @Column({
+        type: 'enum',
+        enum: KYCStatus,
+        default: KYCStatus.NONE
+    })
+    kyc_status!: KYCStatus;
+
+    @Column({ type: 'varchar', nullable: true })
+    kyc_session_id!: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    kyc_role_requested!: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    kyc_front_image!: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    kyc_back_image!: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    kyc_selfie_image!: string | null;
 }
