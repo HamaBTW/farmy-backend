@@ -26,3 +26,4 @@ export { PlacedItem } from './PlacedItem.js';
 // Core Entities
 export { User } from './User.js';
 export { Land } from './Land.js';
+export { LandRental, PaymentStatus } from './LandRental.js';
