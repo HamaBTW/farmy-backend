@@ -1,28 +1,28 @@
-// Base entities
-export * from './BaseEntity.js';
-export * from './User.js';
-export * from './RefreshToken.js';
-export * from './Land.js';
+// Asset Category and Status Enums
+export { AssetCategory, ItemRequestStatus } from './AssetCategory.js';
 
-// Asset categories and enums
-export * from './AssetCategory.js';
+// Asset Types
+export { AnimalType } from './AnimalType.js';
+export { VegetationType } from './VegetationType.js';
+export { TreeType } from './TreeType.js';
+export { StructureType } from './StructureType.js';
+export { MachineType } from './MachineType.js';
 
-// Animal types and variants
-export * from './AnimalType.js';
-export * from './AnimalVariant.js';
+// Asset Variants
+export { AnimalVariant } from './AnimalVariant.js';
+export { VegetationVariant } from './VegetationVariant.js';
+export { TreeVariant } from './TreeVariant.js';
+export { StructureVariant } from './StructureVariant.js';
+export { MachineVariant } from './MachineVariant.js';
 
-// Vegetation types and variants
-export * from './VegetationType.js';
-export * from './VegetationVariant.js';
+// Production System
+export { ProductType } from './ProductType.js';
+export { AssetProduction } from './AssetProduction.js';
 
-// Structure types and variants
-export * from './StructureType.js';
-export * from './StructureVariant.js';
+// Requests and Placement
+export { ItemRequest } from './ItemRequest.js';
+export { PlacedItem } from './PlacedItem.js';
 
-// Machine types and variants
-export * from './MachineType.js';
-export * from './MachineVariant.js';
-
-// Item requests and placed items
-export * from './ItemRequest.js';
-export * from './PlacedItem.js';
+// Core Entities
+export { User } from './User.js';
+export { Land } from './Land.js';

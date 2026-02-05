@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../config/db.config.js';
 import { AnimalVariant } from '../../models/AnimalVariant.js';
 import { VegetationVariant } from '../../models/VegetationVariant.js';
+import { TreeVariant } from '../../models/TreeVariant.js';
 import { StructureVariant } from '../../models/StructureVariant.js';
 import { MachineVariant } from '../../models/MachineVariant.js';
 import { AssetCategory } from '../../models/AssetCategory.js';
@@ -13,27 +14,12 @@ interface CreateVariantData {
     base_price: number;
     attributes?: Record<string, any>;
     image_url?: string;
-    // Animal specific
-    age?: number;
-    milk_production?: number;
-    meat_yield?: number;
-    // Vegetation specific
-    growth_days?: number;
-    yield_amount?: number;
-    water_needs?: number;
-    // Structure specific
-    capacity?: number;
-    durability?: number;
-    upgrade_level?: number;
-    // Machine specific
-    speed?: number;
-    efficiency?: number;
-    fuel_consumption?: number;
 }
 
 class AssetVariantService {
     private animalVariantRepo = AppDataSource.getRepository(AnimalVariant);
     private vegetationVariantRepo = AppDataSource.getRepository(VegetationVariant);
+    private treeVariantRepo = AppDataSource.getRepository(TreeVariant);
     private structureVariantRepo = AppDataSource.getRepository(StructureVariant);
     private machineVariantRepo = AppDataSource.getRepository(MachineVariant);
 
@@ -43,6 +29,8 @@ class AssetVariantService {
                 return this.animalVariantRepo;
             case AssetCategory.VEGETATION:
                 return this.vegetationVariantRepo;
+            case AssetCategory.TREE:
+                return this.treeVariantRepo;
             case AssetCategory.STRUCTURE:
                 return this.structureVariantRepo;
             case AssetCategory.MACHINE:

@@ -4,6 +4,7 @@
 export enum AssetCategory {
     ANIMAL = 'animal',
     VEGETATION = 'vegetation',
+    TREE = 'tree',
     STRUCTURE = 'structure',
     MACHINE = 'machine'
 }

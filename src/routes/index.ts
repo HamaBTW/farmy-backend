@@ -4,6 +4,7 @@ import kycRoutesV1 from './v1/kyc.routes.js';
 import assetRoutesV1 from './v1/asset.routes.js';
 import landRoutesV1 from './v1/land.routes.js';
 import itemRequestRoutesV1 from './v1/itemRequest.routes.js';
+import productionRoutesV1 from './v1/production.routes.js';
 
 const router = Router();
 console.log('Registering /v1/auth routes');
@@ -22,5 +23,9 @@ router.use('/v1/lands', landRoutesV1);
 console.log('Registering /v1/item-requests routes');
 router.use('/v1/item-requests', itemRequestRoutesV1);
 
+console.log('Registering /v1/production routes');
+router.use('/v1/production', productionRoutesV1);
+
 export default router;
+
 

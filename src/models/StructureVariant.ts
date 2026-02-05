@@ -7,30 +7,28 @@ export class StructureVariant extends BaseEntity {
     @Column({ type: 'uuid' })
     type_id!: string;
 
-    @ManyToOne(() => StructureType, (type) => type.variants, { onDelete: 'CASCADE' })
+    @ManyToOne(() => StructureType, (type) => type.variants)
     @JoinColumn({ name: 'type_id' })
     type!: StructureType;
 
-    @Column({ type: 'varchar', unique: true })
+    @Column({ type: 'varchar', length: 50, unique: true })
     variant_code!: string;
 
-    @Column({ type: 'int', default: 0 })
-    capacity!: number;
-
-    @Column({ type: 'int', default: 100 })
-    durability!: number;
-
-    @Column({ type: 'int', default: 1 })
-    upgrade_level!: number;
-
-    @Column({ type: 'json', nullable: true })
-    attributes!: Record<string, any> | null;
-
-    @Column({ type: 'decimal', precision: 12, scale: 2 })
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
+    @Column({ type: 'json', nullable: true })
+    attributes?: {
+        capacity?: number;          // Storage/housing capacity
+        durability?: number;        // Health/durability points
+        size_width?: number;        // Grid width
+        size_height?: number;       // Grid height
+        upgrade_level?: number;     // Current upgrade level
+        max_upgrade?: number;       // Maximum upgrade possible
+    };
+
     @Column({ type: 'varchar', nullable: true })
-    image_url!: string | null;
+    image_url?: string;
 
     @Column({ type: 'boolean', default: true })
     is_available!: boolean;

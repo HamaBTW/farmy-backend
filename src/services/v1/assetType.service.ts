@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../config/db.config.js';
 import { AnimalType } from '../../models/AnimalType.js';
 import { VegetationType } from '../../models/VegetationType.js';
+import { TreeType } from '../../models/TreeType.js';
 import { StructureType } from '../../models/StructureType.js';
 import { MachineType } from '../../models/MachineType.js';
 import { AssetCategory } from '../../models/AssetCategory.js';
@@ -9,6 +10,7 @@ import { AppError } from '../../middlewares/error.middleware.js';
 class AssetTypeService {
     private animalTypeRepo = AppDataSource.getRepository(AnimalType);
     private vegetationTypeRepo = AppDataSource.getRepository(VegetationType);
+    private treeTypeRepo = AppDataSource.getRepository(TreeType);
     private structureTypeRepo = AppDataSource.getRepository(StructureType);
     private machineTypeRepo = AppDataSource.getRepository(MachineType);
 
@@ -18,6 +20,8 @@ class AssetTypeService {
                 return this.animalTypeRepo;
             case AssetCategory.VEGETATION:
                 return this.vegetationTypeRepo;
+            case AssetCategory.TREE:
+                return this.treeTypeRepo;
             case AssetCategory.STRUCTURE:
                 return this.structureTypeRepo;
             case AssetCategory.MACHINE:

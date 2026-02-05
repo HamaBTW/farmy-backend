@@ -7,30 +7,27 @@ export class AnimalVariant extends BaseEntity {
     @Column({ type: 'uuid' })
     type_id!: string;
 
-    @ManyToOne(() => AnimalType, (type) => type.variants, { onDelete: 'CASCADE' })
+    @ManyToOne(() => AnimalType, (type) => type.variants)
     @JoinColumn({ name: 'type_id' })
     type!: AnimalType;
 
-    @Column({ type: 'varchar', unique: true })
-    variant_code!: string; // e.g., cow1, cow2
+    @Column({ type: 'varchar', length: 50, unique: true })
+    variant_code!: string;
 
-    @Column({ type: 'int', default: 0 })
-    age!: number;
-
-    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-    milk_production!: number;
-
-    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
-    meat_yield!: number;
-
-    @Column({ type: 'json', nullable: true })
-    attributes!: Record<string, any> | null;
-
-    @Column({ type: 'decimal', precision: 12, scale: 2 })
+    @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
+    @Column({ type: 'json', nullable: true })
+    attributes?: {
+        lifespan_days?: number;     // Animal lifespan in days
+        feed_consumption?: number;  // Daily feed units required
+        mature_age_days?: number;   // Days until mature/producing
+        size?: string;              // small, medium, large
+        habitat?: string;           // barn, coop, pasture, etc.
+    };
+
     @Column({ type: 'varchar', nullable: true })
-    image_url!: string | null;
+    image_url?: string;
 
     @Column({ type: 'boolean', default: true })
     is_available!: boolean;

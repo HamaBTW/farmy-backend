@@ -1,6 +1,6 @@
 import Joi from 'joi';
 
-const assetCategories = ['animal', 'vegetation', 'structure', 'machine'];
+const assetCategories = ['animal', 'vegetation', 'tree', 'structure', 'machine'];
 
 // Asset Type schemas
 export const createAssetTypeSchema = Joi.object({
@@ -16,47 +16,11 @@ export const updateAssetTypeSchema = Joi.object({
     is_active: Joi.boolean().optional()
 });
 
-// Asset Variant schemas
-export const createAnimalVariantSchema = Joi.object({
+// Unified Variant schema (all categories use attributes JSON)
+export const createVariantSchema = Joi.object({
     type_id: Joi.string().uuid().required(),
     variant_code: Joi.string().min(2).max(50).required(),
     base_price: Joi.number().positive().required(),
-    age: Joi.number().integer().min(0).optional(),
-    milk_production: Joi.number().min(0).optional(),
-    meat_yield: Joi.number().min(0).optional(),
-    attributes: Joi.object().optional(),
-    image_url: Joi.string().uri().optional()
-});
-
-export const createVegetationVariantSchema = Joi.object({
-    type_id: Joi.string().uuid().required(),
-    variant_code: Joi.string().min(2).max(50).required(),
-    base_price: Joi.number().positive().required(),
-    growth_days: Joi.number().integer().min(1).optional(),
-    yield_amount: Joi.number().min(0).optional(),
-    water_needs: Joi.number().min(0).optional(),
-    attributes: Joi.object().optional(),
-    image_url: Joi.string().uri().optional()
-});
-
-export const createStructureVariantSchema = Joi.object({
-    type_id: Joi.string().uuid().required(),
-    variant_code: Joi.string().min(2).max(50).required(),
-    base_price: Joi.number().positive().required(),
-    capacity: Joi.number().integer().min(0).optional(),
-    durability: Joi.number().integer().min(0).max(100).optional(),
-    upgrade_level: Joi.number().integer().min(1).optional(),
-    attributes: Joi.object().optional(),
-    image_url: Joi.string().uri().optional()
-});
-
-export const createMachineVariantSchema = Joi.object({
-    type_id: Joi.string().uuid().required(),
-    variant_code: Joi.string().min(2).max(50).required(),
-    base_price: Joi.number().positive().required(),
-    speed: Joi.number().min(0).optional(),
-    efficiency: Joi.number().min(0).optional(),
-    fuel_consumption: Joi.number().min(0).optional(),
     attributes: Joi.object().optional(),
     image_url: Joi.string().uri().optional()
 });
@@ -65,21 +29,43 @@ export const updateVariantSchema = Joi.object({
     type_id: Joi.string().uuid().optional(),
     variant_code: Joi.string().min(2).max(50).optional(),
     base_price: Joi.number().positive().optional(),
-    age: Joi.number().integer().min(0).optional(),
-    milk_production: Joi.number().min(0).optional(),
-    meat_yield: Joi.number().min(0).optional(),
-    growth_days: Joi.number().integer().min(1).optional(),
-    yield_amount: Joi.number().min(0).optional(),
-    water_needs: Joi.number().min(0).optional(),
-    capacity: Joi.number().integer().min(0).optional(),
-    durability: Joi.number().integer().min(0).max(100).optional(),
-    upgrade_level: Joi.number().integer().min(1).optional(),
-    speed: Joi.number().min(0).optional(),
-    efficiency: Joi.number().min(0).optional(),
-    fuel_consumption: Joi.number().min(0).optional(),
     attributes: Joi.object().optional().allow(null),
     image_url: Joi.string().uri().optional().allow(null),
     is_available: Joi.boolean().optional()
+});
+
+// Product Type schemas
+export const createProductTypeSchema = Joi.object({
+    name: Joi.string().min(2).max(100).required(),
+    unit: Joi.string().min(1).max(50).required(),
+    description: Joi.string().max(500).optional(),
+    icon_url: Joi.string().uri().optional()
+});
+
+export const updateProductTypeSchema = Joi.object({
+    name: Joi.string().min(2).max(100).optional(),
+    unit: Joi.string().min(1).max(50).optional(),
+    description: Joi.string().max(500).optional().allow(null),
+    icon_url: Joi.string().uri().optional().allow(null),
+    is_active: Joi.boolean().optional()
+});
+
+// Asset Production schemas
+export const addProductionSchema = Joi.object({
+    product_id: Joi.string().uuid().required(),
+    rate_per_cycle: Joi.number().min(0).required(),
+    cycle_days: Joi.number().integer().min(1).optional(),
+    on_harvest_only: Joi.boolean().optional(),
+    min_level: Joi.number().integer().min(0).optional(),
+    conditions: Joi.object().optional()
+});
+
+export const updateProductionSchema = Joi.object({
+    rate_per_cycle: Joi.number().min(0).optional(),
+    cycle_days: Joi.number().integer().min(1).optional(),
+    on_harvest_only: Joi.boolean().optional(),
+    min_level: Joi.number().integer().min(0).optional(),
+    conditions: Joi.object().optional().allow(null)
 });
 
 // Land schemas
