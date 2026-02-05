@@ -3,6 +3,7 @@ import authRoutesV1 from './v1/auth.routes.js';
 import kycRoutesV1 from './v1/kyc.routes.js';
 import assetRoutesV1 from './v1/asset.routes.js';
 import landRoutesV1 from './v1/land.routes.js';
+import landRentalRoutesV1 from './v1/landRental.routes.js';
 import itemRequestRoutesV1 from './v1/itemRequest.routes.js';
 import productionRoutesV1 from './v1/production.routes.js';
 
@@ -19,6 +20,9 @@ router.use('/v1/assets', assetRoutesV1);
 
 console.log('Registering /v1/lands routes');
 router.use('/v1/lands', landRoutesV1);
+
+console.log('Registering /v1/land-rentals routes');
+router.use('/v1/land-rentals', landRentalRoutesV1);
 
 console.log('Registering /v1/item-requests routes');
 router.use('/v1/item-requests', itemRequestRoutesV1);
