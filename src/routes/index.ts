@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import authRoutesV1 from './v1/auth.routes.js';
-
 import kycRoutesV1 from './v1/kyc.routes.js';
+import assetRoutesV1 from './v1/asset.routes.js';
+import landRoutesV1 from './v1/land.routes.js';
+import itemRequestRoutesV1 from './v1/itemRequest.routes.js';
 
 const router = Router();
 console.log('Registering /v1/auth routes');
@@ -11,4 +13,14 @@ router.use('/v1/auth', authRoutesV1);
 console.log('Registering /v1/kyc routes');
 router.use('/v1/kyc', kycRoutesV1);
 
+console.log('Registering /v1/assets routes');
+router.use('/v1/assets', assetRoutesV1);
+
+console.log('Registering /v1/lands routes');
+router.use('/v1/lands', landRoutesV1);
+
+console.log('Registering /v1/item-requests routes');
+router.use('/v1/item-requests', itemRequestRoutesV1);
+
 export default router;
+
