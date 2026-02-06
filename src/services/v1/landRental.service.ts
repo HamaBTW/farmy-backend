@@ -88,9 +88,14 @@ class LandRentalService {
     });
   }
 
-  async findByInvestor(investorId: string) {
+  async findByInvestor(investorId: string, paymentStatus?: PaymentStatus) {
+    const where: any = { investor_id: investorId };
+    if (paymentStatus) {
+      where.payment_status = paymentStatus;
+    }
+
     return this.rentalRepo.find({
-      where: { investor_id: investorId },
+      where,
       relations: ['land', 'land.owner'],
       order: { rental_start_date: 'DESC' }
     });

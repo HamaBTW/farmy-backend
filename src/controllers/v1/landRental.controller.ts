@@ -64,7 +64,8 @@ export const getMyRentalsAsOwner = async (req: AuthRequest, res: Response, next:
 
 export const getMyRentalsAsInvestor = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    const result = await landRentalService.findByInvestor(req.user!.id);
+    const paymentStatus = req.query.payment_status as PaymentStatus | undefined;
+    const result = await landRentalService.findByInvestor(req.user!.id, paymentStatus);
 
     res.status(200).json({
       success: true,
