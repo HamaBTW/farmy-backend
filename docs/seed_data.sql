@@ -30,12 +30,12 @@ INSERT INTO animal_types (id, name, description, icon_url, is_active, createdAt,
 ('22222222-2222-2222-2222-222222222006', 'Bee', 'Honey production', '/icons/bee.png', 1, NOW(), NOW());
 
 INSERT INTO animal_variants (id, type_id, variant_code, base_price, attributes, image_url, is_available, createdAt, updatedAt) VALUES
-('33333333-3333-3333-3333-333333333001', '22222222-2222-2222-2222-222222222001', 'cow_dairy_jersey', 1500.00, '{"lifespan_days": 3650, "feed_consumption": 5, "mature_age_days": 365, "size": "large", "habitat": "pasture"}', '/images/cow_jersey.png', 1, NOW(), NOW()),
-('33333333-3333-3333-3333-333333333002', '22222222-2222-2222-2222-222222222001', 'cow_dairy_holstein', 2000.00, '{"lifespan_days": 4000, "feed_consumption": 6, "mature_age_days": 400, "size": "large", "habitat": "pasture"}', '/images/cow_holstein.png', 1, NOW(), NOW()),
-('33333333-3333-3333-3333-333333333003', '22222222-2222-2222-2222-222222222002', 'chicken_layer', 50.00, '{"lifespan_days": 730, "feed_consumption": 0.2, "mature_age_days": 120, "size": "small", "habitat": "coop"}', '/images/chicken_layer.png', 1, NOW(), NOW()),
-('33333333-3333-3333-3333-333333333004', '22222222-2222-2222-2222-222222222002', 'chicken_broiler', 40.00, '{"lifespan_days": 365, "feed_consumption": 0.3, "mature_age_days": 60, "size": "small", "habitat": "coop"}', '/images/chicken_broiler.png', 1, NOW(), NOW()),
-('33333333-3333-3333-3333-333333333005', '22222222-2222-2222-2222-222222222003', 'sheep_merino', 800.00, '{"lifespan_days": 3650, "feed_consumption": 2, "mature_age_days": 365, "size": "medium", "habitat": "pasture"}', '/images/sheep_merino.png', 1, NOW(), NOW()),
-('33333333-3333-3333-3333-333333333006', '22222222-2222-2222-2222-222222222006', 'bee_honeybee', 300.00, '{"lifespan_days": 180, "feed_consumption": 0, "mature_age_days": 21, "size": "small", "habitat": "hive"}', '/images/bee_hive.png', 1, NOW(), NOW());
+('33333333-3333-3333-3333-333333333001', '22222222-2222-2222-2222-222222222001', 'cow_dairy_jersey', 1500.00, '{"lifespan_days": 3650, "feed_consumption": 5, "mature_age_days": 365, "size_width": 2, "size_height": 2, "habitat": "pasture"}', '/images/cow_jersey.png', 1, NOW(), NOW()),
+('33333333-3333-3333-3333-333333333002', '22222222-2222-2222-2222-222222222001', 'cow_dairy_holstein', 2000.00, '{"lifespan_days": 4000, "feed_consumption": 6, "mature_age_days": 400, "size_width": 2, "size_height": 2, "habitat": "pasture"}', '/images/cow_holstein.png', 1, NOW(), NOW()),
+('33333333-3333-3333-3333-333333333003', '22222222-2222-2222-2222-222222222002', 'chicken_layer', 50.00, '{"lifespan_days": 730, "feed_consumption": 0.2, "mature_age_days": 120, "size_width": 1, "size_height": 1, "habitat": "coop"}', '/images/chicken_layer.png', 1, NOW(), NOW()),
+('33333333-3333-3333-3333-333333333004', '22222222-2222-2222-2222-222222222002', 'chicken_broiler', 40.00, '{"lifespan_days": 365, "feed_consumption": 0.3, "mature_age_days": 60, "size_width": 1, "size_height": 1, "habitat": "coop"}', '/images/chicken_broiler.png', 1, NOW(), NOW()),
+('33333333-3333-3333-3333-333333333005', '22222222-2222-2222-2222-222222222003', 'sheep_merino', 800.00, '{"lifespan_days": 3650, "feed_consumption": 2, "mature_age_days": 365, "size_width": 2, "size_height": 1, "habitat": "pasture"}', '/images/sheep_merino.png', 1, NOW(), NOW()),
+('33333333-3333-3333-3333-333333333006', '22222222-2222-2222-2222-222222222006', 'bee_honeybee', 300.00, '{"lifespan_days": 180, "feed_consumption": 0, "mature_age_days": 21, "size_width": 1, "size_height": 1, "habitat": "hive"}', '/images/bee_hive.png', 1, NOW(), NOW());
 
 -- ============================================
 -- VEGETATION TYPES & VARIANTS
@@ -48,10 +48,10 @@ INSERT INTO vegetation_types (id, name, description, icon_url, is_active, create
 ('44444444-4444-4444-4444-444444444005', 'Potato', 'Starch crop', '/icons/potato.png', 1, NOW(), NOW());
 
 INSERT INTO vegetation_variants (id, type_id, variant_code, base_price, attributes, image_url, is_available, createdAt, updatedAt) VALUES
-('55555555-5555-5555-5555-555555555001', '44444444-4444-4444-4444-444444444001', 'wheat_winter', 10.00, '{"growth_days": 90, "water_needs": 3, "soil_type": "loam", "planting_season": "fall", "is_perennial": false}', '/images/wheat_winter.png', 1, NOW(), NOW()),
-('55555555-5555-5555-5555-555555555002', '44444444-4444-4444-4444-444444444001', 'wheat_spring', 12.00, '{"growth_days": 75, "water_needs": 4, "soil_type": "loam", "planting_season": "spring", "is_perennial": false}', '/images/wheat_spring.png', 1, NOW(), NOW()),
-('55555555-5555-5555-5555-555555555003', '44444444-4444-4444-4444-444444444002', 'corn_sweet', 15.00, '{"growth_days": 80, "water_needs": 5, "soil_type": "loam", "planting_season": "spring", "is_perennial": false}', '/images/corn_sweet.png', 1, NOW(), NOW()),
-('55555555-5555-5555-5555-555555555004', '44444444-4444-4444-4444-444444444003', 'tomato_cherry', 20.00, '{"growth_days": 60, "water_needs": 6, "soil_type": "sandy", "planting_season": "spring", "is_perennial": false}', '/images/tomato_cherry.png', 1, NOW(), NOW());
+('55555555-5555-5555-5555-555555555001', '44444444-4444-4444-4444-444444444001', 'wheat_winter', 10.00, '{"growth_days": 90, "water_needs": 3, "soil_type": "loam", "planting_season": "fall", "size_width": 1, "size_height": 1, "is_perennial": false}', '/images/wheat_winter.png', 1, NOW(), NOW()),
+('55555555-5555-5555-5555-555555555002', '44444444-4444-4444-4444-444444444001', 'wheat_spring', 12.00, '{"growth_days": 75, "water_needs": 4, "soil_type": "loam", "planting_season": "spring", "size_width": 1, "size_height": 1, "is_perennial": false}', '/images/wheat_spring.png', 1, NOW(), NOW()),
+('55555555-5555-5555-5555-555555555003', '44444444-4444-4444-4444-444444444002', 'corn_sweet', 15.00, '{"growth_days": 80, "water_needs": 5, "soil_type": "loam", "planting_season": "spring", "size_width": 1, "size_height": 1, "is_perennial": false}', '/images/corn_sweet.png', 1, NOW(), NOW()),
+('55555555-5555-5555-5555-555555555004', '44444444-4444-4444-4444-444444444003', 'tomato_cherry', 20.00, '{"growth_days": 60, "water_needs": 6, "soil_type": "sandy", "planting_season": "spring", "size_width": 1, "size_height": 1, "is_perennial": false}', '/images/tomato_cherry.png', 1, NOW(), NOW());
 
 -- ============================================
 -- TREE TYPES & VARIANTS
@@ -64,10 +64,10 @@ INSERT INTO tree_types (id, name, description, icon_url, is_active, createdAt, u
 ('66666666-6666-6666-6666-666666666005', 'Orange Tree', 'Citrus fruit tree', '/icons/orange-tree.png', 1, NOW(), NOW());
 
 INSERT INTO tree_variants (id, type_id, variant_code, base_price, attributes, image_url, is_available, createdAt, updatedAt) VALUES
-('77777777-7777-7777-7777-777777777001', '66666666-6666-6666-6666-666666666001', 'apple_red_delicious', 200.00, '{"growth_years": 4, "harvest_season": "fall", "max_height": 8, "water_needs": 5, "lifespan_years": 50}', '/images/apple_red.png', 1, NOW(), NOW()),
-('77777777-7777-7777-7777-777777777002', '66666666-6666-6666-6666-666666666001', 'apple_granny_smith', 180.00, '{"growth_years": 3, "harvest_season": "fall", "max_height": 6, "water_needs": 4, "lifespan_years": 40}', '/images/apple_green.png', 1, NOW(), NOW()),
-('77777777-7777-7777-7777-777777777003', '66666666-6666-6666-6666-666666666002', 'olive_kalamata', 350.00, '{"growth_years": 5, "harvest_season": "fall", "max_height": 10, "water_needs": 3, "lifespan_years": 100}', '/images/olive.png', 1, NOW(), NOW()),
-('77777777-7777-7777-7777-777777777004', '66666666-6666-6666-6666-666666666003', 'oak_english', 500.00, '{"growth_years": 20, "harvest_season": "winter", "max_height": 25, "water_needs": 4, "lifespan_years": 300}', '/images/oak.png', 1, NOW(), NOW());
+('77777777-7777-7777-7777-777777777001', '66666666-6666-6666-6666-666666666001', 'apple_red_delicious', 200.00, '{"growth_years": 4, "harvest_season": "fall", "max_height": 8, "water_needs": 5, "size_width": 1, "size_height": 1, "lifespan_years": 50}', '/images/apple_red.png', 1, NOW(), NOW()),
+('77777777-7777-7777-7777-777777777002', '66666666-6666-6666-6666-666666666001', 'apple_granny_smith', 180.00, '{"growth_years": 3, "harvest_season": "fall", "max_height": 6, "water_needs": 4, "size_width": 1, "size_height": 1, "lifespan_years": 40}', '/images/apple_green.png', 1, NOW(), NOW()),
+('77777777-7777-7777-7777-777777777003', '66666666-6666-6666-6666-666666666002', 'olive_kalamata', 350.00, '{"growth_years": 5, "harvest_season": "fall", "max_height": 10, "water_needs": 3, "size_width": 1, "size_height": 1, "lifespan_years": 100}', '/images/olive.png', 1, NOW(), NOW()),
+('77777777-7777-7777-7777-777777777004', '66666666-6666-6666-6666-666666666003', 'oak_english', 500.00, '{"growth_years": 20, "harvest_season": "winter", "max_height": 25, "water_needs": 4, "size_width": 1, "size_height": 1, "lifespan_years": 300}', '/images/oak.png', 1, NOW(), NOW());
 
 -- ============================================
 -- STRUCTURE TYPES & VARIANTS
@@ -95,10 +95,10 @@ INSERT INTO machine_types (id, name, description, icon_url, is_active, createdAt
 ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa004', 'Plow', 'Soil preparation', '/icons/plow.png', 1, NOW(), NOW());
 
 INSERT INTO machine_variants (id, type_id, variant_code, base_price, attributes, image_url, is_available, createdAt, updatedAt) VALUES
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001', 'tractor_basic', 25000.00, '{"speed": 1.0, "efficiency": 70, "fuel_type": "diesel", "fuel_consumption": 5, "durability": 100}', '/images/tractor_basic.png', 1, NOW(), NOW()),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001', 'tractor_advanced', 50000.00, '{"speed": 1.5, "efficiency": 90, "fuel_type": "diesel", "fuel_consumption": 7, "durability": 150}', '/images/tractor_adv.png', 1, NOW(), NOW()),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa002', 'harvester_wheat', 80000.00, '{"speed": 0.8, "efficiency": 95, "fuel_type": "diesel", "fuel_consumption": 10, "durability": 120}', '/images/harvester.png', 1, NOW(), NOW()),
-('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa003', 'irrigation_drip', 5000.00, '{"speed": 1.0, "efficiency": 90, "fuel_type": "electric", "fuel_consumption": 2, "durability": 80}', '/images/irrigation.png', 1, NOW(), NOW());
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001', 'tractor_basic', 25000.00, '{"speed": 1.0, "efficiency": 70, "fuel_type": "diesel", "fuel_consumption": 5, "size_width": 3, "size_height": 2, "durability": 100}', '/images/tractor_basic.png', 1, NOW(), NOW()),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb002', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa001', 'tractor_advanced', 50000.00, '{"speed": 1.5, "efficiency": 90, "fuel_type": "diesel", "fuel_consumption": 7, "size_width": 3, "size_height": 2, "durability": 150}', '/images/tractor_adv.png', 1, NOW(), NOW()),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb003', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa002', 'harvester_wheat', 80000.00, '{"speed": 0.8, "efficiency": 95, "fuel_type": "diesel", "fuel_consumption": 10, "size_width": 4, "size_height": 2, "durability": 120}', '/images/harvester.png', 1, NOW(), NOW()),
+('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbb004', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaa003', 'irrigation_drip', 5000.00, '{"speed": 1.0, "efficiency": 90, "fuel_type": "electric", "fuel_consumption": 2, "size_width": 1, "size_height": 1, "durability": 80}', '/images/irrigation.png', 1, NOW(), NOW());
 
 -- ============================================
 -- ASSET PRODUCTIONS (what each variant produces)
