@@ -21,8 +21,8 @@ export class StructureVariant extends BaseEntity {
     attributes?: {
         capacity?: number;          // Storage/housing capacity
         durability?: number;        // Health/durability points
-        size_width?: number;        // Grid width
-        size_height?: number;       // Grid height
+        size_width?: number;        // Grid width (e.g. 3 for a horizontal 3x1 line)
+        size_height?: number;       // Grid height (e.g. 1 for a horizontal 3x1 line)
         upgrade_level?: number;     // Current upgrade level
         max_upgrade?: number;       // Maximum upgrade possible
     };

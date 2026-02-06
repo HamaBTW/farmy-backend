@@ -6,6 +6,7 @@ import landRoutesV1 from './v1/land.routes.js';
 import landRentalRoutesV1 from './v1/landRental.routes.js';
 import itemRequestRoutesV1 from './v1/itemRequest.routes.js';
 import productionRoutesV1 from './v1/production.routes.js';
+import landGridRoutesV1 from './v1/landGrid.routes.js';
 
 const router = Router();
 console.log('Registering /v1/auth routes');
@@ -29,6 +30,9 @@ router.use('/v1/item-requests', itemRequestRoutesV1);
 
 console.log('Registering /v1/production routes');
 router.use('/v1/production', productionRoutesV1);
+
+console.log('Registering /v1/land-grid routes');
+router.use('/v1/land-grid', landGridRoutesV1);
 
 export default router;
 

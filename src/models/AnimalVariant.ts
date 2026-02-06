@@ -22,8 +22,8 @@ export class AnimalVariant extends BaseEntity {
         lifespan_days?: number;     // Animal lifespan in days
         feed_consumption?: number;  // Daily feed units required
         mature_age_days?: number;   // Days until mature/producing
-        size_width?: number;        // Grid width
-        size_height?: number;       // Grid height
+        size_width?: number;        // Grid width (e.g. 2 for a 2x2 box)
+        size_height?: number;       // Grid height (e.g. 2 for a 2x2 box)
         habitat?: string;           // barn, coop, pasture, etc.
     };
 

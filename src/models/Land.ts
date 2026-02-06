@@ -56,4 +56,13 @@ export class Land extends BaseEntity {
     get total_capacity(): number {
         return this.grid_width * this.grid_height;
     }
+
+    /**
+     * Returns an empty 2D matrix representing the land grid.
+     */
+    getGridMatrix(): (string | null)[][] {
+        return Array.from({ length: this.grid_height }, () =>
+            Array.from({ length: this.grid_width }, () => null)
+        );
+    }
 }

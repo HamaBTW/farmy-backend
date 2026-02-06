@@ -23,8 +23,8 @@ export class VegetationVariant extends BaseEntity {
         water_needs?: number;       // Water requirement level (1-10)
         soil_type?: string;         // clay, loam, sandy, etc.
         planting_season?: string;   // spring, summer, fall, winter
-        size_width?: number;        // Grid width
-        size_height?: number;       // Grid height
+        size_width?: number;        // Grid width (e.g. 1 for a crop square)
+        size_height?: number;       // Grid height (e.g. 1 for a crop square)
         is_perennial?: boolean;     // Regrows after harvest
     };
 
