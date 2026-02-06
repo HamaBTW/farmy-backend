@@ -49,4 +49,11 @@ export class Land extends BaseEntity {
 
     @OneToMany('LandRental', (rental: LandRental) => rental.land)
     rentals!: Relation<LandRental>[];
+
+    /**
+     * Total number of grid cells available on this land.
+     */
+    get total_capacity(): number {
+        return this.grid_width * this.grid_height;
+    }
 }

@@ -23,6 +23,8 @@ export class TreeVariant extends BaseEntity {
         harvest_season?: string;    // spring, summer, fall, winter
         max_height?: number;        // Maximum height in meters
         water_needs?: number;       // Water requirement level (1-10)
+        size_width?: number;        // Grid width
+        size_height?: number;       // Grid height
         lifespan_years?: number;    // Tree lifespan
     };
 

@@ -23,6 +23,8 @@ export class MachineVariant extends BaseEntity {
         efficiency?: number;        // Output efficiency percentage
         fuel_type?: string;         // diesel, electric, manual, etc.
         fuel_consumption?: number;  // Fuel units per hour
+        size_width?: number;        // Grid width
+        size_height?: number;       // Grid height
         durability?: number;        // Durability points
     };
 
