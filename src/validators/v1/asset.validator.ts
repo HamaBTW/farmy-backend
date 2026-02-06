@@ -72,16 +72,20 @@ export const updateProductionSchema = Joi.object({
 export const createLandSchema = Joi.object({
     name: Joi.string().min(2).max(100).required(),
     description: Joi.string().max(500).optional(),
-    grid_width: Joi.number().integer().min(1).max(100).optional(),
-    grid_height: Joi.number().integer().min(1).max(100).optional(),
+    width_m: Joi.number().min(1).max(10000).optional(),
+    height_m: Joi.number().min(1).max(10000).optional(),
+    grid_width: Joi.number().integer().min(1).max(10000).optional(), // Maintain backward compatibility
+    grid_height: Joi.number().integer().min(1).max(10000).optional(),
     boundaries: Joi.any().optional()
 });
 
 export const updateLandSchema = Joi.object({
     name: Joi.string().min(2).max(100).optional(),
     description: Joi.string().max(500).optional().allow(null),
-    grid_width: Joi.number().integer().min(1).max(100).optional(),
-    grid_height: Joi.number().integer().min(1).max(100).optional(),
+    width_m: Joi.number().min(1).max(10000).optional(),
+    height_m: Joi.number().min(1).max(10000).optional(),
+    grid_width: Joi.number().integer().min(1).max(10000).optional(),
+    grid_height: Joi.number().integer().min(1).max(10000).optional(),
     boundaries: Joi.any().optional().allow(null),
     is_active: Joi.boolean().optional()
 });

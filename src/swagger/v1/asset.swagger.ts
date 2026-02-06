@@ -155,10 +155,20 @@
  *           type: string
  *         description:
  *           type: string
+ *         width_m:
+ *           type: number
+ *           format: float
+ *           description: Width in meters
+ *         height_m:
+ *           type: number
+ *           format: float
+ *           description: Height in meters
  *         grid_width:
  *           type: integer
+ *           description: Calculated grid columns (Read-only)
  *         grid_height:
  *           type: integer
+ *           description: Calculated grid rows (Read-only)
  *         is_active:
  *           type: boolean
  *         createdAt:

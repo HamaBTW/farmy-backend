@@ -1,9 +1,22 @@
-import { AssetCategory } from '../models/AssetCategory.js';
 import { AnimalVariant } from '../models/AnimalVariant.js';
 import { MachineVariant } from '../models/MachineVariant.js';
 import { StructureVariant } from '../models/StructureVariant.js';
 import { TreeVariant } from '../models/TreeVariant.js';
 import { VegetationVariant } from '../models/VegetationVariant.js';
+
+/**
+ * Number of meters represented by one grid cell.
+ * Default is 1.0 meter per cell.
+ */
+export const METERS_PER_CELL = 1.0;
+
+/**
+ * Converts a physical dimension in meters to grid cell count.
+ * Uses ceil to ensure the asset/land has enough space.
+ */
+export const metersToGridCells = (meters: number): number => {
+    return Math.ceil(meters / METERS_PER_CELL);
+};
 
 export interface GridCell {
     x: number;

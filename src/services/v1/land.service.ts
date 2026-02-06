@@ -6,8 +6,10 @@ interface CreateLandData {
     owner_id: string;
     name: string;
     description?: string;
-    grid_width?: number;
-    grid_height?: number;
+    width_m?: number;
+    height_m?: number;
+    grid_width?: number; // Legacy
+    grid_height?: number; // Legacy
     boundaries?: any;
 }
 
@@ -15,10 +17,17 @@ class LandService {
     private landRepo = AppDataSource.getRepository(Land);
 
     async create(data: CreateLandData) {
+        // Map legacy grid fields to meters if meters are not provided
+        const width = data.width_m ?? data.grid_width ?? 10.0;
+        const height = data.height_m ?? data.grid_height ?? 10.0;
+
         const land = this.landRepo.create({
-            ...data,
-            grid_width: data.grid_width || 10,
-            grid_height: data.grid_height || 10
+            owner_id: data.owner_id,
+            name: data.name,
+            description: data.description,
+            width_m: width,
+            height_m: height,
+            boundaries: data.boundaries
         });
         return this.landRepo.save(land);
     }
@@ -74,7 +83,18 @@ class LandService {
             throw new AppError(403, 'You do not own this land');
         }
 
-        Object.assign(land, data);
+        // Handle legacy field mapping in update
+        if (data.grid_width !== undefined && data.width_m === undefined) {
+            data.width_m = data.grid_width;
+        }
+        if (data.grid_height !== undefined && data.height_m === undefined) {
+            data.height_m = data.grid_height;
+        }
+
+        // Clean up legacy fields to avoid problems with getters
+        const { grid_width, grid_height, ...updateData } = data;
+
+        Object.assign(land, updateData);
         return this.landRepo.save(land);
     }
 

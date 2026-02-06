@@ -3,6 +3,7 @@ import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { PlacedItem } from './PlacedItem.js';
 import type { LandRental } from './LandRental.js';
+import { metersToGridCells } from '../utils/grid.utils.js';
 
 @Entity('lands')
 export class Land extends BaseEntity {
@@ -19,11 +20,25 @@ export class Land extends BaseEntity {
     @Column({ type: 'text', nullable: true })
     description!: string | null;
 
-    @Column({ type: 'int', default: 10 })
-    grid_width!: number;
+    @Column({ type: 'float', default: 10.0 })
+    width_m!: number;
 
-    @Column({ type: 'int', default: 10 })
-    grid_height!: number;
+    @Column({ type: 'float', default: 10.0 })
+    height_m!: number;
+
+    /**
+     * Number of grid columns based on width in meters.
+     */
+    get grid_width(): number {
+        return metersToGridCells(this.width_m);
+    }
+
+    /**
+     * Number of grid rows based on height in meters.
+     */
+    get grid_height(): number {
+        return metersToGridCells(this.height_m);
+    }
 
     @Column({
         type: 'polygon',

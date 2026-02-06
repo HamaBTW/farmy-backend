@@ -151,18 +151,30 @@
  *                 type: string
  *                 maxLength: 500
  *                 example: Fertile land perfect for crops
+ *               width_m:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 10000
+ *                 default: 10
+ *                 example: 15
+ *               height_m:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 10000
+ *                 default: 10
+ *                 example: 15
  *               grid_width:
  *                 type: integer
  *                 minimum: 1
- *                 maximum: 100
+ *                 maximum: 10000
  *                 default: 10
- *                 example: 15
+ *                 description: Legacy field (use width_m instead)
  *               grid_height:
  *                 type: integer
  *                 minimum: 1
- *                 maximum: 100
+ *                 maximum: 10000
  *                 default: 10
- *                 example: 15
+ *                 description: Legacy field (use height_m instead)
  *               boundaries:
  *                 type: object
  *                 description: Polygon boundaries (optional)
@@ -216,14 +228,22 @@
  *               description:
  *                 type: string
  *                 maxLength: 500
+ *               width_m:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 10000
+ *               height_m:
+ *                 type: number
+ *                 minimum: 1
+ *                 maximum: 10000
  *               grid_width:
  *                 type: integer
  *                 minimum: 1
- *                 maximum: 100
+ *                 maximum: 10000
  *               grid_height:
  *                 type: integer
  *                 minimum: 1
- *                 maximum: 100
+ *                 maximum: 10000
  *               boundaries:
  *                 type: object
  *               is_active:
@@ -306,12 +326,18 @@
  *         description:
  *           type: string
  *           nullable: true
+ *         width_m:
+ *           type: number
+ *           format: float
+ *         height_m:
+ *           type: number
+ *           format: float
  *         grid_width:
  *           type: integer
- *           default: 10
+ *           description: Calculated grid columns (Read-only)
  *         grid_height:
  *           type: integer
- *           default: 10
+ *           description: Calculated grid rows (Read-only)
  *         boundaries:
  *           type: object
  *           nullable: true

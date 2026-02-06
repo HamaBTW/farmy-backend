@@ -145,9 +145,9 @@ INSERT INTO users (id, email, password_hash, role, is_verified, kyc_status, prof
 -- ============================================
 -- LANDS
 -- ============================================
-INSERT INTO lands (id, owner_id, name, description, grid_width, grid_height, is_active, createdAt, updatedAt) VALUES
-('dddddddd-dddd-dddd-dddd-dddddddd0001', '00000000-0000-0000-0000-000000000001', 'Sunny Valley', 'A beautiful lush valley with rich soil.', 20, 20, 1, NOW(), NOW()),
-('dddddddd-dddd-dddd-dddd-dddddddd0002', '00000000-0000-0000-0000-000000000002', 'Green Meadows', 'Expansive meadows ideal for large structures and machine parking.', 50, 50, 1, NOW(), NOW());
+INSERT INTO lands (id, owner_id, name, description, width_m, height_m, is_active, createdAt, updatedAt) VALUES
+('dddddddd-dddd-dddd-dddd-dddddddd0001', '00000000-0000-0000-0000-000000000001', 'Sunny Valley', 'A beautiful lush valley with rich soil.', 20.0, 20.0, 1, NOW(), NOW()),
+('dddddddd-dddd-dddd-dddd-dddddddd0002', '00000000-0000-0000-0000-000000000002', 'Green Meadows', 'Expansive meadows ideal for large structures and machine parking.', 50.0, 50.0, 1, NOW(), NOW());
 
 -- ============================================
 -- Done! All tables should now be populated.
