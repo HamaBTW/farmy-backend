@@ -35,7 +35,19 @@ export class Land extends BaseEntity {
             },
             to: (value: any) => {
                 if (!value) return null;
-                return value;
+                // Convert [[lng, lat], ...] to WKT POLYGON((lng lat, ...))
+                const points = Array.isArray(value) ? value : [];
+                if (points.length < 3) return null;
+
+                // Ensure the polygon is closed (first point == last point)
+                const firstPoint = points[0];
+                const lastPoint = points[points.length - 1];
+                if (firstPoint[0] !== lastPoint[0] || firstPoint[1] !== lastPoint[1]) {
+                    points.push(firstPoint);
+                }
+
+                const wktPoints = points.map((p: any) => `${p[0]} ${p[1]}`).join(', ');
+                return `POLYGON((${wktPoints}))`;
             }
         }
     })
