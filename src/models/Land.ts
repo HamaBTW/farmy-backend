@@ -2,7 +2,7 @@ import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { PlacedItem } from './PlacedItem.js';
-import { LandRental } from './LandRental.js';
+import type { LandRental } from './LandRental.js';
 
 @Entity('lands')
 export class Land extends BaseEntity {
@@ -47,6 +47,6 @@ export class Land extends BaseEntity {
     @OneToMany(() => PlacedItem, (item) => item.land)
     placed_items!: PlacedItem[];
 
-    @OneToMany(() => LandRental, (rental) => rental.land)
+    @OneToMany('LandRental', (rental: LandRental) => rental.land)
     rentals!: LandRental[];
 }
