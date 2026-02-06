@@ -29,9 +29,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
 
         res.status(500).json({
             status: 'error',
-            message: process.env.NODE_ENV === 'development'
-                ? err.message
-                : 'Something went wrong! Please try again later.',
+            message: err.message || 'Something went wrong! Please try again later.',
         });
     }
 };
