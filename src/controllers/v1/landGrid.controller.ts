@@ -4,11 +4,12 @@ import { AssetCategory } from '../../models/AssetCategory.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 
 const validateCategory = (category: string): AssetCategory => {
+    const normalizedCategory = category.toLowerCase() as AssetCategory;
     const validCategories = Object.values(AssetCategory);
-    if (!validCategories.includes(category as AssetCategory)) {
+    if (!validCategories.includes(normalizedCategory)) {
         throw new AppError(400, `Invalid category. Must be one of: ${validCategories.join(', ')}`);
     }
-    return category as AssetCategory;
+    return normalizedCategory;
 };
 
 export const getLandGrid = async (req: Request, res: Response, next: NextFunction) => {
