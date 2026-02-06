@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, OneToMany, Relation } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { PlacedItem } from './PlacedItem.js';
@@ -11,7 +11,7 @@ export class Land extends BaseEntity {
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'owner_id' })
-    owner!: User;
+    owner!: Relation<User>;
 
     @Column({ type: 'varchar' })
     name!: string;
@@ -45,8 +45,8 @@ export class Land extends BaseEntity {
     is_active!: boolean;
 
     @OneToMany(() => PlacedItem, (item) => item.land)
-    placed_items!: PlacedItem[];
+    placed_items!: Relation<PlacedItem>[];
 
     @OneToMany('LandRental', (rental: LandRental) => rental.land)
-    rentals!: LandRental[];
+    rentals!: Relation<LandRental>[];
 }

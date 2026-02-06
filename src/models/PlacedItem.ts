@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, OneToOne, Relation } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { Land } from './Land.js';
 import { AssetCategory } from './AssetCategory.js';
@@ -11,14 +11,14 @@ export class PlacedItem extends BaseEntity {
 
     @ManyToOne(() => Land, (land) => land.placed_items, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'land_id' })
-    land!: Land;
+    land!: Relation<Land>;
 
     @Column({ type: 'uuid' })
     request_id!: string;
 
     @OneToOne(() => ItemRequest, (request) => request.placed_item, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'request_id' })
-    request!: ItemRequest;
+    request!: Relation<ItemRequest>;
 
     @Column({ type: 'enum', enum: AssetCategory })
     asset_category!: AssetCategory;

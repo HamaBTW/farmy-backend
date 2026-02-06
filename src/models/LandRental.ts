@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Relation } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { Land } from './Land.js';
 import { User } from './User.js';
@@ -17,14 +17,14 @@ export class LandRental extends BaseEntity {
 
   @ManyToOne(() => Land, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'land_id' })
-  land!: Land;
+  land!: Relation<Land>;
 
   @Column({ type: 'uuid' })
   investor_id!: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'investor_id' })
-  investor!: User;
+  investor!: Relation<User>;
 
   @Column({ type: 'datetime' })
   rental_start_date!: Date;

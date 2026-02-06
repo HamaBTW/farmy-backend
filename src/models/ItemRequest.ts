@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn, OneToOne } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, OneToOne, Relation } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { Land } from './Land.js';
@@ -12,14 +12,14 @@ export class ItemRequest extends BaseEntity {
 
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'user_id' })
-    user!: User;
+    user!: Relation<User>;
 
     @Column({ type: 'uuid' })
     land_id!: string;
 
     @ManyToOne(() => Land, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'land_id' })
-    land!: Land;
+    land!: Relation<Land>;
 
     @Column({ type: 'enum', enum: AssetCategory })
     asset_category!: AssetCategory;
@@ -52,5 +52,5 @@ export class ItemRequest extends BaseEntity {
     processed_by!: string | null;
 
     @OneToOne(() => PlacedItem, (placed) => placed.request)
-    placed_item!: PlacedItem | null;
+    placed_item!: Relation<PlacedItem> | null;
 }
