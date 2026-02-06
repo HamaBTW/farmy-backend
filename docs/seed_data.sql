@@ -136,5 +136,19 @@ INSERT INTO asset_productions (id, variant_id, asset_category, product_id, rate_
 ('cccccccc-cccc-cccc-cccc-ccccccccc018', '77777777-7777-7777-7777-777777777004', 'tree', '11111111-1111-1111-1111-111111111011', 20.00, 365, 1, 0, NOW(), NOW());
 
 -- ============================================
+-- USERS (Farmers & Investors)
+-- ============================================
+INSERT INTO users (id, email, password_hash, role, is_verified, kyc_status, profile, createdAt, updatedAt) VALUES
+('00000000-0000-0000-0000-000000000001', 'farmer@farmy.com', '$2b$10$e8p1P8Xv.bB4/wY.j6YJ3uCgWz1R.C6C2M9o1e5Q1u5Z1V1G1B1G1', 'farmer', 1, 'approved', '{"firstName": "John", "lastName": "Doe"}', NOW(), NOW()),
+('00000000-0000-0000-0000-000000000002', 'investor@farmy.com', '$2b$10$e8p1P8Xv.bB4/wY.j6YJ3uCgWz1R.C6C2M9o1e5Q1u5Z1V1G1B1G1', 'investor', 1, 'approved', '{"firstName": "Jane", "lastName": "Smith"}', NOW(), NOW());
+
+-- ============================================
+-- LANDS
+-- ============================================
+INSERT INTO lands (id, owner_id, name, description, grid_width, grid_height, is_active, createdAt, updatedAt) VALUES
+('dddddddd-dddd-dddd-dddd-dddddddd0001', '00000000-0000-0000-0000-000000000001', 'Sunny Valley', 'A beautiful lush valley with rich soil.', 20, 20, 1, NOW(), NOW()),
+('dddddddd-dddd-dddd-dddd-dddddddd0002', '00000000-0000-0000-0000-000000000002', 'Green Meadows', 'Expansive meadows ideal for large structures and machine parking.', 50, 50, 1, NOW(), NOW());
+
+-- ============================================
 -- Done! All tables should now be populated.
 -- ============================================
