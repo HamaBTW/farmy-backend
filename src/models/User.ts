@@ -109,4 +109,7 @@ export class User extends BaseEntity {
 
     @Column({ type: 'varchar', nullable: true })
     kyc_selfie_image!: string | null;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.00 })
+    credits!: number;
 }
