@@ -341,6 +341,19 @@ class AuthService {
 
         return { message: 'Password changed successfully' };
     }
+
+    async getPublicProfile(userId: string) {
+        const user = await this.userRepository.findOne({
+            where: { id: userId },
+            select: ['id', 'email', 'profile', 'is_verified', 'role', 'auth_provider', 'createdAt']
+        });
+
+        if (!user) {
+            throw new AppError(404, 'User not found');
+        }
+
+        return user;
+    }
 }
 
 export const authService = new AuthService();

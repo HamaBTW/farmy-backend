@@ -5,6 +5,11 @@ import { PaymentStatus } from '../../models/LandRental.js';
 
 export const createLandRental = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    // Automatically set investor_id from authenticated user if not provided
+    if (!req.body.investor_id && req.user) {
+      req.body.investor_id = req.user.id;
+    }
+
     const result = await landRentalService.create(req.body);
 
     res.status(201).json({

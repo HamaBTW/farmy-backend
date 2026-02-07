@@ -3,7 +3,7 @@ import Joi from 'joi';
 // Create Land Rental schema
 export const createLandRentalSchema = Joi.object({
   land_id: Joi.string().uuid().required(),
-  investor_id: Joi.string().uuid().required(),
+  investor_id: Joi.string().uuid().optional(),
   rental_start_date: Joi.date().iso().required(),
   rental_end_date: Joi.date().iso().greater(Joi.ref('rental_start_date')).optional().allow(null),
   monthly_rent: Joi.number().positive().precision(2).required(),

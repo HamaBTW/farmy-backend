@@ -42,7 +42,7 @@ class LandService {
         }
         return this.landRepo.find({
             where,
-            relations: ['owner'],
+            relations: ['owner', 'rentals'],
             order: { createdAt: 'DESC' }
         });
     }
@@ -50,7 +50,7 @@ class LandService {
     async findById(id: string) {
         const land = await this.landRepo.findOne({
             where: { id },
-            relations: ['owner']
+            relations: ['owner', 'rentals']
         });
         if (!land) {
             throw new AppError(404, 'Land not found');
