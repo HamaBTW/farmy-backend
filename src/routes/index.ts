@@ -9,6 +9,12 @@ import productionRoutesV1 from './v1/production.routes.js';
 import landGridRoutesV1 from './v1/landGrid.routes.js';
 
 const router = Router();
+
+// Health check route
+router.get('/v1/health', (req, res) => {
+    res.status(200).json({ success: true, message: 'API is online' });
+});
+
 console.log('Registering /v1/auth routes');
 // API Version 1 Routes
 router.use('/v1/auth', authRoutesV1);
