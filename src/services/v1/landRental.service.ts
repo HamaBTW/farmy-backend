@@ -59,13 +59,30 @@ class LandRentalService {
           }
         }
 
-        await stripeService.chargeSavedCard(
-          amountToCharge,
-          'usd',
-          investor.stripe_customer_id,
-          (data as any).payment_method_id
-        );
-        paymentStatus = PaymentStatus.PAID;
+        if ((data as any).payment_method_id === 'WALLET_CREDITS') {
+          const currentCredits = Number(investor.credits || 0);
+          if (currentCredits < amountToCharge) {
+            throw new AppError(402, `Insufficient wallet credits. Required: ${amountToCharge}, Available: ${currentCredits}`);
+          }
+
+          // Deduct credits
+          investor.credits = currentCredits - amountToCharge;
+          await this.userRepo.save(investor);
+
+          paymentStatus = PaymentStatus.PAID;
+        } else {
+          if (!investor.stripe_customer_id) {
+            throw new AppError(400, 'Investor has no payment account setup');
+          }
+
+          await stripeService.chargeSavedCard(
+            amountToCharge,
+            'usd',
+            investor.stripe_customer_id,
+            (data as any).payment_method_id
+          );
+          paymentStatus = PaymentStatus.PAID;
+        }
       } catch (error: any) {
         throw new AppError(402, `Payment failed: ${error.message}`);
       }

@@ -384,7 +384,8 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
                 is_banned: user?.is_banned,
                 auth_provider: user?.auth_provider,
                 is_two_factor_enabled: user?.is_two_factor_enabled,
-                profile: user?.profile
+                profile: user?.profile,
+                credits: user?.credits
             }
         });
     } catch (error) {
