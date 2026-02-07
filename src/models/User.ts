@@ -1,5 +1,6 @@
 import { Entity, Column } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
+import { jsonTransformer } from '../utils/transformers.js';
 
 export enum KYCStatus {
     NONE = 'none',
@@ -33,7 +34,7 @@ export class User extends BaseEntity {
     })
     role!: UserRole;
 
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
     profile!: any;
 
     @Column({
