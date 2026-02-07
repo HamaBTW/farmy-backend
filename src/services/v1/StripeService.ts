@@ -52,6 +52,9 @@ export class StripeService {
     async createSetupIntent(customerId: string) {
         return await this.stripe.setupIntents.create({
             customer: customerId,
+            automatic_payment_methods: {
+                enabled: true,
+            },
         });
     }
 
