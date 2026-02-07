@@ -75,11 +75,20 @@ class LandRentalService {
             throw new AppError(400, 'Investor has no payment account setup');
           }
 
+          // Lookup the payment method to get the Stripe provider_id
+          const paymentMethod = await AppDataSource.getRepository('PaymentMethod').findOne({
+            where: { id: (data as any).payment_method_id, user_id: investor.id }
+          });
+
+          if (!paymentMethod) {
+            throw new AppError(400, 'Invalid payment method selected');
+          }
+
           await stripeService.chargeSavedCard(
             amountToCharge,
             'usd',
             investor.stripe_customer_id,
-            (data as any).payment_method_id
+            paymentMethod.provider_id
           );
           paymentStatus = PaymentStatus.PAID;
         }
