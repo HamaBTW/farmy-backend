@@ -3,6 +3,7 @@ import { BaseEntity } from './BaseEntity.js';
 import { Land } from './Land.js';
 import { AssetCategory } from './AssetCategory.js';
 import { ItemRequest } from './ItemRequest.js';
+import { jsonTransformer } from '../utils/transformers.js';
 
 @Entity('placed_items')
 export class PlacedItem extends BaseEntity {
@@ -35,7 +36,7 @@ export class PlacedItem extends BaseEntity {
     @Column({ type: 'int', default: 0 })
     rotation!: number;
 
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
     state!: Record<string, any> | null;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

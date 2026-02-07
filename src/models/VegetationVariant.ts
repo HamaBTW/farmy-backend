@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { VegetationType } from './VegetationType.js';
+import { jsonTransformer } from '../utils/transformers.js';
 
 @Entity('vegetation_variants')
 export class VegetationVariant extends BaseEntity {
@@ -17,7 +18,7 @@ export class VegetationVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
     attributes?: {
         growth_days?: number;       // Days from seed to harvest
         water_needs?: number;       // Water requirement level (1-10)

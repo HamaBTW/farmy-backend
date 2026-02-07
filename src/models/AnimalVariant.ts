@@ -1,5 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
+import { jsonTransformer } from '../utils/transformers.js';
 import { AnimalType } from './AnimalType.js';
 
 @Entity('animal_variants')
@@ -17,7 +18,7 @@ export class AnimalVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
     attributes?: {
         lifespan_days?: number;     // Animal lifespan in days
         feed_consumption?: number;  // Daily feed units required

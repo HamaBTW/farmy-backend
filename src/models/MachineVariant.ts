@@ -1,5 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
+import { jsonTransformer } from '../utils/transformers.js';
 import { MachineType } from './MachineType.js';
 
 @Entity('machine_variants')
@@ -17,7 +18,7 @@ export class MachineVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
     attributes?: {
         speed?: number;             // Operation speed multiplier
         efficiency?: number;        // Output efficiency percentage

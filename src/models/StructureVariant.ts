@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { StructureType } from './StructureType.js';
+import { jsonTransformer } from '../utils/transformers.js';
 
 @Entity('structure_variants')
 export class StructureVariant extends BaseEntity {
@@ -17,7 +18,7 @@ export class StructureVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
     attributes?: {
         capacity?: number;          // Storage/housing capacity
         durability?: number;        // Health/durability points

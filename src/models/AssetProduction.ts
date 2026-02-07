@@ -1,5 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
+import { jsonTransformer } from '../utils/transformers.js';
 import { ProductType } from './ProductType.js';
 import { AssetCategory } from './AssetCategory.js';
 
@@ -30,6 +31,6 @@ export class AssetProduction extends BaseEntity {
     @Column({ type: 'int', default: 0 })
     min_level!: number;  // Minimum asset level required
 
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
     conditions?: Record<string, any>;  // Additional conditions (season, weather, etc.)
 }

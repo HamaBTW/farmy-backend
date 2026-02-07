@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { TreeType } from './TreeType.js';
+import { jsonTransformer } from '../utils/transformers.js';
 
 @Entity('tree_variants')
 export class TreeVariant extends BaseEntity {
@@ -17,7 +18,7 @@ export class TreeVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'simple-json', nullable: true })
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
     attributes?: {
         growth_years?: number;      // Years to mature
         harvest_season?: string;    // spring, summer, fall, winter
