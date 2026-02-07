@@ -35,7 +35,7 @@ export class PlacedItem extends BaseEntity {
     @Column({ type: 'int', default: 0 })
     rotation!: number;
 
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     state!: Record<string, any> | null;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

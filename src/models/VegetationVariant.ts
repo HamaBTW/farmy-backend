@@ -17,7 +17,7 @@ export class VegetationVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     attributes?: {
         growth_days?: number;       // Days from seed to harvest
         water_needs?: number;       // Water requirement level (1-10)

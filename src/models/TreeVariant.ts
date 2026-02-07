@@ -17,7 +17,7 @@ export class TreeVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     attributes?: {
         growth_years?: number;      // Years to mature
         harvest_season?: string;    // spring, summer, fall, winter

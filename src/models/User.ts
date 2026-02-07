@@ -33,7 +33,7 @@ export class User extends BaseEntity {
     })
     role!: UserRole;
 
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     profile!: any;
 
     @Column({

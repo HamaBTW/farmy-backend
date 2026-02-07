@@ -17,7 +17,7 @@ export class MachineVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     attributes?: {
         speed?: number;             // Operation speed multiplier
         efficiency?: number;        // Output efficiency percentage

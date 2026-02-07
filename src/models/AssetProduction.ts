@@ -30,6 +30,6 @@ export class AssetProduction extends BaseEntity {
     @Column({ type: 'int', default: 0 })
     min_level!: number;  // Minimum asset level required
 
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     conditions?: Record<string, any>;  // Additional conditions (season, weather, etc.)
 }

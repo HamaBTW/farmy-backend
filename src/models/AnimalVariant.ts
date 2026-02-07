@@ -17,7 +17,7 @@ export class AnimalVariant extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2 })
     base_price!: number;
 
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     attributes?: {
         lifespan_days?: number;     // Animal lifespan in days
         feed_consumption?: number;  // Daily feed units required
