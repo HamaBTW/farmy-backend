@@ -31,10 +31,40 @@ export const addPaymentMethod = async (req: AuthRequest, res: Response, next: Ne
     }
 };
 
+export const createSetupIntent = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id;
+        const data = await walletService.createSetupIntent(userId);
+
+        res.status(200).json({
+            success: true,
+            data
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const createPaymentIntent = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id;
+        const { amount } = req.body;
+        const data = await walletService.createPaymentIntent(userId, Number(amount));
+
+        res.status(200).json({
+            success: true,
+            data
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const chargeCredits = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
         const { amount } = req.body;
+        // In a real flow, checking payment status from Stripe would happen here or via webhook
         const user = await walletService.chargeCredits(userId, Number(amount));
 
         res.status(200).json({

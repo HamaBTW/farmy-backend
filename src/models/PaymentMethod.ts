@@ -39,6 +39,6 @@ export class PaymentMethod extends BaseEntity {
     @JoinColumn({ name: 'user_id' })
     user!: User;
 
-    @Column()
+    @Column({ type: 'varchar' })
     user_id!: string;
 }
