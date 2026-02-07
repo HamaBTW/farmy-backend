@@ -37,26 +37,39 @@ export class WalletService {
         };
     }
 
-    async addPaymentMethod(userId: string, data: {
-        type: PaymentMethodType;
-        last4: string;
-        brand: string;
-        expiry_month: string;
-        expiry_year: string;
-        is_default?: boolean;
-    }) {
-        // If this is the first payment method, make it default
+    async addPaymentMethod(userId: string, paymentMethodId: string) {
+        // 1. Fetch payment method details from Stripe to ensure validity and get card info
+        const stripeMethod = await stripeService.getPaymentMethod(paymentMethodId);
+
+        if (!stripeMethod || stripeMethod.type !== 'card' || !stripeMethod.card) {
+            throw new AppError(400, 'Invalid payment method or not a card');
+        }
+
+        const card = stripeMethod.card;
+
+        // 2. Check if already exists locally by provider_id
+        const existing = await this.paymentMethodRepository.findOne({ where: { provider_id: paymentMethodId } });
+        if (existing) {
+            return existing;
+        }
+
+        // 3. Determine if default
         const count = await this.paymentMethodRepository.count({ where: { user_id: userId } });
-        const isDefault = count === 0 ? true : (data.is_default || false);
+        const isDefault = count === 0; // First card is default
 
         if (isDefault) {
-            // Unset other defaults
             await this.paymentMethodRepository.update({ user_id: userId }, { is_default: false });
         }
 
+        // 4. Save to DB
         const paymentMethod = this.paymentMethodRepository.create({
-            ...data,
+            provider_id: paymentMethodId,
             user_id: userId,
+            type: PaymentMethodType.CARD,
+            last4: card.last4,
+            brand: card.brand,
+            expiry_month: card.exp_month.toString(),
+            expiry_year: card.exp_year.toString(),
             is_default: isDefault
         });
 
@@ -83,6 +96,28 @@ export class WalletService {
             customer: user.stripe_customer_id,
             publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
         };
+    }
+
+    async confirmSetup(userId: string, setupIntentId: string) {
+        const setupIntent = await stripeService.getSetupIntent(setupIntentId);
+
+        if (!setupIntent) {
+            throw new AppError(404, 'SetupIntent not found');
+        }
+
+        if (setupIntent.status !== 'succeeded') {
+            throw new AppError(400, `SetupIntent status is ${setupIntent.status}`);
+        }
+
+        const paymentMethodId = typeof setupIntent.payment_method === 'string'
+            ? setupIntent.payment_method
+            : setupIntent.payment_method?.id;
+
+        if (!paymentMethodId) {
+            throw new AppError(400, 'SetupIntent has no payment method attached');
+        }
+
+        return await this.addPaymentMethod(userId, paymentMethodId);
     }
 
     async createPaymentIntent(userId: string, amount: number) {

@@ -9,6 +9,7 @@ router.use(authenticate);
 router.get('/me', walletController.getWalletStatus);
 router.post('/payment-methods', walletController.addPaymentMethod);
 router.post('/create-setup-intent', walletController.createSetupIntent);
+router.post('/confirm-setup', walletController.confirmSetup);
 router.post('/create-payment-intent', walletController.createPaymentIntent);
 router.post('/charge', walletController.chargeCredits);
 router.delete('/payment-methods/:id', walletController.deletePaymentMethod);

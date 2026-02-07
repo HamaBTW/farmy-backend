@@ -26,6 +26,11 @@ export class StripeService {
     async getCustomer(customerId: string) {
         return await this.stripe.customers.retrieve(customerId);
     }
+
+    async getPaymentMethod(paymentMethodId: string) {
+        return await this.stripe.paymentMethods.retrieve(paymentMethodId);
+    }
+
     async createEphemeralKey(customerId: string) {
         return await this.stripe.ephemeralKeys.create(
             { customer: customerId },
@@ -48,6 +53,10 @@ export class StripeService {
         return await this.stripe.setupIntents.create({
             customer: customerId,
         });
+    }
+
+    async getSetupIntent(setupIntentId: string) {
+        return await this.stripe.setupIntents.retrieve(setupIntentId);
     }
 }
 

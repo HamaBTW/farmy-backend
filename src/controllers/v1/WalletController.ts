@@ -19,7 +19,13 @@ export const getWalletStatus = async (req: AuthRequest, res: Response, next: Nex
 export const addPaymentMethod = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        const method = await walletService.addPaymentMethod(userId, req.body);
+        const { paymentMethodId } = req.body;
+
+        if (!paymentMethodId) {
+            throw new Error('paymentMethodId is required');
+        }
+
+        const method = await walletService.addPaymentMethod(userId, paymentMethodId);
 
         res.status(201).json({
             success: true,
@@ -39,6 +45,27 @@ export const createSetupIntent = async (req: AuthRequest, res: Response, next: N
         res.status(200).json({
             success: true,
             data
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const confirmSetup = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id;
+        const { setupIntentId } = req.body;
+
+        if (!setupIntentId) {
+            throw new Error('setupIntentId is required');
+        }
+
+        const method = await walletService.confirmSetup(userId, setupIntentId);
+
+        res.status(200).json({
+            success: true,
+            message: 'Payment method confirmed and added',
+            data: method
         });
     } catch (error) {
         next(error);
