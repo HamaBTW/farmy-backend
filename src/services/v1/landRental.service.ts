@@ -4,6 +4,7 @@ import { Land } from '../../models/Land.js';
 import { User } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
+import { stripeService } from './StripeService.js';
 
 interface CreateLandRentalData {
   land_id: string;
@@ -38,10 +39,42 @@ class LandRentalService {
       throw new AppError(404, 'Investor not found');
     }
 
+    let paymentStatus = data.payment_status || PaymentStatus.PENDING;
+
+    // Handle Payment if payment_method_id is provided
+    if ((data as any).payment_method_id) {
+      if (!investor.stripe_customer_id) {
+        throw new AppError(400, 'Investor has no payment account setup');
+      }
+
+      try {
+        let amountToCharge = data.monthly_rent;
+        if (data.rental_end_date) {
+          const start = new Date(data.rental_start_date);
+          const end = new Date(data.rental_end_date);
+          // Calculate difference in months roughly
+          const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+          if (months > 0) {
+            amountToCharge = data.monthly_rent * months;
+          }
+        }
+
+        await stripeService.chargeSavedCard(
+          amountToCharge,
+          'usd',
+          investor.stripe_customer_id,
+          (data as any).payment_method_id
+        );
+        paymentStatus = PaymentStatus.PAID;
+      } catch (error: any) {
+        throw new AppError(402, `Payment failed: ${error.message}`);
+      }
+    }
+
     // Create rental
     const rental = this.rentalRepo.create({
       ...data,
-      payment_status: data.payment_status || PaymentStatus.PENDING
+      payment_status: paymentStatus
     });
     return this.rentalRepo.save(rental);
   }

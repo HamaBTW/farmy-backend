@@ -8,7 +8,8 @@ export const createLandRentalSchema = Joi.object({
   rental_end_date: Joi.date().iso().greater(Joi.ref('rental_start_date')).optional().allow(null),
   monthly_rent: Joi.number().positive().precision(2).required(),
   payment_due_date: Joi.date().iso().required(),
-  payment_status: Joi.string().valid('pending', 'paid', 'overdue', 'cancelled').optional()
+  payment_status: Joi.string().valid('pending', 'paid', 'overdue', 'cancelled').optional(),
+  payment_method_id: Joi.string().optional()
 });
 
 // Update Land Rental schema

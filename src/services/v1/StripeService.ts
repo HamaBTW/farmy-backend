@@ -58,6 +58,17 @@ export class StripeService {
         });
     }
 
+    async chargeSavedCard(amount: number, currency: string = 'usd', customerId: string, paymentMethodId: string) {
+        return await this.stripe.paymentIntents.create({
+            amount: Math.round(amount * 100),
+            currency,
+            customer: customerId,
+            payment_method: paymentMethodId,
+            off_session: true, // Indicates the customer is not present (for subscriptions/saved cards)
+            confirm: true, // Immediately confirm the payment
+        });
+    }
+
     async getSetupIntent(setupIntentId: string) {
         return await this.stripe.setupIntents.retrieve(setupIntentId);
     }
