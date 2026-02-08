@@ -106,6 +106,7 @@ export const getInvestorInventory = async (req: AuthRequest, res: Response, next
 
 export const approveItemRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+        console.log(`[ItemRequest] Approving request ${req.params.id} by admin ${req.user!.id}`);
         const result = await itemRequestService.approve(req.params.id as string, req.user!.id);
 
         res.status(200).json({
@@ -114,6 +115,7 @@ export const approveItemRequest = async (req: AuthRequest, res: Response, next: 
             data: result
         });
     } catch (error) {
+        console.error('[ItemRequest] Approve Error:', error);
         next(error);
     }
 };

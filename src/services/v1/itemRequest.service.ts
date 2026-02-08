@@ -33,9 +33,9 @@ class ItemRequestService {
         } catch (error) {
             // Not the owner, check if legitimate investor
             const rental = await this.landRentalRepo.findOne({
-                where: { 
-                    land_id: data.land_id, 
-                    investor_id: data.user_id 
+                where: {
+                    land_id: data.land_id,
+                    investor_id: data.user_id
                 }
             });
 
@@ -154,9 +154,9 @@ class ItemRequestService {
 
     async findIncomingForFarmer(farmerId: string) {
         return this.itemRequestRepo.find({
-            where: { 
+            where: {
                 land: { owner_id: farmerId },
-                status: ItemRequestStatus.PENDING 
+                status: ItemRequestStatus.PENDING
             },
             relations: ['user', 'land'],
             order: { createdAt: 'ASC' }
@@ -164,13 +164,35 @@ class ItemRequestService {
     }
 
     async findInvestorInventory(investorId: string) {
-        return this.placedItemRepo.find({
-            where: {
-                request: { user_id: investorId }
-            },
-            relations: ['request', 'land', 'request.user'],
-            order: { placed_at: 'DESC' }
+        // Fetch ALL requests (Pending, Approved, Rejected)
+        const requests = await this.itemRequestRepo.find({
+            where: { user_id: investorId },
+            relations: ['land', 'placed_item'],
+            order: { createdAt: 'DESC' }
         });
+
+        // Aggregate details
+        const enrichedItems = await Promise.all(requests.map(async (request) => {
+            try {
+                const variant = await assetVariantService.findById(request.asset_category, request.variant_id);
+                return {
+                    ...request,
+                    details: {
+                        name: (variant as any).type?.name || 'Unknown',
+                        variant_name: (variant as any).variant_code,
+                        image_url: (variant as any).image_url || (variant as any).type?.icon_url,
+                    }
+                };
+            } catch (e) {
+                console.error(`Failed to fetch variant details for request ${request.id}`, e);
+                return {
+                    ...request,
+                    details: { name: 'Unknown Item', variant_name: 'Unknown', image_url: null }
+                };
+            }
+        }));
+
+        return enrichedItems;
     }
 
     async approve(id: string, adminId: string) {
@@ -196,15 +218,15 @@ class ItemRequestService {
         // Check if position is available, if not find a new one
         let finalX = request.position_x;
         let finalY = request.position_y;
-        
+
         let isOccupied = await landService.isPositionOccupied(request.land_id, finalX, finalY);
-        
+
         if (isOccupied) {
             console.log(`[ItemRequest] Position (${finalX}, ${finalY}) occupied. Searching for free spot...`);
             let found = false;
             // Search grid (assuming standard 10x10 for now, ideally fetch land size)
-            for(let x=0; x<10; x++) {
-                for(let y=0; y<10; y++) {
+            for (let x = 0; x < 10; x++) {
+                for (let y = 0; y < 10; y++) {
                     if (!await landService.isPositionOccupied(request.land_id, x, y)) {
                         finalX = x;
                         finalY = y;
@@ -212,11 +234,11 @@ class ItemRequestService {
                         break;
                     }
                 }
-                if(found) break;
+                if (found) break;
             }
-            
+
             if (!found) {
-                 throw new AppError(400, 'Land is full. Cannot place item.');
+                throw new AppError(400, 'Land is full. Cannot place item.');
             }
             console.log(`[ItemRequest] Found new position: (${finalX}, ${finalY})`);
         }
@@ -234,9 +256,8 @@ class ItemRequestService {
         placedItem.position_x = finalX;
         placedItem.position_y = finalY;
         placedItem.placed_at = new Date();
-        
-        // Also assign the relation directly to ensure TypeORM context is happy
-        placedItem.request = request;
+
+        // placedItem.request = request; // Removed to avoid TypeORM double-assignment issue
 
         await this.placedItemRepo.save(placedItem);
 
@@ -273,7 +294,7 @@ class ItemRequestService {
         request.status = ItemRequestStatus.REJECTED;
         request.rejection_reason = reason;
         request.is_refunded = true;
-        
+
         // Remove any zombie placed item if it exists
         const placedItem = await this.placedItemRepo.findOne({ where: { request_id: request.id } });
         if (placedItem) {
