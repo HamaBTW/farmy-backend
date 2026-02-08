@@ -5,7 +5,8 @@ import {
     getAllProducts,
     getProductById,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    buyProduct
 } from '../../controllers/v1/product.controller.js';
 
 const router = Router();
@@ -19,5 +20,6 @@ router.use(authenticate);
 router.post('/', createProduct);
 router.patch('/:id', updateProduct);
 router.delete('/:id', deleteProduct);
+router.post('/:id/buy', buyProduct);
 
 export default router;

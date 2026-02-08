@@ -1,5 +1,6 @@
 import { AppDataSource } from '../../config/db.config.js';
 import { Product, ProductStatus } from '../../models/Product.js';
+import { User } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { FindOptionsWhere, Like } from 'typeorm';
 
@@ -28,6 +29,7 @@ interface UpdateProductData {
 
 class ProductService {
     private productRepo = AppDataSource.getRepository(Product);
+    private userRepo = AppDataSource.getRepository(User);
 
     async create(data: CreateProductData) {
         const product = this.productRepo.create({
@@ -94,18 +96,60 @@ class ProductService {
             throw new AppError(403, 'You are not authorized to delete this product');
         }
 
-        // Soft delete by setting status to HIDDEN or actually removing if desired.
-        // For marketplace, usually hiding is safer or marking as deleted.
-        // Let's just remove it for now as per standard CRUD, or use soft delete pattern if BaseEntity supports it.
-        // BaseEntity usually extends TypeORM BaseEntity.
-
-        // Let's implement soft delete via status for now to be safe, or Entity.remove() if we want hard delete.
-        // User asked to "remove/hide". Let's use remove for now, or updating status to hidden.
-        // Let's stick to simple remove for simplicity unless status is preferred. 
-        // Actually, let's just use remove() which is hard delete, but since we have HIDDEN status, maybe update status?
-        // Let's do hard delete for "DELETE" endpoint.
-
         return this.productRepo.remove(product);
+    }
+
+    async buy(id: string, buyerId: string) {
+        return AppDataSource.transaction(async (transactionalEntityManager) => {
+            const product = await transactionalEntityManager.findOne(Product, {
+                where: { id },
+                relations: ['owner']
+            });
+
+            if (!product) {
+                throw new AppError(404, 'Product not found');
+            }
+
+            if (product.status !== ProductStatus.AVAILABLE) {
+                throw new AppError(400, 'Product is not available for sale');
+            }
+
+            if (product.owner_id === buyerId) {
+                throw new AppError(400, 'You cannot buy your own product');
+            }
+
+            const buyer = await transactionalEntityManager.findOne(User, { where: { id: buyerId } });
+            if (!buyer) {
+                throw new AppError(404, 'Buyer not found');
+            }
+
+            const price = Number(product.price);
+            if (Number(buyer.credits) < price) {
+                throw new AppError(400, 'Insufficient credits');
+            }
+
+            // Deduct from buyer
+            buyer.credits = Number(buyer.credits) - price;
+            await transactionalEntityManager.save(buyer);
+
+            // Add to owner
+            const owner = await transactionalEntityManager.findOne(User, { where: { id: product.owner_id } });
+            if (owner) {
+                owner.credits = Number(owner.credits) + price;
+                await transactionalEntityManager.save(owner);
+            }
+
+            // Update product status
+            product.status = ProductStatus.SOLD;
+            await transactionalEntityManager.save(product);
+
+            return {
+                success: true,
+                message: 'Purchase successful',
+                product,
+                new_balance: buyer.credits
+            };
+        });
     }
 }
 

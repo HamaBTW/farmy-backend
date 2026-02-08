@@ -80,3 +80,13 @@ export const deleteProduct = async (req: AuthRequest, res: Response, next: NextF
         next(error);
     }
 };
+
+export const buyProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const result = await productService.buy(req.params.id as string, req.user!.id);
+
+        res.status(200).json(result);
+    } catch (error) {
+        next(error);
+    }
+};

@@ -271,4 +271,38 @@
  *         description: Not authorized to delete this product
  *       404:
  *         description: Product not found
+ *
+ *   /products/{id}/buy:
+ *     post:
+ *       summary: Buy a product
+ *       tags: [Products]
+ *       security:
+ *         - bearerAuth: []
+ *       parameters:
+ *         - in: path
+ *           name: id
+ *           required: true
+ *           schema:
+ *             type: string
+ *             format: uuid
+ *       responses:
+ *         200:
+ *           description: Purchase successful
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   success:
+ *                     type: boolean
+ *                   message:
+ *                     type: string
+ *                   product:
+ *                     $ref: '#/components/schemas/Product'
+ *                   new_balance:
+ *                     type: number
+ *         400:
+ *           description: Invalid request (e.g. self-purchase, insufficient funds, product unavailable)
+ *         404:
+ *           description: Product or User not found
  */
