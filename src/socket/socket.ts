@@ -48,6 +48,9 @@ export const initSocket = (server: HttpServer) => {
         const user = (socket as any).user as User;
         logger.info(`🔌 Socket connected: ${socket.id} (User: ${user.email})`);
 
+        // Join user to their own room for targeted notifications
+        socket.join(user.id);
+
         socket.on('disconnect', () => {
             logger.info(`🔌 Socket disconnected: ${socket.id}`);
         });
