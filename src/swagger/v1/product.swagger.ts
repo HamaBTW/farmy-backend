@@ -54,7 +54,7 @@
 
 /**
  * @swagger
- * /products:
+ * /v1/products:
  *   post:
  *     summary: Create a new product listing
  *     tags: [Products]
@@ -111,13 +111,15 @@
  *                 data:
  *                   $ref: '#/components/schemas/Product'
  *       400:
- *         description: Invalid input
+ *         description: Validation error
  *       401:
  *         description: Unauthorized
  * 
  *   get:
- *     summary: Get all products
+ *     summary: Get all products with filters
  *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: ownerId
@@ -162,11 +164,16 @@
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/Product'
- * 
- * /products/{id}:
+ */
+
+/**
+ * @swagger
+ * /v1/products/{id}:
  *   get:
  *     summary: Get product by ID
  *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -174,6 +181,7 @@
  *         schema:
  *           type: string
  *           format: uuid
+ *         description: Product ID
  *     responses:
  *       200:
  *         description: Product details
@@ -189,8 +197,8 @@
  *       404:
  *         description: Product not found
  * 
- *   patch:
- *     summary: Update product
+ *   put:
+ *     summary: Update a product
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -201,7 +209,9 @@
  *         schema:
  *           type: string
  *           format: uuid
+ *         description: Product ID
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -244,7 +254,7 @@
  *         description: Product not found
  * 
  *   delete:
- *     summary: Delete product
+ *     summary: Delete a product
  *     tags: [Products]
  *     security:
  *       - bearerAuth: []
@@ -255,9 +265,35 @@
  *         schema:
  *           type: string
  *           format: uuid
+ *         description: Product ID
  *     responses:
  *       200:
  *         description: Product deleted successfully
+ *       403:
+ *         description: Not authorized to delete this product
+ *       404:
+ *         description: Product not found
+ */
+
+/**
+ * @swagger
+ * /v1/products/{id}/buy:
+ *   post:
+ *     summary: Buy a product
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Product ID to buy
+ *     responses:
+ *       200:
+ *         description: Purchase successful
  *         content:
  *           application/json:
  *             schema:
@@ -267,42 +303,12 @@
  *                   type: boolean
  *                 message:
  *                   type: string
- *       403:
- *         description: Not authorized to delete this product
+ *                 product:
+ *                   $ref: '#/components/schemas/Product'
+ *                 new_balance:
+ *                   type: number
+ *       400:
+ *         description: Bad request (insufficient funds, own product, already sold)
  *       404:
- *         description: Product not found
- *
- *   /products/{id}/buy:
- *     post:
- *       summary: Buy a product
- *       tags: [Products]
- *       security:
- *         - bearerAuth: []
- *       parameters:
- *         - in: path
- *           name: id
- *           required: true
- *           schema:
- *             type: string
- *             format: uuid
- *       responses:
- *         200:
- *           description: Purchase successful
- *           content:
- *             application/json:
- *               schema:
- *                 type: object
- *                 properties:
- *                   success:
- *                     type: boolean
- *                   message:
- *                     type: string
- *                   product:
- *                     $ref: '#/components/schemas/Product'
- *                   new_balance:
- *                     type: number
- *         400:
- *           description: Invalid request (e.g. self-purchase, insufficient funds, product unavailable)
- *         404:
- *           description: Product or User not found
+ *         description: Product or buyer not found
  */

@@ -35,7 +35,7 @@
 
 /**
  * @swagger
- * /product-types:
+ * /v1/product-types:
  *   get:
  *     summary: Get all product types
  *     tags: [ProductTypes]
