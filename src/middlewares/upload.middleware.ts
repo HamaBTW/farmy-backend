@@ -5,68 +5,69 @@ import { fileURLToPath } from 'url';
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from './error.middleware.js';
 
-// Get the directory of this file (ESM compatible)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Upload directory relative to the script location (will be in dist/uploads/kyc when built)
-const uploadDir = path.join(__dirname, '../uploads/kyc');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Base upload directory
+const baseUploadDir = path.join(__dirname, '../../uploads');
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        console.log(`[MULTER] Saving file to: ${uploadDir}`);
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        // file name: userId-timestamp-fieldname.ext
-        const userId = (req as any).user?.id || 'unknown';
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        const filename = `${userId}-${uniqueSuffix}-${file.fieldname}${ext}`;
-        console.log(`[MULTER] Generated filename: ${filename}`);
-        cb(null, filename);
+// Ensure directories exist
+const productUploadDir = path.join(baseUploadDir, 'products');
+const kycUploadDir = path.join(baseUploadDir, 'kyc');
+
+[productUploadDir, kycUploadDir].forEach(dir => {
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
     }
 });
 
-const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    console.log(`[MULTER] Checking file: ${file.originalname}, mimetype: ${file.mimetype}`);
+// Generic storage engine
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        // Determine destination based on field name or route
+        if (file.fieldname === 'images' || file.fieldname === 'image') {
+            cb(null, productUploadDir);
+        } else {
+            cb(null, kycUploadDir);
+        }
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     if (file.mimetype.startsWith('image/')) {
         cb(null, true);
     } else {
-        cb(new AppError(400, 'Only image files are allowed!'));
+        cb(new Error('Only image files are allowed!'));
     }
 };
 
-const upload = multer({
+// Generic upload instance
+export const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
+        fileSize: 5 * 1024 * 1024 // 5MB limit
     }
-}).fields([
+});
+
+// Specific middleware for KYC (restoring previous functionality)
+const kycUpload = upload.fields([
     { name: 'front_image', maxCount: 1 },
     { name: 'back_image', maxCount: 1 },
     { name: 'selfie_image', maxCount: 1 }
 ]);
 
-// Wrapper middleware to catch multer errors
 export const uploadKycImages = (req: Request, res: Response, next: NextFunction) => {
-    console.log('[MULTER] Starting file upload for KYC...');
-    console.log('[MULTER] Content-Type:', req.headers['content-type']);
-
-    upload(req, res, (err: any) => {
+    kycUpload(req, res, (err: any) => {
         if (err instanceof multer.MulterError) {
-            console.error('[MULTER ERROR] MulterError:', err.message, err.code);
             return next(new AppError(400, `Upload error: ${err.message}`));
         } else if (err) {
-            console.error('[MULTER ERROR] Unknown error:', err);
             return next(err);
         }
-
-        console.log('[MULTER] Upload complete. Files received:', req.files ? Object.keys(req.files as any) : 'None');
         next();
     });
 };

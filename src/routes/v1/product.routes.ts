@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../middlewares/auth.middleware.js';
+import { upload } from '../../middlewares/upload.middleware.js';
 import {
     createProduct,
     getAllProducts,
@@ -17,7 +18,11 @@ router.get('/:id', getProductById);
 
 // Protected routes
 router.use(authenticate);
-router.post('/', createProduct);
+router.post(
+    '/',
+    upload.array('images', 5),
+    createProduct
+);
 router.patch('/:id', updateProduct);
 router.delete('/:id', deleteProduct);
 router.post('/:id/buy', buyProduct);

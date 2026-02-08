@@ -33,6 +33,9 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
+// Serve static files
+app.use('/uploads', express.static('uploads'));
+
 // Compression
 app.use(compression());
 

@@ -5,8 +5,13 @@ import { ProductStatus } from '../../models/Product.js';
 
 export const createProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+        const images = (req.files as Express.Multer.File[])?.map(file => `/uploads/products/${file.filename}`) || [];
+        // If image URL string provided (legacy support or external URL), combine
+        if (req.body.image) images.push(req.body.image);
+
         const result = await productService.create({
             ...req.body,
+            images,
             owner_id: req.user!.id
         });
 
