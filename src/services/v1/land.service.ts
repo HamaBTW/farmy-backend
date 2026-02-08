@@ -72,6 +72,7 @@ class LandService {
     async findByOwner(ownerId: string) {
         return this.landRepo.find({
             where: { owner_id: ownerId, is_active: true },
+            relations: ['rentals'],
             order: { createdAt: 'DESC' }
         });
     }
