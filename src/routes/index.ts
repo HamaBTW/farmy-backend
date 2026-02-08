@@ -8,6 +8,7 @@ import itemRequestRoutesV1 from './v1/itemRequest.routes.js';
 import productionRoutesV1 from './v1/production.routes.js';
 import landGridRoutesV1 from './v1/landGrid.routes.js';
 import walletRoutesV1 from './v1/wallet.routes.js';
+import productRoutesV1 from './v1/product.routes.js';
 
 const router = Router();
 
@@ -43,6 +44,9 @@ router.use('/v1/land-grid', landGridRoutesV1);
 
 console.log('Registering /v1/wallet routes');
 router.use('/v1/wallet', walletRoutesV1);
+
+console.log('Registering /v1/products routes');
+router.use('/v1/products', productRoutesV1);
 
 export default router;
 
