@@ -8,8 +8,8 @@ import { AppError } from './error.middleware.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Base upload directory
-const baseUploadDir = path.join(__dirname, '../../uploads');
+// Base upload directory (relative to this file's location to shift between src and dist automatically)
+const baseUploadDir = path.join(__dirname, '../uploads');
 
 // Ensure directories exist
 const productUploadDir = path.join(baseUploadDir, 'products');

@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import express, { type Application, type Request, type Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -34,7 +36,7 @@ app.use(helmet({
 }));
 
 // Serve static files
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Compression
 app.use(compression());
