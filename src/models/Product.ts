@@ -4,6 +4,7 @@ import { User } from './User.js';
 import { ProductType } from './ProductType.js';
 import { Land } from './Land.js';
 import { LandRental } from './LandRental.js';
+import { jsonTransformer } from '../utils/transformers.js';
 
 export enum ProductStatus {
     AVAILABLE = 'available',
@@ -35,8 +36,8 @@ export class Product extends BaseEntity {
     })
     status!: ProductStatus;
 
-    @Column({ type: 'json', nullable: true })
-    images!: string[] | null;
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
+    images!: any | null;
 
     @Column({ type: 'uuid' })
     owner_id!: string;
