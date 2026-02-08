@@ -48,6 +48,10 @@ router.use('/v1/wallet', walletRoutesV1);
 console.log('Registering /v1/products routes');
 router.use('/v1/products', productRoutesV1);
 
+import productTypeRoutesV1 from './v1/productType.routes.js';
+console.log('Registering /v1/product-types routes');
+router.use('/v1/product-types', productTypeRoutesV1);
+
 export default router;
 
 
