@@ -15,6 +15,8 @@ const router = Router();
 router.get('/', authenticate, itemRequestController.getAllItemRequests);
 router.get('/pending', authenticate, itemRequestController.getPendingItemRequests);
 router.get('/my-requests', authenticate, itemRequestController.getMyItemRequests);
+router.get('/farmer/incoming', authenticate, itemRequestController.getIncomingRequestsForFarmer);
+router.get('/investor/inventory', authenticate, itemRequestController.getInvestorInventory);
 router.get('/:id', authenticate, itemRequestController.getItemRequestById);
 router.post('/', authenticate, validateRequest(createItemRequestSchema), itemRequestController.createItemRequest);
 router.post('/:id/approve', authenticate, itemRequestController.approveItemRequest);

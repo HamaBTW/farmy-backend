@@ -80,8 +80,34 @@ export const getItemRequestById = async (req: Request, res: Response, next: Next
     }
 };
 
+export const getIncomingRequestsForFarmer = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const result = await itemRequestService.findIncomingForFarmer(req.user!.id);
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getInvestorInventory = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const landId = req.query.landId as string | undefined;
+        const result = await itemRequestService.findInvestorInventory(req.user!.id, landId);
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const approveItemRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
+        console.log(`[ItemRequest] Approving request ${req.params.id} by admin ${req.user!.id}`);
         const result = await itemRequestService.approve(req.params.id as string, req.user!.id);
 
         res.status(200).json({
@@ -90,6 +116,7 @@ export const approveItemRequest = async (req: AuthRequest, res: Response, next: 
             data: result
         });
     } catch (error) {
+        console.error('[ItemRequest] Approve Error:', error);
         next(error);
     }
 };
