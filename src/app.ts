@@ -2,6 +2,9 @@ import 'reflect-metadata';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import express, { type Application, type Request, type Response } from 'express';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import helmet from 'helmet';
 import cors from 'cors';
 import compression from 'compression';
