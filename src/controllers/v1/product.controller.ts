@@ -61,7 +61,15 @@ export const getProductById = async (req: Request, res: Response, next: NextFunc
 
 export const updateProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const result = await productService.update(req.params.id as string, req.user!.id, req.body);
+        const newImages = (req.files as Express.Multer.File[])?.map(file => `/uploads/products/${file.filename}`) || [];
+
+        const result = await productService.update(req.params.id as string, req.user!.id, {
+            ...req.body,
+            // If new images uploaded, append them. Or replace if logic dictates.
+            // For now, let's assume appending or replacing based on a flag or logic in service. 
+            // Simple approach: send new images array, let service merge.
+            newImages
+        });
 
         res.status(200).json({
             success: true,

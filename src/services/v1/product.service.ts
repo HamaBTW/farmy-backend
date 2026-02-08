@@ -25,6 +25,7 @@ interface UpdateProductData {
     unit?: string;
     status?: ProductStatus;
     images?: string[];
+    newImages?: string[];
 }
 
 class ProductService {
@@ -82,6 +83,15 @@ class ProductService {
 
         if (product.owner_id !== userId) {
             throw new AppError(403, 'You are not authorized to update this product');
+        }
+
+        // Handle image updates
+        if (data.newImages && data.newImages.length > 0) {
+            // Append new images to existing ones
+            // Ensure images array exists
+            const currentImages = product.images || [];
+            data.images = [...currentImages, ...data.newImages];
+            delete data.newImages; // Remove auxiliary property
         }
 
         Object.assign(product, data);

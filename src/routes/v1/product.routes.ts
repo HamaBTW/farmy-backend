@@ -23,7 +23,7 @@ router.post(
     upload.array('images', 5),
     createProduct
 );
-router.patch('/:id', updateProduct);
+router.patch('/:id', upload.array('images', 5), updateProduct);
 router.delete('/:id', deleteProduct);
 router.post('/:id/buy', buyProduct);
 
