@@ -153,7 +153,7 @@ class ItemRequestService {
     }
 
     async findIncomingForFarmer(farmerId: string) {
-        return this.itemRequestRepo.find({
+        const requests = await this.itemRequestRepo.find({
             where: {
                 land: { owner_id: farmerId },
                 status: ItemRequestStatus.PENDING
@@ -161,12 +161,40 @@ class ItemRequestService {
             relations: ['user', 'land'],
             order: { createdAt: 'ASC' }
         });
+
+        // Enrich with item details
+        const enrichedRequests = await Promise.all(requests.map(async (request) => {
+            try {
+                const variant = await assetVariantService.findById(request.asset_category, request.variant_id);
+                return {
+                    ...request,
+                    item_details: {
+                        name: (variant as any).type?.name || 'Unknown Item',
+                        variant_name: (variant as any).variant_code || 'Standard',
+                        image_url: (variant as any).image_url || (variant as any).type?.icon_url || null,
+                    }
+                };
+            } catch (e) {
+                console.error(`Failed to fetch variant details for request ${request.id}`, e);
+                return {
+                    ...request,
+                    item_details: { name: 'Unknown Item', variant_name: 'Unknown', image_url: null }
+                };
+            }
+        }));
+
+        return enrichedRequests;
     }
 
-    async findInvestorInventory(investorId: string) {
+    async findInvestorInventory(investorId: string, landId?: string) {
         // Fetch ALL requests (Pending, Approved, Rejected)
+        const where: any = { user_id: investorId };
+        if (landId) {
+            where.land_id = landId;
+        }
+
         const requests = await this.itemRequestRepo.find({
-            where: { user_id: investorId },
+            where,
             relations: ['land', 'placed_item'],
             order: { createdAt: 'DESC' }
         });
@@ -202,69 +230,8 @@ class ItemRequestService {
             throw new AppError(400, `Request has already been ${request.status}`);
         }
 
-        // Check if a placed item already exists for this request (Fix for Duplicate Entry)
-        const existingPlacedItem = await this.placedItemRepo.findOne({ where: { request_id: request.id } });
-        if (existingPlacedItem) {
-            // Data inconsistency detected: Item is placed but status is PENDING.
-            // Fix the status and return.
-            request.status = ItemRequestStatus.APPROVED;
-            request.position_x = existingPlacedItem.position_x;
-            request.position_y = existingPlacedItem.position_y;
-            request.processed_at = new Date();
-            request.processed_by = adminId;
-            return this.itemRequestRepo.save(request);
-        }
-
-        // Check if position is available, if not find a new one
-        let finalX = request.position_x;
-        let finalY = request.position_y;
-
-        let isOccupied = await landService.isPositionOccupied(request.land_id, finalX, finalY);
-
-        if (isOccupied) {
-            console.log(`[ItemRequest] Position (${finalX}, ${finalY}) occupied. Searching for free spot...`);
-            let found = false;
-            // Search grid (assuming standard 10x10 for now, ideally fetch land size)
-            for (let x = 0; x < 10; x++) {
-                for (let y = 0; y < 10; y++) {
-                    if (!await landService.isPositionOccupied(request.land_id, x, y)) {
-                        finalX = x;
-                        finalY = y;
-                        found = true;
-                        break;
-                    }
-                }
-                if (found) break;
-            }
-
-            if (!found) {
-                throw new AppError(400, 'Land is full. Cannot place item.');
-            }
-            console.log(`[ItemRequest] Found new position: (${finalX}, ${finalY})`);
-        }
-
-        // Create placed item
-        if (!request.id) {
-            throw new AppError(500, 'Request ID is missing');
-        }
-
-        const placedItem = new PlacedItem();
-        placedItem.land_id = request.land_id;
-        placedItem.request_id = request.id; // Assign ID directly
-        placedItem.asset_category = request.asset_category;
-        placedItem.variant_id = request.variant_id;
-        placedItem.position_x = finalX;
-        placedItem.position_y = finalY;
-        placedItem.placed_at = new Date();
-
-        // placedItem.request = request; // Removed to avoid TypeORM double-assignment issue
-
-        await this.placedItemRepo.save(placedItem);
-
-        // Update request status
+        // Update request status to APPROVED (Do NOT place item yet)
         request.status = ItemRequestStatus.APPROVED;
-        request.position_x = finalX; // Update request with actual placed position
-        request.position_y = finalY;
         request.processed_at = new Date();
         request.processed_by = adminId;
 
@@ -275,7 +242,7 @@ class ItemRequestService {
             getIO().to(request.user_id).emit('notification', {
                 type: 'success',
                 title: 'Request Approved',
-                message: `Your request for ${request.asset_category} has been approved!`
+                message: `Your request for ${request.asset_category} has been approved! You can now place it on your land.`
             });
         } catch (error) {
             console.error('Failed to send notification:', error);

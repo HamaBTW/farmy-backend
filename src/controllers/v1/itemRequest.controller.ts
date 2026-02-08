@@ -94,7 +94,8 @@ export const getIncomingRequestsForFarmer = async (req: AuthRequest, res: Respon
 
 export const getInvestorInventory = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const result = await itemRequestService.findInvestorInventory(req.user!.id);
+        const landId = req.query.landId as string | undefined;
+        const result = await itemRequestService.findInvestorInventory(req.user!.id, landId);
         res.status(200).json({
             success: true,
             data: result
