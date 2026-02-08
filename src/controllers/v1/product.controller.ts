@@ -43,7 +43,7 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
 
 export const getProductById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const result = await productService.findById(req.params.id);
+        const result = await productService.findById(req.params.id as string);
 
         res.status(200).json({
             success: true,
@@ -56,7 +56,7 @@ export const getProductById = async (req: Request, res: Response, next: NextFunc
 
 export const updateProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const result = await productService.update(req.params.id, req.user!.id, req.body);
+        const result = await productService.update(req.params.id as string, req.user!.id, req.body);
 
         res.status(200).json({
             success: true,
@@ -70,7 +70,7 @@ export const updateProduct = async (req: AuthRequest, res: Response, next: NextF
 
 export const deleteProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        await productService.delete(req.params.id, req.user!.id);
+        await productService.delete(req.params.id as string, req.user!.id);
 
         res.status(200).json({
             success: true,
