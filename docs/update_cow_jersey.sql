@@ -4,10 +4,10 @@
 UPDATE animal_variants 
 SET sprites = '{
     "idle": "sprites/animals/cow_jersey/idle",
-    "walking": "sprites/animals/cow_jersey/walking",
-    "eating": "sprites/animals/cow_jersey/eating",
-    "sleeping": "sprites/animals/cow_jersey/sleeping",
-    "ready": "sprites/animals/cow_jersey/ready",
-    "sick": "sprites/animals/cow_jersey/sick"
+    "walking": "sprites/animals/cow_jersey/idle",
+    "eating": "sprites/animals/cow_jersey/idle",
+    "sleeping": "sprites/animals/cow_jersey/idle",
+    "ready": "sprites/animals/cow_jersey/idle",
+    "sick": "sprites/animals/cow_jersey/idle"
 }'
 WHERE variant_code = 'cow_dairy_jersey';
