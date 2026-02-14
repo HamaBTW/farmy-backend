@@ -32,6 +32,14 @@ export class MachineVariant extends BaseEntity {
     @Column({ type: 'varchar', nullable: true })
     image_url?: string;
 
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
+    sprites?: {
+        idle?: string;
+        processing?: string;
+        finished?: string;
+        broken?: string;
+    };
+
     @Column({ type: 'boolean', default: true })
     is_available!: boolean;
 }

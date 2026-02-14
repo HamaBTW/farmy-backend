@@ -32,6 +32,17 @@ export class TreeVariant extends BaseEntity {
     @Column({ type: 'varchar', nullable: true })
     image_url?: string;
 
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
+    sprites?: {
+        idle?: string;
+        unharvested?: string; // Corrected spelling from unhavesed
+        harvested?: string;   // Corrected spelling from harvesed
+        cut?: string;
+        stump?: string;
+        growing?: string;
+        pending?: string;
+    };
+
     @Column({ type: 'boolean', default: true })
     is_available!: boolean;
 }

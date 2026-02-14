@@ -31,6 +31,13 @@ export class StructureVariant extends BaseEntity {
     @Column({ type: 'varchar', nullable: true })
     image_url?: string;
 
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
+    sprites?: {
+        idle?: string;
+        construction?: string;
+        completed?: string;
+    };
+
     @Column({ type: 'boolean', default: true })
     is_available!: boolean;
 }

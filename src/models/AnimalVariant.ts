@@ -31,6 +31,16 @@ export class AnimalVariant extends BaseEntity {
     @Column({ type: 'varchar', nullable: true })
     image_url?: string;
 
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
+    sprites?: {
+        idle?: string;
+        walking?: string;
+        eating?: string;
+        sleeping?: string;
+        ready?: string; // e.g. ready to collect product
+        sick?: string;
+    };
+
     @Column({ type: 'boolean', default: true })
     is_available!: boolean;
 }

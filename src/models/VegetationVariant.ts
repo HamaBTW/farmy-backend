@@ -32,6 +32,17 @@ export class VegetationVariant extends BaseEntity {
     @Column({ type: 'varchar', nullable: true })
     image_url?: string;
 
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
+    sprites?: {
+        idle?: string; // seeded?
+        sprout?: string;
+        growing?: string;
+        ready?: string; // ready to harvest
+        harvested?: string;
+        withered?: string;
+        pending?: string;
+    };
+
     @Column({ type: 'boolean', default: true })
     is_available!: boolean;
 }

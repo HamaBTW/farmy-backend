@@ -48,7 +48,9 @@ class LandGridService {
                             id: item.id,
                             category: item.asset_category,
                             variant_id: item.variant_id,
-                            variant_code: (variant as any).variant_code
+                            variant_code: (variant as any).variant_code,
+                            state: item.state,
+                            sprites: (variant as any).sprites
                         };
                     }
                 }
