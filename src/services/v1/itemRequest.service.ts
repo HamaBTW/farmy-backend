@@ -172,6 +172,7 @@ class ItemRequestService {
                         name: (variant as any).type?.name || 'Unknown Item',
                         variant_name: (variant as any).variant_code || 'Standard',
                         image_url: (variant as any).image_url || (variant as any).type?.icon_url || null,
+                        sprites: (variant as any).sprites || null,
                     }
                 };
             } catch (e) {
@@ -209,6 +210,7 @@ class ItemRequestService {
                         name: (variant as any).type?.name || 'Unknown',
                         variant_name: (variant as any).variant_code,
                         image_url: (variant as any).image_url || (variant as any).type?.icon_url,
+                        sprites: (variant as any).sprites || null,
                     }
                 };
             } catch (e) {
