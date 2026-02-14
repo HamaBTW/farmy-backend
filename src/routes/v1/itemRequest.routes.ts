@@ -6,7 +6,8 @@ import {
     createItemRequestSchema,
     rejectItemRequestSchema,
     updatePlacedItemStateSchema,
-    movePlacedItemSchema
+    movePlacedItemSchema,
+    placeItemSchema
 } from '../../validators/v1/asset.validator.js';
 
 const router = Router();
@@ -22,6 +23,7 @@ router.post('/', authenticate, validateRequest(createItemRequestSchema), itemReq
 router.post('/:id/approve', authenticate, itemRequestController.approveItemRequest);
 router.post('/:id/reject', authenticate, validateRequest(rejectItemRequestSchema), itemRequestController.rejectItemRequest);
 router.post('/:id/cancel', authenticate, itemRequestController.cancelItemRequest);
+router.post('/:id/place', authenticate, validateRequest(placeItemSchema), itemRequestController.placeItemRequest);
 
 // Placed Items
 router.get('/land/:landId/items', itemRequestController.getPlacedItems);

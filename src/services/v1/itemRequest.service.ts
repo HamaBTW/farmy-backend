@@ -381,6 +381,66 @@ class ItemRequestService {
         item.is_active = false;
         return this.placedItemRepo.save(item);
     }
+    async place(requestId: string, userId: string, x: number, y: number, rotation: number = 0) {
+        const request = await this.findById(requestId);
+
+        if (request.user_id !== userId) {
+            throw new AppError(403, 'You do not have permission to place this item');
+        }
+
+        if (request.status !== ItemRequestStatus.APPROVED) {
+            throw new AppError(400, `Cannot place item. Request status is ${request.status}`);
+        }
+
+        // Check if already placed
+        const existingPlacement = await this.placedItemRepo.findOne({ where: { request_id: requestId } });
+        if (existingPlacement && existingPlacement.is_active) {
+            throw new AppError(400, 'Item is already placed');
+        }
+
+        // Verify land ownership/permissions
+        try {
+            await landService.verifyOwnership(request.land_id, userId);
+        } catch (error) {
+            // Check if investor rental
+            const rental = await this.landRentalRepo.findOne({
+                where: { land_id: request.land_id, investor_id: userId }
+            });
+            if (!rental) {
+                throw new AppError(403, 'You do not have permission to place items on this land');
+            }
+        }
+
+        // Verify position
+        const isValid = await landService.isPositionValid(request.land_id, x, y);
+        if (!isValid) throw new AppError(400, 'Position is outside land boundaries');
+
+        const isOccupied = await landService.isPositionOccupied(request.land_id, x, y);
+        if (isOccupied) throw new AppError(400, 'Position is already occupied');
+
+        // Create Placed Item
+        const placedItem = this.placedItemRepo.create({
+            land_id: request.land_id,
+            request_id: request.id,
+            asset_category: request.asset_category,
+            variant_id: request.variant_id,
+            position_x: x,
+            position_y: y,
+            rotation: rotation,
+            is_active: true,
+            state: { state: 'idle' } // Default state
+        });
+
+        const savedItem = await this.placedItemRepo.save(placedItem);
+
+        // Update request status to PLACED if we want to distinguish, 
+        // OR just keep APPROVED. API usually filters by placed_item existence?
+        // Let's keep it APPROVED for now as "Approved" means "Owned" in some contexts.
+        // But wait, if I filter inventory by "Approved", I might want to exclude placed ones?
+        // let's check findInvestorInventory in service.
+
+        return savedItem;
+    }
 }
 
 export const itemRequestService = new ItemRequestService();

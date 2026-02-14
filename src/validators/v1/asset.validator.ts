@@ -112,3 +112,9 @@ export const movePlacedItemSchema = Joi.object({
     position_x: Joi.number().integer().min(0).required(),
     position_y: Joi.number().integer().min(0).required()
 });
+
+export const placeItemSchema = Joi.object({
+    position_x: Joi.number().integer().min(0).required(),
+    position_y: Joi.number().integer().min(0).required(),
+    rotation: Joi.number().integer().min(0).max(3).optional()
+});

@@ -153,6 +153,27 @@ export const cancelItemRequest = async (req: AuthRequest, res: Response, next: N
     }
 };
 
+export const placeItemRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { position_x, position_y, rotation } = req.body;
+        const result = await itemRequestService.place(
+            req.params.id as string,
+            req.user!.id,
+            position_x,
+            position_y,
+            rotation
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Item placed successfully',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // Placed Items endpoints
 export const getPlacedItems = async (req: Request, res: Response, next: NextFunction) => {
     try {
