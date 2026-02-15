@@ -4,7 +4,7 @@ import { Land } from '../../models/Land.js';
 import { LandRental } from '../../models/LandRental.js';
 import { WorkerProfile, VerificationStatus } from '../../models/WorkerProfile.js';
 import { AppError } from '../../middlewares/error.middleware.js';
-import { IsNull, MoreThanOrEqual } from 'typeorm';
+import { IsNull, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 
 interface AssignWorkerData {
     worker_id: string;
@@ -30,13 +30,21 @@ class LandWorkerService {
             throw new AppError(404, 'Land not found');
         }
 
+        // 1.5 Validate inputs
+        if (data.salary !== undefined && data.salary < 0) {
+            throw new AppError(400, 'Salary cannot be negative');
+        }
+        if (data.role && typeof data.role !== 'string') {
+            throw new AppError(400, 'Role must be a valid string');
+        }
+
         // 2. Check rental state to determine who can hire
         const activeRental = await this.getActiveRental(landId);
 
         if (activeRental) {
-            // Land is rented → only investor can hire
-            if (activeRental.investor_id !== assignedById) {
-                throw new AppError(403, 'Only the active investor can hire workers on a rented land');
+            // Land is rented → Investor is primary, but Owner has override rights
+            if (activeRental.investor_id !== assignedById && land.owner_id !== assignedById) {
+                throw new AppError(403, 'Only the active investor or land owner can hire workers on a rented land');
             }
         } else {
             // Land is NOT rented → only owner (farmer) can hire
@@ -176,8 +184,16 @@ class LandWorkerService {
         const currentDate = new Date();
         const rental = await this.rentalRepo.findOne({
             where: [
-                { land_id: landId, rental_end_date: IsNull() },
-                { land_id: landId, rental_end_date: MoreThanOrEqual(currentDate) }
+                {
+                    land_id: landId,
+                    rental_end_date: IsNull(),
+                    rental_start_date: LessThanOrEqual(currentDate)
+                },
+                {
+                    land_id: landId,
+                    rental_end_date: MoreThanOrEqual(currentDate),
+                    rental_start_date: LessThanOrEqual(currentDate)
+                }
             ],
             order: { rental_start_date: 'DESC' }
         });
