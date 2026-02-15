@@ -27,3 +27,8 @@ export { PlacedItem } from './PlacedItem.js';
 export { User } from './User.js';
 export { Land } from './Land.js';
 export { LandRental, PaymentStatus } from './LandRental.js';
+
+// Worker System
+export { WorkerProfile, VerificationStatus, WorkerAvailability } from './WorkerProfile.js';
+export { LandWorker, LandWorkerStatus } from './LandWorker.js';
+export { Task, TaskType, TaskStatus } from './Task.js';

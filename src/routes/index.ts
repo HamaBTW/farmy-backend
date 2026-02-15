@@ -52,6 +52,19 @@ import productTypeRoutesV1 from './v1/productType.routes.js';
 console.log('Registering /v1/product-types routes');
 router.use('/v1/product-types', productTypeRoutesV1);
 
+// Worker System Routes
+import workerProfileRoutesV1 from './v1/workerProfile.routes.js';
+console.log('Registering /v1/worker-profile routes');
+router.use('/v1/worker-profile', workerProfileRoutesV1);
+
+import landWorkerRoutesV1 from './v1/landWorker.routes.js';
+console.log('Registering /v1/workforce routes');
+router.use('/v1/workforce', landWorkerRoutesV1);
+
+import taskRoutesV1 from './v1/task.routes.js';
+console.log('Registering /v1/tasks routes');
+router.use('/v1/tasks', taskRoutesV1);
+
 export default router;
 
 
