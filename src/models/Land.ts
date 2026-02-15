@@ -3,6 +3,7 @@ import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { PlacedItem } from './PlacedItem.js';
 import type { LandRental } from './LandRental.js';
+import type { LandResource } from './LandResource.js';
 import { metersToGridCells } from '../utils/grid.utils.js';
 
 @Entity('lands')
@@ -25,6 +26,22 @@ export class Land extends BaseEntity {
 
     @Column({ type: 'float', default: 10.0 })
     height_m!: number;
+
+    // Game progression fields
+    @Column({ type: 'int', default: 1 })
+    level!: number;
+
+    @Column({ type: 'int', default: 0 })
+    experience!: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 1000.00 })
+    money!: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+    food_storage!: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 100 })
+    max_food_storage!: number;
 
     /**
      * Number of grid columns based on width in meters.
@@ -172,6 +189,9 @@ export class Land extends BaseEntity {
 
     @OneToMany('LandRental', (rental: LandRental) => rental.land)
     rentals!: Relation<LandRental>[];
+
+    @OneToMany('LandResource', (resource: LandResource) => resource.land)
+    resources!: Relation<LandResource>[];
 
     /**
      * Total number of grid cells available on this land.

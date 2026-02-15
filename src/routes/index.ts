@@ -9,6 +9,9 @@ import productionRoutesV1 from './v1/production.routes.js';
 import landGridRoutesV1 from './v1/landGrid.routes.js';
 import walletRoutesV1 from './v1/wallet.routes.js';
 import productRoutesV1 from './v1/product.routes.js';
+import productTypeRoutesV1 from './v1/productType.routes.js';
+import landResourceRoutesV1 from './v1/landResource.routes.js';
+import animalCategoryRoutesV1 from './v1/animalCategory.routes.js';
 
 const router = Router();
 
@@ -48,10 +51,16 @@ router.use('/v1/wallet', walletRoutesV1);
 console.log('Registering /v1/products routes');
 router.use('/v1/products', productRoutesV1);
 
-import productTypeRoutesV1 from './v1/productType.routes.js';
 console.log('Registering /v1/product-types routes');
 router.use('/v1/product-types', productTypeRoutesV1);
 
+console.log('Registering /v1/land-resources routes');
+router.use('/v1/lands', landResourceRoutesV1);
+
+console.log('Registering /v1/animal-categories routes');
+router.use('/v1/animal-categories', animalCategoryRoutesV1);
+
 export default router;
+
 
 

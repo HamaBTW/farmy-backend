@@ -3,6 +3,7 @@ export { AssetCategory, ItemRequestStatus } from './AssetCategory.js';
 
 // Asset Types
 export { AnimalType } from './AnimalType.js';
+export { AnimalCategory } from './AnimalCategory.js';
 export { VegetationType } from './VegetationType.js';
 export { TreeType } from './TreeType.js';
 export { StructureType } from './StructureType.js';
@@ -22,6 +23,10 @@ export { AssetProduction } from './AssetProduction.js';
 // Requests and Placement
 export { ItemRequest } from './ItemRequest.js';
 export { PlacedItem } from './PlacedItem.js';
+
+// Resource System
+export { LandResource } from './LandResource.js';
+export { ResourceConsumption } from './ResourceConsumption.js';
 
 // Core Entities
 export { User } from './User.js';
