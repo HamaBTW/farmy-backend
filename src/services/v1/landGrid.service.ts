@@ -49,7 +49,12 @@ class LandGridService {
                             variant_code: (variant as any).variant_code,
                             state: item.state,
                             sprites: (variant as any).sprites,
-                            is_active: item.is_active
+                            is_active: item.is_active,
+                            origin_x: item.position_x,
+                            origin_y: item.position_y,
+                            is_origin: cell.x === item.position_x && cell.y === item.position_y,
+                            footprint_width: width,
+                            footprint_height: height
                         };
                     }
                 }
