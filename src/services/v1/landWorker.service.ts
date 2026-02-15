@@ -42,9 +42,9 @@ class LandWorkerService {
         const activeRental = await this.getActiveRental(landId);
 
         if (activeRental) {
-            // Land is rented → Investor is primary, but Owner has override rights
-            if (activeRental.investor_id !== assignedById && land.owner_id !== assignedById) {
-                throw new AppError(403, 'Only the active investor or land owner can hire workers on a rented land');
+            // Land is rented → only investor can hire
+            if (activeRental.investor_id !== assignedById) {
+                throw new AppError(403, 'Only the active investor can hire workers on a rented land');
             }
         } else {
             // Land is NOT rented → only owner (farmer) can hire
