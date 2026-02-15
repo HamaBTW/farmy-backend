@@ -42,6 +42,6 @@ export class PlacedItem extends BaseEntity {
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
     placed_at!: Date;
 
-    @Column({ type: 'boolean', default: true })
+    @Column({ type: 'boolean', default: false })
     is_active!: boolean;
 }

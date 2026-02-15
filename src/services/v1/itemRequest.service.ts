@@ -103,7 +103,22 @@ class ItemRequestService {
             status: ItemRequestStatus.PENDING
         });
 
-        return this.itemRequestRepo.save(itemRequest);
+        const savedRequest = await this.itemRequestRepo.save(itemRequest);
+
+        // Auto-create inactive placement
+        const placedItem = this.placedItemRepo.create({
+            land_id: data.land_id,
+            request_id: savedRequest.id,
+            asset_category: data.asset_category,
+            variant_id: data.variant_id,
+            position_x: data.position_x,
+            position_y: data.position_y,
+            is_active: false,
+            state: { state: 'idle' }
+        });
+        await this.placedItemRepo.save(placedItem);
+
+        return savedRequest;
     }
 
     async findAll(filters?: {
@@ -239,15 +254,11 @@ class ItemRequestService {
 
         const savedRequest = await this.itemRequestRepo.save(request);
 
-        // Notify Investor
-        try {
-            getIO().to(request.user_id).emit('notification', {
-                type: 'success',
-                title: 'Request Approved',
-                message: `Your request for ${request.asset_category} has been approved! You can now place it on your land.`
-            });
-        } catch (error) {
-            console.error('Failed to send notification:', error);
+        // Activate placed item if exists
+        const placedItem = await this.placedItemRepo.findOne({ where: { request_id: request.id } });
+        if (placedItem) {
+            placedItem.is_active = true;
+            await this.placedItemRepo.save(placedItem);
         }
 
         return savedRequest;
@@ -322,7 +333,7 @@ class ItemRequestService {
     // Placed Items methods
     async getPlacedItems(landId: string) {
         return this.placedItemRepo.find({
-            where: { land_id: landId, is_active: true },
+            where: { land_id: landId },
             order: { placed_at: 'DESC' }
         });
     }
@@ -429,7 +440,7 @@ class ItemRequestService {
             position_x: x,
             position_y: y,
             rotation: rotation,
-            is_active: true,
+            is_active: false,
             state: { state: 'idle' } // Default state
         });
 

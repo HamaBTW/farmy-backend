@@ -26,8 +26,6 @@ class LandGridService {
         const matrix: (any | null)[][] = land.getGridMatrix();
 
         for (const item of land.placed_items) {
-            if (!item.is_active) continue;
-
             try {
                 // Fetch variant to get its size
                 const variant = await assetVariantService.findById(item.asset_category, item.variant_id);
@@ -50,7 +48,8 @@ class LandGridService {
                             variant_id: item.variant_id,
                             variant_code: (variant as any).variant_code,
                             state: item.state,
-                            sprites: (variant as any).sprites
+                            sprites: (variant as any).sprites,
+                            is_active: item.is_active
                         };
                     }
                 }
