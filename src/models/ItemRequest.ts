@@ -2,7 +2,7 @@ import { Entity, Column, ManyToOne, JoinColumn, OneToOne, Relation } from 'typeo
 import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { Land } from './Land.js';
-import { AssetCategory, ItemRequestStatus } from './AssetCategory.js';
+import { AssetCategory, ItemRequestStatus, ItemRequestType } from './AssetCategory.js';
 import { PlacedItem } from './PlacedItem.js';
 
 @Entity('item_requests')
@@ -38,6 +38,9 @@ export class ItemRequest extends BaseEntity {
 
     @Column({ type: 'enum', enum: ItemRequestStatus, default: ItemRequestStatus.PENDING })
     status!: ItemRequestStatus;
+
+    @Column({ type: 'enum', enum: ItemRequestType, default: ItemRequestType.BUY })
+    type!: ItemRequestType;
 
     @Column({ type: 'text', nullable: true })
     rejection_reason!: string | null;

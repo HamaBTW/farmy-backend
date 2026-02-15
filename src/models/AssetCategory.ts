@@ -17,3 +17,11 @@ export enum ItemRequestStatus {
     APPROVED = 'approved',
     REJECTED = 'rejected'
 }
+
+/**
+ * Type of item request
+ */
+export enum ItemRequestType {
+    BUY = 'buy',
+    PLACEMENT = 'placement'
+}

@@ -3,7 +3,7 @@ import { ItemRequest } from '../../models/ItemRequest.js';
 import { PlacedItem } from '../../models/PlacedItem.js';
 import { LandRental } from '../../models/LandRental.js';
 import { User } from '../../models/User.js';
-import { AssetCategory, ItemRequestStatus } from '../../models/AssetCategory.js';
+import { AssetCategory, ItemRequestStatus, ItemRequestType } from '../../models/AssetCategory.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { assetVariantService } from './assetVariant.service.js';
 import { landService } from './land.service.js';
@@ -100,25 +100,11 @@ class ItemRequestService {
         const itemRequest = this.itemRequestRepo.create({
             ...data,
             price_paid: price,
-            status: ItemRequestStatus.PENDING
+            status: ItemRequestStatus.PENDING,
+            type: ItemRequestType.BUY
         });
 
-        const savedRequest = await this.itemRequestRepo.save(itemRequest);
-
-        // Auto-create inactive placement
-        const placedItem = this.placedItemRepo.create({
-            land_id: data.land_id,
-            request_id: savedRequest.id,
-            asset_category: data.asset_category,
-            variant_id: data.variant_id,
-            position_x: data.position_x,
-            position_y: data.position_y,
-            is_active: false,
-            state: { state: 'idle' }
-        });
-        await this.placedItemRepo.save(placedItem);
-
-        return savedRequest;
+        return this.itemRequestRepo.save(itemRequest);
     }
 
     async findAll(filters?: {
@@ -254,11 +240,13 @@ class ItemRequestService {
 
         const savedRequest = await this.itemRequestRepo.save(request);
 
-        // Activate placed item if exists
-        const placedItem = await this.placedItemRepo.findOne({ where: { request_id: request.id } });
-        if (placedItem) {
-            placedItem.is_active = true;
-            await this.placedItemRepo.save(placedItem);
+        // Activation logic: If this is a placement request, activate the item
+        if (request.type === ItemRequestType.PLACEMENT) {
+            const placedItem = await this.placedItemRepo.findOne({ where: { request_id: request.id } });
+            if (placedItem) {
+                placedItem.is_active = true;
+                await this.placedItemRepo.save(placedItem);
+            }
         }
 
         return savedRequest;
@@ -431,28 +419,39 @@ class ItemRequestService {
         const isOccupied = await landService.isPositionOccupied(request.land_id, x, y);
         if (isOccupied) throw new AppError(400, 'Position is already occupied');
 
-        // Create Placed Item
+        // Create Placed Item (Inactive Shadow)
         const placedItem = this.placedItemRepo.create({
             land_id: request.land_id,
-            request_id: request.id,
+            request_id: '', // Will update with PLACEMENT request ID
             asset_category: request.asset_category,
             variant_id: request.variant_id,
             position_x: x,
             position_y: y,
             rotation: rotation,
             is_active: false,
-            state: { state: 'idle' } // Default state
+            state: { state: 'idle' }
         });
 
-        const savedItem = await this.placedItemRepo.save(placedItem);
+        // Create a NEW Item Request for PLACEMENT
+        const placementRequest = this.itemRequestRepo.create({
+            user_id: userId,
+            land_id: request.land_id,
+            asset_category: request.asset_category,
+            variant_id: request.variant_id,
+            position_x: x,
+            position_y: y,
+            price_paid: 0, // Placement request is free
+            status: ItemRequestStatus.PENDING,
+            type: ItemRequestType.PLACEMENT
+        });
 
-        // Update request status to PLACED if we want to distinguish, 
-        // OR just keep APPROVED. API usually filters by placed_item existence?
-        // Let's keep it APPROVED for now as "Approved" means "Owned" in some contexts.
-        // But wait, if I filter inventory by "Approved", I might want to exclude placed ones?
-        // let's check findInvestorInventory in service.
+        const savedPlacementRequest = await this.itemRequestRepo.save(placementRequest);
 
-        return savedItem;
+        // Link placed item to the new placement request
+        placedItem.request_id = savedPlacementRequest.id;
+        await this.placedItemRepo.save(placedItem);
+
+        return savedPlacementRequest;
     }
 }
 
