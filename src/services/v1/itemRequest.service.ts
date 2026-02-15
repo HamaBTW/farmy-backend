@@ -167,10 +167,12 @@ class ItemRequestService {
         const enrichedRequests = await Promise.all(requests.map(async (request) => {
             try {
                 const variant = await assetVariantService.findById(request.asset_category, request.variant_id);
+                const typeLabel = request.type === ItemRequestType.PLACEMENT ? 'Placement' : 'Purchase';
                 return {
                     ...request,
                     item_details: {
                         name: (variant as any).type?.name || 'Unknown Item',
+                        display_name: `${typeLabel}: ${(variant as any).type?.name || 'Item'}`,
                         variant_name: (variant as any).variant_code || 'Standard',
                         image_url: (variant as any).image_url || (variant as any).type?.icon_url || null,
                         sprites: (variant as any).sprites || null,
@@ -196,7 +198,10 @@ class ItemRequestService {
         }
 
         const requests = await this.itemRequestRepo.find({
-            where,
+            where: {
+                ...where,
+                type: ItemRequestType.BUY // Only show purchase requests in inventory
+            },
             relations: ['land', 'placed_item'],
             order: { createdAt: 'DESC' }
         });
@@ -241,8 +246,9 @@ class ItemRequestService {
         const savedRequest = await this.itemRequestRepo.save(request);
 
         // Activation logic: If this is a placement request, activate the item
-        if (request.type === ItemRequestType.PLACEMENT) {
-            const placedItem = await this.placedItemRepo.findOne({ where: { request_id: request.id } });
+        if (request.type === ItemRequestType.PLACEMENT && request.parent_id) {
+            // Find the PlacedItem linked to the PARENT (BUY) request
+            const placedItem = await this.placedItemRepo.findOne({ where: { request_id: request.parent_id } });
             if (placedItem) {
                 placedItem.is_active = true;
                 await this.placedItemRepo.save(placedItem);
@@ -393,10 +399,10 @@ class ItemRequestService {
             throw new AppError(400, `Cannot place item. Request status is ${request.status}`);
         }
 
-        // Check if already placed
+        // Check if already placed or pending placement
         const existingPlacement = await this.placedItemRepo.findOne({ where: { request_id: requestId } });
-        if (existingPlacement && existingPlacement.is_active) {
-            throw new AppError(400, 'Item is already placed');
+        if (existingPlacement) {
+            throw new AppError(400, 'Item already has a placement. Please move it if it is already active.');
         }
 
         // Verify land ownership/permissions
@@ -420,9 +426,10 @@ class ItemRequestService {
         if (isOccupied) throw new AppError(400, 'Position is already occupied');
 
         // Create Placed Item (Inactive Shadow)
+        // Link it to the BUY request ID so the inventory knows it's placed
         const placedItem = this.placedItemRepo.create({
             land_id: request.land_id,
-            request_id: '', // Will update with PLACEMENT request ID
+            request_id: request.id,
             asset_category: request.asset_category,
             variant_id: request.variant_id,
             position_x: x,
@@ -432,7 +439,9 @@ class ItemRequestService {
             state: { state: 'idle' }
         });
 
-        // Create a NEW Item Request for PLACEMENT
+        await this.placedItemRepo.save(placedItem);
+
+        // Create a NEW Item Request for PLACEMENT approval
         const placementRequest = this.itemRequestRepo.create({
             user_id: userId,
             land_id: request.land_id,
@@ -440,18 +449,13 @@ class ItemRequestService {
             variant_id: request.variant_id,
             position_x: x,
             position_y: y,
-            price_paid: 0, // Placement request is free
+            price_paid: 0,
             status: ItemRequestStatus.PENDING,
-            type: ItemRequestType.PLACEMENT
+            type: ItemRequestType.PLACEMENT,
+            parent_id: request.id // Link to the original BUY request
         });
 
-        const savedPlacementRequest = await this.itemRequestRepo.save(placementRequest);
-
-        // Link placed item to the new placement request
-        placedItem.request_id = savedPlacementRequest.id;
-        await this.placedItemRepo.save(placedItem);
-
-        return savedPlacementRequest;
+        return this.itemRequestRepo.save(placementRequest);
     }
 }
 

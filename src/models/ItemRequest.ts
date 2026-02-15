@@ -42,6 +42,9 @@ export class ItemRequest extends BaseEntity {
     @Column({ type: 'enum', enum: ItemRequestType, default: ItemRequestType.BUY })
     type!: ItemRequestType;
 
+    @Column({ type: 'uuid', nullable: true })
+    parent_id!: string | null;
+
     @Column({ type: 'text', nullable: true })
     rejection_reason!: string | null;
 
