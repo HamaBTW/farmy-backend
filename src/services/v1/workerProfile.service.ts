@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../config/db.config.js';
 import { WorkerProfile, VerificationStatus, WorkerAvailability } from '../../models/WorkerProfile.js';
 import { User, UserRole } from '../../models/User.js';
+import { LandWorker } from '../../models/LandWorker.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 
 interface CreateWorkerProfileData {
@@ -14,11 +15,13 @@ interface MarketplaceFilters {
     skill?: string;
     minRating?: number;
     availability?: WorkerAvailability;
+    excludeLandId?: string;
 }
 
 class WorkerProfileService {
     private profileRepo = AppDataSource.getRepository(WorkerProfile);
     private userRepo = AppDataSource.getRepository(User);
+    private landWorkerRepo = AppDataSource.getRepository(LandWorker);
 
     async create(data: CreateWorkerProfileData) {
         // Verify user exists and is a customer
@@ -88,6 +91,17 @@ class WorkerProfileService {
         if (filters.skill) {
             // JSON search in skills array (simple-json stored as JSON string)
             qb.andWhere('wp.skills LIKE :skill', { skill: `%${filters.skill}%` });
+        }
+
+        if (filters.excludeLandId) {
+            qb.andWhere(qb => {
+                const subQuery = qb.subQuery()
+                    .select('lw.worker_id')
+                    .from('land_workers', 'lw')
+                    .where('lw.land_id = :excludeLandId', { excludeLandId: filters.excludeLandId })
+                    .getQuery();
+                return 'wp.user_id NOT IN ' + subQuery;
+            });
         }
 
         qb.orderBy('wp.rating', 'DESC');

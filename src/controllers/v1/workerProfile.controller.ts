@@ -53,7 +53,8 @@ export const getMarketplace = async (req: AuthRequest, res: Response, next: Next
         const filters = {
             skill: req.query.skill as string | undefined,
             minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
-            availability: req.query.availability as any
+            availability: req.query.availability as any,
+            excludeLandId: req.query.excludeLandId as string | undefined
         };
 
         const result = await workerProfileService.findMarketplace(filters);
