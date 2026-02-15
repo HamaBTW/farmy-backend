@@ -115,34 +115,19 @@ class LandWorkerService {
     }
 
     async removeWorker(landId: string, workerId: string, userId: string) {
-        const land = await this.landRepo.findOne({ where: { id: landId } });
-        if (!land) {
-            throw new AppError(404, 'Land not found');
-        }
-
-        // Check authority (same rental-state logic)
-        const activeRental = await this.getActiveRental(landId);
-        if (activeRental) {
-            if (activeRental.investor_id !== userId) {
-                throw new AppError(403, 'Only the active investor can manage workers on a rented land');
-            }
-        } else {
-            if (land.owner_id !== userId) {
-                throw new AppError(403, 'Only the land owner can manage workers on this land');
-            }
+        const canManage = await this.checkAuthority(landId, userId);
+        if (!canManage) {
+            throw new AppError(403, 'You do not have permission to manage workers on this land');
         }
 
         const assignment = await this.landWorkerRepo.findOne({
-            where: { land_id: landId, worker_id: workerId, status: LandWorkerStatus.ACTIVE }
+            where: { land_id: landId, worker_id: workerId }
         });
         if (!assignment) {
-            throw new AppError(404, 'Active worker assignment not found');
+            throw new AppError(404, 'Worker assignment not found');
         }
 
-        // Soft deactivate
-        assignment.status = LandWorkerStatus.INACTIVE;
-        assignment.ended_at = new Date();
-        return this.landWorkerRepo.save(assignment);
+        return this.landWorkerRepo.remove(assignment);
     }
 
     async updateWorkerStatus(landId: string, workerId: string, userId: string, status: LandWorkerStatus) {
