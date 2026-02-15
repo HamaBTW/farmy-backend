@@ -145,6 +145,30 @@ class LandWorkerService {
         return this.landWorkerRepo.save(assignment);
     }
 
+    async updateWorkerStatus(landId: string, workerId: string, userId: string, status: LandWorkerStatus) {
+        const canManage = await this.checkAuthority(landId, userId);
+        if (!canManage) {
+            throw new AppError(403, 'You do not have permission to manage workers on this land');
+        }
+
+        const assignment = await this.landWorkerRepo.findOne({
+            where: { land_id: landId, worker_id: workerId }
+        });
+        if (!assignment) {
+            throw new AppError(404, 'Worker assignment not found');
+        }
+
+        assignment.status = status;
+        if (status === LandWorkerStatus.INACTIVE) {
+            assignment.ended_at = new Date();
+        } else if (status === LandWorkerStatus.ACTIVE) {
+            assignment.started_at = assignment.started_at || new Date();
+            assignment.ended_at = null;
+        }
+
+        return this.landWorkerRepo.save(assignment);
+    }
+
     async getWorkforceStats(landId: string) {
         const allWorkers = await this.landWorkerRepo.find({
             where: { land_id: landId }

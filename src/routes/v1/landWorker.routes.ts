@@ -12,6 +12,7 @@ router.get('/lands/:landId/workers', authenticate, landWorkerController.getLandW
 router.get('/lands/:landId/workers/active', authenticate, landWorkerController.getActiveLandWorkers);
 router.get('/lands/:landId/workforce-stats', authenticate, landWorkerController.getWorkforceStats);
 router.post('/lands/:landId/workers', authenticate, landWorkerController.assignWorker);
+router.patch('/lands/:landId/workers/:workerId/status', authenticate, landWorkerController.updateWorkerStatus);
 router.delete('/lands/:landId/workers/:workerId', authenticate, landWorkerController.removeWorker);
 
 export default router;

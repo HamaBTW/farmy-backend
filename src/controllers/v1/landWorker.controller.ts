@@ -81,6 +81,25 @@ export const getMyAssignedLands = async (req: AuthRequest, res: Response, next: 
     }
 };
 
+export const updateWorkerStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const result = await landWorkerService.updateWorkerStatus(
+            req.params.landId as string,
+            req.params.workerId as string,
+            req.user!.id,
+            req.body.status
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Worker status updated successfully',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const getWorkforceStats = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const result = await landWorkerService.getWorkforceStats(req.params.landId as string);
