@@ -96,7 +96,8 @@ export const deleteProduct = async (req: AuthRequest, res: Response, next: NextF
 
 export const buyProduct = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const result = await productService.buy(req.params.id as string, req.user!.id);
+        const { quantity } = req.body;
+        const result = await productService.buy(req.params.id as string, req.user!.id, Number(quantity) || 1);
 
         res.status(200).json(result);
     } catch (error) {

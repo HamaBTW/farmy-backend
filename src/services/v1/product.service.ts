@@ -109,7 +109,7 @@ class ProductService {
         return this.productRepo.remove(product);
     }
 
-    async buy(id: string, buyerId: string) {
+    async buy(id: string, buyerId: string, quantity: number = 1) {
         return AppDataSource.transaction(async (transactionalEntityManager) => {
             const product = await transactionalEntityManager.findOne(Product, {
                 where: { id },
@@ -124,6 +124,10 @@ class ProductService {
                 throw new AppError(400, 'Product is not available for sale');
             }
 
+            if (Number(product.quantity) < quantity) {
+                throw new AppError(400, `Insufficient stock. Only ${product.quantity} available.`);
+            }
+
             if (product.owner_id === buyerId) {
                 throw new AppError(400, 'You cannot buy your own product');
             }
@@ -133,31 +137,40 @@ class ProductService {
                 throw new AppError(404, 'Buyer not found');
             }
 
-            const price = Number(product.price);
-            if (Number(buyer.credits) < price) {
+            const unitPrice = Number(product.price);
+            const totalPrice = unitPrice * quantity; // Calculate total price
+
+            if (Number(buyer.credits) < totalPrice) {
                 throw new AppError(400, 'Insufficient credits');
             }
 
             // Deduct from buyer
-            buyer.credits = Number(buyer.credits) - price;
+            buyer.credits = Number(buyer.credits) - totalPrice;
             await transactionalEntityManager.save(buyer);
 
             // Add to owner
             const owner = await transactionalEntityManager.findOne(User, { where: { id: product.owner_id } });
             if (owner) {
-                owner.credits = Number(owner.credits) + price;
+                owner.credits = Number(owner.credits) + totalPrice;
                 await transactionalEntityManager.save(owner);
             }
 
-            // Update product status
-            product.status = ProductStatus.SOLD;
+            // Decrement quantity
+            product.quantity = Number(product.quantity) - quantity;
+
+            // Update status only if out of stock
+            if (product.quantity === 0) {
+                product.status = ProductStatus.SOLD;
+            }
+
             await transactionalEntityManager.save(product);
 
             return {
                 success: true,
                 message: 'Purchase successful',
                 product,
-                new_balance: buyer.credits
+                new_balance: buyer.credits,
+                remaining_quantity: product.quantity
             };
         });
     }
