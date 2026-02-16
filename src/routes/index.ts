@@ -65,6 +65,15 @@ import taskRoutesV1 from './v1/task.routes.js';
 console.log('Registering /v1/tasks routes');
 router.use('/v1/tasks', taskRoutesV1);
 
+// Worker Lifecycle Routes (Invitation + Contract)
+import invitationRoutesV1 from './v1/invitation.routes.js';
+console.log('Registering /v1/workforce invitation routes');
+router.use('/v1/workforce', invitationRoutesV1);
+
+import contractRoutesV1 from './v1/contract.routes.js';
+console.log('Registering /v1/workforce contract routes');
+router.use('/v1/workforce', contractRoutesV1);
+
 export default router;
 
 
