@@ -31,6 +31,17 @@ export const respondToContract = async (req: AuthRequest, res: Response, next: N
     } catch (error) { next(error); }
 };
 
+export const investorRespondToContract = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const result = await contractService.investorRespondToContract(
+            req.params.id as string,
+            req.user!.id,
+            req.body.response
+        );
+        res.status(200).json({ success: true, message: `Contract ${req.body.response}ed`, data: result });
+    } catch (error) { next(error); }
+};
+
 export const negotiateContract = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const result = await contractService.negotiateContract(
@@ -38,7 +49,8 @@ export const negotiateContract = async (req: AuthRequest, res: Response, next: N
             req.user!.id,
             {
                 comment: req.body.comment,
-                proposed_salary_amount: req.body.proposed_salary_amount
+                proposed_salary_amount: req.body.proposed_salary_amount,
+                proposed_salary_type: req.body.proposed_salary_type
             }
         );
         res.status(200).json({ success: true, message: 'Negotiation submitted', data: result });
@@ -103,7 +115,7 @@ export const getNegotiatingContracts = async (req: AuthRequest, res: Response, n
 
 export const getActiveContracts = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const result = await contractService.getActiveContracts(req.params.landId as string);
+        const result = await contractService.getActiveContracts(req.params.landId as string, req.user!.id);
         res.status(200).json({ success: true, data: result });
     } catch (error) { next(error); }
 };

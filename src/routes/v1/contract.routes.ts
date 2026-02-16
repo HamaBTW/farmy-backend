@@ -10,6 +10,9 @@ router.post('/lands/:landId/hire-worker', authenticate, authorize('investor'), c
 // Worker: Respond to contract (approve/decline)
 router.post('/contracts/:id/respond', authenticate, contractController.respondToContract);
 
+// Investor: Respond to worker counter-offer (accept/decline)
+router.post('/contracts/:id/investor-respond', authenticate, authorize('investor'), contractController.investorRespondToContract);
+
 // Both: Negotiate contract terms
 router.post('/contracts/:id/negotiate', authenticate, contractController.negotiateContract);
 

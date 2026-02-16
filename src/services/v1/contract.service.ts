@@ -17,7 +17,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
     [ContractStatus.HIRING_PENDING]: [ContractStatus.NEGOTIATION_PENDING, ContractStatus.HIRING_DECLINED, ContractStatus.PAYMENT_PENDING],
     [ContractStatus.NEGOTIATION_PENDING]: [ContractStatus.NEGOTIATION_COUNTERED, ContractStatus.HIRING_DECLINED, ContractStatus.PAYMENT_PENDING],
     [ContractStatus.NEGOTIATION_COUNTERED]: [ContractStatus.NEGOTIATION_PENDING, ContractStatus.HIRING_DECLINED, ContractStatus.PAYMENT_PENDING],
-    [ContractStatus.PAYMENT_PENDING]: [ContractStatus.ACTIVE],
+    [ContractStatus.PAYMENT_PENDING]: [ContractStatus.ACTIVE, ContractStatus.HIRING_DECLINED],
     [ContractStatus.ACTIVE]: [ContractStatus.SUSPENDED, ContractStatus.TERMINATED, ContractStatus.EXPIRED],
     [ContractStatus.SUSPENDED]: [ContractStatus.ACTIVE, ContractStatus.TERMINATED],
 };
@@ -204,9 +204,86 @@ class ContractService {
     }
 
     /**
+     * Investor responds to worker counter-offer or cancels the contract (accept/decline).
+     */
+    async investorRespondToContract(contractId: string, investorId: string, response: 'accept' | 'decline') {
+        const contract = await this.contractRepo.findOne({
+            where: { id: contractId },
+            relations: ['land', 'investor', 'worker']
+        });
+        if (!contract) throw new AppError(404, 'Contract not found');
+        if (contract.investor_id !== investorId)
+            throw new AppError(403, 'Only the investor can respond to this contract');
+
+        if (response === 'accept') {
+            // Accept => payment_pending (valid from negotiation_pending, hiring_pending, negotiation_countered)
+            const acceptableStates = [
+                ContractStatus.NEGOTIATION_PENDING,
+                ContractStatus.NEGOTIATION_COUNTERED,
+                ContractStatus.HIRING_PENDING
+            ];
+            if (!acceptableStates.includes(contract.status))
+                throw new AppError(400, `Cannot accept contract with status: ${contract.status}`);
+            this.validateTransition(contract.status, ContractStatus.PAYMENT_PENDING);
+            contract.status = ContractStatus.PAYMENT_PENDING;
+            contract.current_proposer = ContractProposer.INVESTOR;
+
+            // Create a system negotiation record for the acceptance
+            const negotiation = this.negotiationRepo.create({
+                contract_id: contractId,
+                sender_id: investorId,
+                comment: 'Offer accepted. Proceeding to payment.'
+            });
+            await this.negotiationRepo.save(negotiation);
+        } else {
+            // Decline => hiring_declined (from any negotiation state)
+            const declinableStates = [
+                ContractStatus.HIRING_PENDING,
+                ContractStatus.NEGOTIATION_PENDING,
+                ContractStatus.NEGOTIATION_COUNTERED,
+                ContractStatus.PAYMENT_PENDING
+            ];
+            if (!declinableStates.includes(contract.status))
+                throw new AppError(400, `Cannot decline contract with status: ${contract.status}`);
+            this.validateTransition(contract.status, ContractStatus.HIRING_DECLINED);
+            contract.status = ContractStatus.HIRING_DECLINED;
+
+            // Create a system negotiation record for the decline
+            const negotiation = this.negotiationRepo.create({
+                contract_id: contractId,
+                sender_id: investorId,
+                comment: 'Offer declined. This negotiation has been cancelled.'
+            });
+            await this.negotiationRepo.save(negotiation);
+        }
+
+        const saved = await this.contractRepo.save(contract);
+
+        // Emit socket event to worker
+        try {
+            const io = getIO();
+            const event = response === 'accept' ? 'contract_payment_required' : 'contract_terminated';
+            io.to(contract.worker_id).emit(event, {
+                contract: saved,
+                response,
+                message: response === 'accept'
+                    ? `Investor accepted the terms. Payment in progress.`
+                    : `Investor declined the negotiation.`
+            });
+            // Also notify investor's own sessions
+            io.to(contract.investor_id).emit(event, {
+                contract: saved,
+                response
+            });
+        } catch (e) { /* socket not ready */ }
+
+        return saved;
+    }
+
+    /**
      * Negotiate contract terms (either party can negotiate).
      */
-    async negotiateContract(contractId: string, senderId: string, data: { comment: string; proposed_salary_amount?: number }) {
+    async negotiateContract(contractId: string, senderId: string, data: { comment: string; proposed_salary_amount?: number; proposed_salary_type?: string }) {
         const contract = await this.contractRepo.findOne({
             where: { id: contractId },
             relations: ['land', 'investor', 'worker']
@@ -252,6 +329,11 @@ class ContractService {
         // Update salary if proposed
         if (data.proposed_salary_amount && data.proposed_salary_amount > 0) {
             contract.salary_amount = data.proposed_salary_amount;
+        }
+
+        // Update salary type if proposed
+        if (data.proposed_salary_type && Object.values(SalaryType).includes(data.proposed_salary_type as SalaryType)) {
+            contract.salary_type = data.proposed_salary_type as SalaryType;
         }
 
         const saved = await this.contractRepo.save(contract);
@@ -551,13 +633,18 @@ class ContractService {
 
     /**
      * Get active contracts for a land (investor view).
+     * Filters by investor so each investor only sees their own workers.
      */
-    async getActiveContracts(landId: string) {
+    async getActiveContracts(landId: string, investorId?: string) {
+        const where: any = {
+            land_id: landId,
+            status: In([ContractStatus.ACTIVE, ContractStatus.SUSPENDED])
+        };
+        if (investorId) {
+            where.investor_id = investorId;
+        }
         return this.contractRepo.find({
-            where: {
-                land_id: landId,
-                status: In([ContractStatus.ACTIVE, ContractStatus.SUSPENDED])
-            },
+            where,
             relations: ['worker', 'investor', 'land'],
             order: { createdAt: 'DESC' }
         });
