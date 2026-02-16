@@ -64,6 +64,33 @@ export const getNegotiationHistory = async (req: AuthRequest, res: Response, nex
     } catch (error) { next(error); }
 };
 
+export const editNegotiation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const result = await contractService.editNegotiation(
+            req.params.id as string,
+            req.params.negotiationId as string,
+            req.user!.id,
+            {
+                comment: req.body.comment,
+                proposed_salary_amount: req.body.proposed_salary_amount,
+                proposed_salary_type: req.body.proposed_salary_type
+            }
+        );
+        res.status(200).json({ success: true, message: 'Negotiation updated', data: result });
+    } catch (error) { next(error); }
+};
+
+export const deleteNegotiation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const result = await contractService.deleteNegotiation(
+            req.params.id as string,
+            req.params.negotiationId as string,
+            req.user!.id
+        );
+        res.status(200).json({ success: true, message: 'Negotiation withdrawn', data: result });
+    } catch (error) { next(error); }
+};
+
 export const createContractPayment = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const result = await contractService.createContractPayment(req.params.id as string, req.user!.id);

@@ -19,6 +19,12 @@ router.post('/contracts/:id/negotiate', authenticate, contractController.negotia
 // Both: Get negotiation history for a contract
 router.get('/contracts/:id/negotiations', authenticate, contractController.getNegotiationHistory);
 
+// Both: Edit the last negotiation message
+router.patch('/contracts/:id/negotiations/:negotiationId', authenticate, contractController.editNegotiation);
+
+// Both: Delete (withdraw) the last negotiation message
+router.delete('/contracts/:id/negotiations/:negotiationId', authenticate, contractController.deleteNegotiation);
+
 // Investor: Create payment intent for contract
 router.post('/contracts/:id/pay', authenticate, authorize('investor'), contractController.createContractPayment);
 

@@ -159,197 +159,429 @@ class ContractService {
     }
 
     /**
-     * Worker responds to hiring proposal (approve/decline/negotiate).
+     * Worker responds to hiring proposal (approve/decline).
+     * Accept = accept the OTHER party's (investor's) latest proposal.
+     * Worker can only accept when current_proposer is 'investor' (it's the investor's offer on the table).
      */
     async respondToContract(contractId: string, workerId: string, response: 'approve' | 'decline') {
-        const contract = await this.contractRepo.findOne({
-            where: { id: contractId },
-            relations: ['land', 'investor', 'worker']
-        });
-        if (!contract) throw new AppError(404, 'Contract not found');
-        if (contract.worker_id !== workerId) throw new AppError(403, 'Only the worker can respond to this contract');
+        return AppDataSource.transaction(async (manager) => {
+            const contractRepo = manager.getRepository(LandWorkerContract);
+            const negotiationRepo = manager.getRepository(ContractNegotiation);
 
-        // Valid states for response
-        const validStates = [ContractStatus.HIRING_PENDING, ContractStatus.NEGOTIATION_COUNTERED];
-        if (!validStates.includes(contract.status))
-            throw new AppError(400, `Cannot respond to contract with status: ${contract.status}`);
-
-        if (response === 'approve') {
-            // Worker approves -> payment_pending
-            this.validateTransition(contract.status, ContractStatus.PAYMENT_PENDING);
-            contract.status = ContractStatus.PAYMENT_PENDING;
-            contract.current_proposer = ContractProposer.WORKER;
-        } else {
-            // Worker declines
-            this.validateTransition(contract.status, ContractStatus.HIRING_DECLINED);
-            contract.status = ContractStatus.HIRING_DECLINED;
-        }
-
-        const saved = await this.contractRepo.save(contract);
-
-        // Emit socket event
-        try {
-            const io = getIO();
-            const event = response === 'approve' ? 'contract_payment_required' : 'contract_created';
-            io.to(contract.investor_id).emit(event, {
-                contract: saved,
-                response,
-                message: response === 'approve'
-                    ? `Worker approved the contract. Payment required.`
-                    : `Worker declined the hiring proposal.`
+            // Lock the contract row for this transaction
+            const contract = await contractRepo.findOne({
+                where: { id: contractId },
+                relations: ['land', 'investor', 'worker'],
+                lock: { mode: 'pessimistic_write' }
             });
-        } catch (e) { /* socket not ready */ }
+            if (!contract) throw new AppError(404, 'Contract not found');
+            if (contract.worker_id !== workerId) throw new AppError(403, 'Only the worker can respond to this contract');
 
-        return saved;
+            // Valid states for response
+            const validStates = [ContractStatus.HIRING_PENDING, ContractStatus.NEGOTIATION_COUNTERED];
+            if (!validStates.includes(contract.status))
+                throw new AppError(400, `Cannot respond to contract with status: ${contract.status}`);
+
+            if (response === 'approve') {
+                // Worker can only accept the investor's proposal (current_proposer must be investor)
+                if (contract.current_proposer !== ContractProposer.INVESTOR)
+                    throw new AppError(400, 'You can only accept the other party\'s offer. It is currently your turn to propose.');
+
+                this.validateTransition(contract.status, ContractStatus.PAYMENT_PENDING);
+                contract.status = ContractStatus.PAYMENT_PENDING;
+                // Salary is already frozen to the investor's last proposal on the contract row
+
+                // Create a system negotiation record for the acceptance
+                const negotiation = negotiationRepo.create({
+                    contract_id: contractId,
+                    sender_id: workerId,
+                    comment: 'Offer accepted. Proceeding to payment.'
+                });
+                await negotiationRepo.save(negotiation);
+            } else {
+                // Worker declines
+                this.validateTransition(contract.status, ContractStatus.HIRING_DECLINED);
+                contract.status = ContractStatus.HIRING_DECLINED;
+
+                const negotiation = negotiationRepo.create({
+                    contract_id: contractId,
+                    sender_id: workerId,
+                    comment: 'Offer declined. This negotiation has been cancelled.'
+                });
+                await negotiationRepo.save(negotiation);
+            }
+
+            const saved = await contractRepo.save(contract);
+
+            // Emit socket event
+            try {
+                const io = getIO();
+                const eventName = response === 'approve' ? 'contract_accepted' : 'contract_declined';
+                // Notify both parties
+                [contract.investor_id, contract.worker_id].forEach(uid => {
+                    io.to(uid).emit(eventName, {
+                        contract: saved,
+                        response,
+                        message: response === 'approve'
+                            ? `Worker approved the contract. Payment required.`
+                            : `Worker declined the hiring proposal.`
+                    });
+                });
+            } catch (e) { /* socket not ready */ }
+
+            return saved;
+        });
     }
 
     /**
      * Investor responds to worker counter-offer or cancels the contract (accept/decline).
+     * Accept = accept the OTHER party's (worker's) latest proposal.
+     * Investor can only accept when current_proposer is 'worker' (worker's offer on the table).
      */
     async investorRespondToContract(contractId: string, investorId: string, response: 'accept' | 'decline') {
-        const contract = await this.contractRepo.findOne({
-            where: { id: contractId },
-            relations: ['land', 'investor', 'worker']
+        return AppDataSource.transaction(async (manager) => {
+            const contractRepo = manager.getRepository(LandWorkerContract);
+            const negotiationRepo = manager.getRepository(ContractNegotiation);
+
+            const contract = await contractRepo.findOne({
+                where: { id: contractId },
+                relations: ['land', 'investor', 'worker'],
+                lock: { mode: 'pessimistic_write' }
+            });
+            if (!contract) throw new AppError(404, 'Contract not found');
+            if (contract.investor_id !== investorId)
+                throw new AppError(403, 'Only the investor can respond to this contract');
+
+            if (response === 'accept') {
+                // Investor can only accept the worker's proposal (current_proposer must be worker)
+                // Exception: hiring_pending (investor's own initial offer — worker hasn't countered yet)
+                const acceptableStates = [
+                    ContractStatus.NEGOTIATION_PENDING,
+                    ContractStatus.NEGOTIATION_COUNTERED,
+                    ContractStatus.HIRING_PENDING
+                ];
+                if (!acceptableStates.includes(contract.status))
+                    throw new AppError(400, `Cannot accept contract with status: ${contract.status}`);
+
+                // For negotiation states, enforce turn-based: investor can only accept worker's offer
+                if (contract.status !== ContractStatus.HIRING_PENDING &&
+                    contract.current_proposer !== ContractProposer.WORKER)
+                    throw new AppError(400, 'You can only accept the other party\'s offer. It is currently your turn to propose.');
+
+                this.validateTransition(contract.status, ContractStatus.PAYMENT_PENDING);
+                contract.status = ContractStatus.PAYMENT_PENDING;
+                // Salary is already frozen on the contract row from the last negotiation
+
+                // Create a system negotiation record for the acceptance
+                const negotiation = negotiationRepo.create({
+                    contract_id: contractId,
+                    sender_id: investorId,
+                    comment: 'Offer accepted. Proceeding to payment.'
+                });
+                await negotiationRepo.save(negotiation);
+            } else {
+                // Decline => hiring_declined (from any negotiation state)
+                const declinableStates = [
+                    ContractStatus.HIRING_PENDING,
+                    ContractStatus.NEGOTIATION_PENDING,
+                    ContractStatus.NEGOTIATION_COUNTERED,
+                    ContractStatus.PAYMENT_PENDING
+                ];
+                if (!declinableStates.includes(contract.status))
+                    throw new AppError(400, `Cannot decline contract with status: ${contract.status}`);
+                this.validateTransition(contract.status, ContractStatus.HIRING_DECLINED);
+                contract.status = ContractStatus.HIRING_DECLINED;
+
+                // Create a system negotiation record for the decline
+                const negotiation = negotiationRepo.create({
+                    contract_id: contractId,
+                    sender_id: investorId,
+                    comment: 'Offer declined. This negotiation has been cancelled.'
+                });
+                await negotiationRepo.save(negotiation);
+            }
+
+            const saved = await contractRepo.save(contract);
+
+            // Emit socket event to both parties
+            try {
+                const io = getIO();
+                const eventName = response === 'accept' ? 'contract_accepted' : 'contract_declined';
+                [contract.worker_id, contract.investor_id].forEach(uid => {
+                    io.to(uid).emit(eventName, {
+                        contract: saved,
+                        response,
+                        message: response === 'accept'
+                            ? `Investor accepted the terms. Payment in progress.`
+                            : `Investor declined the negotiation.`
+                    });
+                });
+            } catch (e) { /* socket not ready */ }
+
+            return saved;
         });
-        if (!contract) throw new AppError(404, 'Contract not found');
-        if (contract.investor_id !== investorId)
-            throw new AppError(403, 'Only the investor can respond to this contract');
-
-        if (response === 'accept') {
-            // Accept => payment_pending (valid from negotiation_pending, hiring_pending, negotiation_countered)
-            const acceptableStates = [
-                ContractStatus.NEGOTIATION_PENDING,
-                ContractStatus.NEGOTIATION_COUNTERED,
-                ContractStatus.HIRING_PENDING
-            ];
-            if (!acceptableStates.includes(contract.status))
-                throw new AppError(400, `Cannot accept contract with status: ${contract.status}`);
-            this.validateTransition(contract.status, ContractStatus.PAYMENT_PENDING);
-            contract.status = ContractStatus.PAYMENT_PENDING;
-            contract.current_proposer = ContractProposer.INVESTOR;
-
-            // Create a system negotiation record for the acceptance
-            const negotiation = this.negotiationRepo.create({
-                contract_id: contractId,
-                sender_id: investorId,
-                comment: 'Offer accepted. Proceeding to payment.'
-            });
-            await this.negotiationRepo.save(negotiation);
-        } else {
-            // Decline => hiring_declined (from any negotiation state)
-            const declinableStates = [
-                ContractStatus.HIRING_PENDING,
-                ContractStatus.NEGOTIATION_PENDING,
-                ContractStatus.NEGOTIATION_COUNTERED,
-                ContractStatus.PAYMENT_PENDING
-            ];
-            if (!declinableStates.includes(contract.status))
-                throw new AppError(400, `Cannot decline contract with status: ${contract.status}`);
-            this.validateTransition(contract.status, ContractStatus.HIRING_DECLINED);
-            contract.status = ContractStatus.HIRING_DECLINED;
-
-            // Create a system negotiation record for the decline
-            const negotiation = this.negotiationRepo.create({
-                contract_id: contractId,
-                sender_id: investorId,
-                comment: 'Offer declined. This negotiation has been cancelled.'
-            });
-            await this.negotiationRepo.save(negotiation);
-        }
-
-        const saved = await this.contractRepo.save(contract);
-
-        // Emit socket event to worker
-        try {
-            const io = getIO();
-            const event = response === 'accept' ? 'contract_payment_required' : 'contract_terminated';
-            io.to(contract.worker_id).emit(event, {
-                contract: saved,
-                response,
-                message: response === 'accept'
-                    ? `Investor accepted the terms. Payment in progress.`
-                    : `Investor declined the negotiation.`
-            });
-            // Also notify investor's own sessions
-            io.to(contract.investor_id).emit(event, {
-                contract: saved,
-                response
-            });
-        } catch (e) { /* socket not ready */ }
-
-        return saved;
     }
 
     /**
      * Negotiate contract terms (either party can negotiate).
+     * Uses DB transaction with pessimistic locking to prevent race conditions.
      */
     async negotiateContract(contractId: string, senderId: string, data: { comment: string; proposed_salary_amount?: number; proposed_salary_type?: string }) {
-        const contract = await this.contractRepo.findOne({
-            where: { id: contractId },
-            relations: ['land', 'investor', 'worker']
-        });
-        if (!contract) throw new AppError(404, 'Contract not found');
+        return AppDataSource.transaction(async (manager) => {
+            const contractRepo = manager.getRepository(LandWorkerContract);
+            const negotiationRepo = manager.getRepository(ContractNegotiation);
 
-        // Validate sender is part of the contract
-        const isInvestor = contract.investor_id === senderId;
-        const isWorker = contract.worker_id === senderId;
-        if (!isInvestor && !isWorker)
-            throw new AppError(403, 'Only the investor or worker can negotiate');
-
-        // Validate state allows negotiation
-        const validStates = [
-            ContractStatus.HIRING_PENDING,
-            ContractStatus.NEGOTIATION_PENDING,
-            ContractStatus.NEGOTIATION_COUNTERED
-        ];
-        if (!validStates.includes(contract.status))
-            throw new AppError(400, `Cannot negotiate in status: ${contract.status}`);
-
-        if (!data.comment || data.comment.trim().length === 0)
-            throw new AppError(400, 'Comment is required for negotiation');
-
-        // Create negotiation record
-        const negotiation = this.negotiationRepo.create({
-            contract_id: contractId,
-            sender_id: senderId,
-            proposed_salary_amount: data.proposed_salary_amount || null,
-            comment: data.comment.trim()
-        });
-        await this.negotiationRepo.save(negotiation);
-
-        // Update contract status based on who is negotiating
-        if (isWorker) {
-            contract.status = ContractStatus.NEGOTIATION_PENDING;
-            contract.current_proposer = ContractProposer.WORKER;
-        } else {
-            contract.status = ContractStatus.NEGOTIATION_COUNTERED;
-            contract.current_proposer = ContractProposer.INVESTOR;
-        }
-
-        // Update salary if proposed
-        if (data.proposed_salary_amount && data.proposed_salary_amount > 0) {
-            contract.salary_amount = data.proposed_salary_amount;
-        }
-
-        // Update salary type if proposed
-        if (data.proposed_salary_type && Object.values(SalaryType).includes(data.proposed_salary_type as SalaryType)) {
-            contract.salary_type = data.proposed_salary_type as SalaryType;
-        }
-
-        const saved = await this.contractRepo.save(contract);
-
-        // Emit socket event
-        try {
-            const io = getIO();
-            const targetId = isWorker ? contract.investor_id : contract.worker_id;
-            io.to(targetId).emit('contract_negotiated', {
-                contract: saved,
-                negotiation,
-                message: `New negotiation message on contract for ${contract.land?.name}`
+            const contract = await contractRepo.findOne({
+                where: { id: contractId },
+                relations: ['land', 'investor', 'worker'],
+                lock: { mode: 'pessimistic_write' }
             });
-        } catch (e) { /* socket not ready */ }
+            if (!contract) throw new AppError(404, 'Contract not found');
 
-        return { contract: saved, negotiation };
+            // Validate sender is part of the contract
+            const isInvestor = contract.investor_id === senderId;
+            const isWorker = contract.worker_id === senderId;
+            if (!isInvestor && !isWorker)
+                throw new AppError(403, 'Only the investor or worker can negotiate');
+
+            // Validate state allows negotiation
+            const validStates = [
+                ContractStatus.HIRING_PENDING,
+                ContractStatus.NEGOTIATION_PENDING,
+                ContractStatus.NEGOTIATION_COUNTERED
+            ];
+            if (!validStates.includes(contract.status))
+                throw new AppError(400, `Cannot negotiate in status: ${contract.status}`);
+
+            if (!data.comment || data.comment.trim().length === 0)
+                throw new AppError(400, 'Comment is required for negotiation');
+
+            // Create negotiation record
+            const negotiation = negotiationRepo.create({
+                contract_id: contractId,
+                sender_id: senderId,
+                proposed_salary_amount: data.proposed_salary_amount || null,
+                comment: data.comment.trim()
+            });
+            await negotiationRepo.save(negotiation);
+
+            // Update contract status based on who is negotiating
+            if (isWorker) {
+                contract.status = ContractStatus.NEGOTIATION_PENDING;
+                contract.current_proposer = ContractProposer.WORKER;
+            } else {
+                contract.status = ContractStatus.NEGOTIATION_COUNTERED;
+                contract.current_proposer = ContractProposer.INVESTOR;
+            }
+
+            // Update salary if proposed
+            if (data.proposed_salary_amount && data.proposed_salary_amount > 0) {
+                contract.salary_amount = data.proposed_salary_amount;
+            }
+
+            // Update salary type if proposed
+            if (data.proposed_salary_type && Object.values(SalaryType).includes(data.proposed_salary_type as SalaryType)) {
+                contract.salary_type = data.proposed_salary_type as SalaryType;
+            }
+
+            const saved = await contractRepo.save(contract);
+
+            // Emit socket event to both parties
+            try {
+                const io = getIO();
+                [contract.investor_id, contract.worker_id].forEach(uid => {
+                    io.to(uid).emit('contract_negotiated', {
+                        contract: saved,
+                        negotiation,
+                        message: `New negotiation message on contract for ${contract.land?.name}`
+                    });
+                });
+            } catch (e) { /* socket not ready */ }
+
+            return { contract: saved, negotiation };
+        });
+    }
+
+    /**
+     * Edit the LAST negotiation message on a contract.
+     * Rules:
+     * - Only the sender of the last message can edit it
+     * - Only allowed in negotiation states (hiring_pending, negotiation_pending, negotiation_countered)
+     * - Preserves createdAt, updates updatedAt
+     * - Does NOT change current_proposer or contract status
+     * - Updates salary on contract if proposed_salary_amount changes
+     */
+    async editNegotiation(contractId: string, negotiationId: string, userId: string, data: { comment?: string; proposed_salary_amount?: number; proposed_salary_type?: string }) {
+        return AppDataSource.transaction(async (manager) => {
+            const contractRepo = manager.getRepository(LandWorkerContract);
+            const negotiationRepo = manager.getRepository(ContractNegotiation);
+
+            const contract = await contractRepo.findOne({
+                where: { id: contractId },
+                relations: ['land', 'investor', 'worker'],
+                lock: { mode: 'pessimistic_write' }
+            });
+            if (!contract) throw new AppError(404, 'Contract not found');
+
+            // Immutability check — no edits after payment_pending, active, terminated, etc.
+            const immutableStates = [
+                ContractStatus.PAYMENT_PENDING,
+                ContractStatus.ACTIVE,
+                ContractStatus.SUSPENDED,
+                ContractStatus.TERMINATED,
+                ContractStatus.EXPIRED,
+                ContractStatus.HIRING_DECLINED
+            ];
+            if (immutableStates.includes(contract.status))
+                throw new AppError(400, `Cannot edit negotiations in status: ${contract.status}`);
+
+            // Validate sender is part of the contract
+            if (contract.investor_id !== userId && contract.worker_id !== userId)
+                throw new AppError(403, 'You are not part of this contract');
+
+            // Get the LAST negotiation message (by createdAt DESC)
+            const lastNegotiation = await negotiationRepo.findOne({
+                where: { contract_id: contractId },
+                order: { createdAt: 'DESC' }
+            });
+            if (!lastNegotiation) throw new AppError(404, 'No negotiation messages found');
+            if (lastNegotiation.id !== negotiationId)
+                throw new AppError(400, 'You can only edit the last negotiation message');
+            if (lastNegotiation.sender_id !== userId)
+                throw new AppError(403, 'You can only edit your own messages');
+
+            // Update negotiation fields
+            if (data.comment && data.comment.trim().length > 0) {
+                lastNegotiation.comment = data.comment.trim();
+            }
+            if (data.proposed_salary_amount !== undefined) {
+                lastNegotiation.proposed_salary_amount = data.proposed_salary_amount > 0 ? data.proposed_salary_amount : null;
+            }
+            await negotiationRepo.save(lastNegotiation);
+
+            // Sync salary on the contract if the proposed amount changed
+            if (data.proposed_salary_amount && data.proposed_salary_amount > 0) {
+                contract.salary_amount = data.proposed_salary_amount;
+            }
+            if (data.proposed_salary_type && Object.values(SalaryType).includes(data.proposed_salary_type as SalaryType)) {
+                contract.salary_type = data.proposed_salary_type as SalaryType;
+            }
+            const saved = await contractRepo.save(contract);
+
+            // Emit socket event to both parties
+            try {
+                const io = getIO();
+                [contract.investor_id, contract.worker_id].forEach(uid => {
+                    io.to(uid).emit('negotiation_edited', {
+                        contract: saved,
+                        negotiation: lastNegotiation,
+                        message: `A negotiation message was edited`
+                    });
+                });
+            } catch (e) { /* socket not ready */ }
+
+            return { contract: saved, negotiation: lastNegotiation };
+        });
+    }
+
+    /**
+     * Delete (remove) the LAST negotiation message on a contract.
+     * Rules:
+     * - Only the sender of the last message can delete it
+     * - Only allowed in negotiation states
+     * - Reverts contract state: flips current_proposer, reverts salary to previous negotiation or original
+     * - If no previous negotiation exists, reverts to hiring_pending with investor as proposer
+     */
+    async deleteNegotiation(contractId: string, negotiationId: string, userId: string) {
+        return AppDataSource.transaction(async (manager) => {
+            const contractRepo = manager.getRepository(LandWorkerContract);
+            const negotiationRepo = manager.getRepository(ContractNegotiation);
+
+            const contract = await contractRepo.findOne({
+                where: { id: contractId },
+                relations: ['land', 'investor', 'worker'],
+                lock: { mode: 'pessimistic_write' }
+            });
+            if (!contract) throw new AppError(404, 'Contract not found');
+
+            // Immutability check
+            const immutableStates = [
+                ContractStatus.PAYMENT_PENDING,
+                ContractStatus.ACTIVE,
+                ContractStatus.SUSPENDED,
+                ContractStatus.TERMINATED,
+                ContractStatus.EXPIRED,
+                ContractStatus.HIRING_DECLINED
+            ];
+            if (immutableStates.includes(contract.status))
+                throw new AppError(400, `Cannot delete negotiations in status: ${contract.status}`);
+
+            // Validate sender is part of the contract
+            if (contract.investor_id !== userId && contract.worker_id !== userId)
+                throw new AppError(403, 'You are not part of this contract');
+
+            // Get ALL non-system negotiation messages ordered by createdAt
+            const allNegotiations = await negotiationRepo.find({
+                where: { contract_id: contractId },
+                order: { createdAt: 'ASC' }
+            });
+
+            if (allNegotiations.length === 0) throw new AppError(404, 'No negotiation messages found');
+
+            const lastNegotiation = allNegotiations[allNegotiations.length - 1];
+            if (lastNegotiation.id !== negotiationId)
+                throw new AppError(400, 'You can only delete the last negotiation message');
+            if (lastNegotiation.sender_id !== userId)
+                throw new AppError(403, 'You can only delete your own messages');
+
+            // Delete the last negotiation
+            await negotiationRepo.remove(lastNegotiation);
+
+            // Find the previous negotiation (the new "last" message) to revert state
+            // Filter out system messages to find the previous real proposal
+            const systemPhrases = ['Offer accepted. Proceeding to payment.', 'Offer declined. This negotiation has been cancelled.'];
+            const previousNegotiations = allNegotiations.slice(0, -1).filter(n => !systemPhrases.includes(n.comment));
+
+            if (previousNegotiations.length > 0) {
+                const prevNeg = previousNegotiations[previousNegotiations.length - 1];
+                const prevSenderIsWorker = prevNeg.sender_id === contract.worker_id;
+
+                // Revert to previous proposer's state
+                if (prevSenderIsWorker) {
+                    contract.status = ContractStatus.NEGOTIATION_PENDING;
+                    contract.current_proposer = ContractProposer.WORKER;
+                } else {
+                    contract.status = ContractStatus.NEGOTIATION_COUNTERED;
+                    contract.current_proposer = ContractProposer.INVESTOR;
+                }
+
+                // Revert salary to previous negotiation's proposed amount, or keep current
+                if (prevNeg.proposed_salary_amount && Number(prevNeg.proposed_salary_amount) > 0) {
+                    contract.salary_amount = Number(prevNeg.proposed_salary_amount);
+                }
+            } else {
+                // No previous negotiations — revert to original hiring_pending state
+                contract.status = ContractStatus.HIRING_PENDING;
+                contract.current_proposer = ContractProposer.INVESTOR;
+                // salary_amount stays at the original hiring offer (already on contract)
+            }
+
+            const saved = await contractRepo.save(contract);
+
+            // Emit socket event to both parties
+            try {
+                const io = getIO();
+                [contract.investor_id, contract.worker_id].forEach(uid => {
+                    io.to(uid).emit('negotiation_deleted', {
+                        contract: saved,
+                        deletedNegotiationId: negotiationId,
+                        message: `A negotiation message was withdrawn`
+                    });
+                });
+            } catch (e) { /* socket not ready */ }
+
+            return { contract: saved };
+        });
     }
 
     /**
