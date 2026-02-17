@@ -154,7 +154,7 @@ export const getWorkerBalance = async (req: AuthRequest, res: Response, next: Ne
     } catch (error) { next(error); }
 };
 
-// Stripe Webhook Handler (raw body required)
+// Stripe Webhook Handler (raw body required, no auth)
 export const stripeWebhook = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const rawSig = req.headers['stripe-signature'];
@@ -165,32 +165,56 @@ export const stripeWebhook = async (req: AuthRequest, res: Response, next: NextF
             return;
         }
 
-        const stripe = (await import('stripe')).default;
-        const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY || '', {
-            apiVersion: '2026-01-28.clover',
-        });
-
-        let event: any;
-        try {
-            event = stripeInstance.webhooks.constructEvent(
-                (req as any).rawBody || req.body,
-                sig,
-                process.env.STRIPE_WEBHOOK_SECRET || ''
-            );
-        } catch (err: any) {
-            res.status(400).json({ error: `Webhook Error: ${err.message}` });
+        const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+        if (!webhookSecret) {
+            console.error('[Webhook] STRIPE_WEBHOOK_SECRET not configured');
+            res.status(500).json({ error: 'Webhook secret not configured' });
             return;
         }
 
-        if (event.type === 'payment_intent.succeeded') {
-            const paymentIntent = event.data.object;
-            const contractId = paymentIntent.metadata?.contract_id;
+        // Import stripeService for signature verification
+        const { stripeService } = await import('../../services/v1/StripeService.js');
 
-            if (contractId) {
-                await contractService.handlePaymentWebhook(paymentIntent.id, contractId);
-            }
+        let event: any;
+        try {
+            event = stripeService.constructWebhookEvent(
+                (req as any).rawBody || req.body,
+                sig,
+                webhookSecret
+            );
+        } catch (err: any) {
+            console.error(`[Webhook] Signature verification failed: ${err.message}`);
+            res.status(400).json({ error: `Webhook signature verification failed` });
+            return;
         }
 
+        // Handle supported event types
+        switch (event.type) {
+            case 'payment_intent.succeeded': {
+                const paymentIntent = event.data.object;
+                const metadata = paymentIntent.metadata || {};
+                console.log(`[Webhook] payment_intent.succeeded: ${paymentIntent.id}, contract: ${metadata.contract_id}`);
+
+                if (metadata.contract_id && metadata.type === 'salary_upfront') {
+                    await contractService.handlePaymentWebhook(paymentIntent.id, metadata);
+                }
+                break;
+            }
+            case 'payment_intent.payment_failed': {
+                const paymentIntent = event.data.object;
+                console.log(`[Webhook] payment_intent.payment_failed: ${paymentIntent.id}`);
+                await contractService.handlePaymentFailedWebhook(paymentIntent.id);
+                break;
+            }
+            default:
+                console.log(`[Webhook] Unhandled event type: ${event.type}`);
+        }
+
+        // Always return 200 to acknowledge receipt (Stripe retries on non-2xx)
         res.status(200).json({ received: true });
-    } catch (error) { next(error); }
+    } catch (error) {
+        console.error('[Webhook] Unexpected error:', error);
+        // Still return 200 to prevent Stripe retries on our internal errors
+        res.status(200).json({ received: true });
+    }
 };

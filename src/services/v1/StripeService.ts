@@ -38,15 +38,33 @@ export class StripeService {
         );
     }
 
-    async createPaymentIntent(amount: number, currency: string = 'usd', customerId: string) {
-        return await this.stripe.paymentIntents.create({
-            amount: Math.round(amount * 100), // Convert to cents
-            currency,
-            customer: customerId,
-            automatic_payment_methods: {
-                enabled: true,
+    async createPaymentIntent(
+        amount: number,
+        currency: string = 'usd',
+        customerId: string,
+        metadata?: Record<string, string>,
+        idempotencyKey?: string
+    ) {
+        return await this.stripe.paymentIntents.create(
+            {
+                amount: Math.round(amount * 100), // Convert to cents
+                currency,
+                customer: customerId,
+                automatic_payment_methods: {
+                    enabled: true,
+                },
+                metadata: metadata || {},
             },
-        });
+            idempotencyKey ? { idempotencyKey } : undefined
+        );
+    }
+
+    async retrievePaymentIntent(paymentIntentId: string) {
+        return await this.stripe.paymentIntents.retrieve(paymentIntentId);
+    }
+
+    constructWebhookEvent(payload: string | Buffer, sig: string, secret: string) {
+        return this.stripe.webhooks.constructEvent(payload, sig, secret);
     }
 
     async createSetupIntent(customerId: string) {

@@ -38,3 +38,4 @@ export { LandWorkerInvitation, InvitationStatus } from './LandWorkerInvitation.j
 export { LandWorkerContract, ContractStatus, SalaryType, ContractProposer } from './LandWorkerContract.js';
 export { ContractNegotiation } from './ContractNegotiation.js';
 export { WorkerBalance } from './WorkerBalance.js';
+export { Transaction, TransactionStatus, TransactionType } from './Transaction.js';
