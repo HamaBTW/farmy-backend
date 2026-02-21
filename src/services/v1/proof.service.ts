@@ -74,7 +74,7 @@ class ProofService {
         // Reload relations for enriched socket events
         const enriched = await this.proofRepo.findOne({
             where: { id: saved.id },
-            relations: ['investor', 'farmer', 'land', 'investor.profile', 'farmer.profile']
+            relations: ['investor', 'farmer', 'land']
         });
 
         if (!enriched) return saved;
@@ -101,7 +101,7 @@ class ProofService {
                 { investor_id: userId },
                 { farmer_id: userId }
             ],
-            relations: ['investor', 'farmer', 'land', 'investor.profile', 'farmer.profile'],
+            relations: ['investor', 'farmer', 'land'],
             order: { createdAt: 'DESC' } as any
         });
 
@@ -178,7 +178,7 @@ class ProofService {
         // Reload relations for enriched socket events
         const enriched = await this.proofRepo.findOne({
             where: { id: saved.id },
-            relations: ['investor', 'farmer', 'land', 'investor.profile', 'farmer.profile']
+            relations: ['investor', 'farmer', 'land']
         });
 
         if (!enriched) return saved;
