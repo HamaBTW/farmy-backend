@@ -26,6 +26,9 @@ export class Land extends BaseEntity {
     @Column({ type: 'float', default: 10.0 })
     height_m!: number;
 
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 1200 })
+    price!: number;
+
     /**
      * Number of grid columns based on width in meters.
      */

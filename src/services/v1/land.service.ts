@@ -9,6 +9,7 @@ interface CreateLandData {
     description?: string;
     width_m?: number;
     height_m?: number;
+    price?: number;
     grid_width?: number; // Legacy
     grid_height?: number; // Legacy
     boundaries?: any;
@@ -28,6 +29,7 @@ class LandService {
             description: data.description,
             width_m: width,
             height_m: height,
+            price: data.price ?? 1200,
             boundaries: data.boundaries
         });
         const savedLand = await this.landRepo.save(land);
