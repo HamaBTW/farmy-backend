@@ -71,11 +71,19 @@ class ProofService {
 
         const saved = await this.proofRepo.save(proof);
 
+        // Reload relations for enriched socket events
+        const enriched = await this.proofRepo.findOne({
+            where: { id: saved.id },
+            relations: ['investor', 'farmer', 'land', 'investor.profile', 'farmer.profile']
+        });
+
+        if (!enriched) return saved;
+
         // Emit socket event for real-time counter changes
         try {
             const io = getIO();
             const payload = {
-                proof: saved,
+                proof: enriched,
                 land_id: landId,
                 message: targetType === 'item' ? `New proof requested for ${targetName}.` : 'New proof of work requested for land.'
             };
@@ -83,7 +91,7 @@ class ProofService {
             io.to(investorId).emit('proof_requested', payload);
         } catch (e) { }
 
-        return saved;
+        return enriched;
     }
 
     async getMyProofs(userId: string) {
@@ -93,8 +101,8 @@ class ProofService {
                 { investor_id: userId },
                 { farmer_id: userId }
             ],
-            relations: ['investor', 'farmer'],
-            order: { createdAt: 'DESC' }
+            relations: ['investor', 'farmer', 'land', 'investor.profile', 'farmer.profile'],
+            order: { createdAt: 'DESC' } as any
         });
 
         // Mark expired proofs
@@ -109,13 +117,18 @@ class ProofService {
         return proofs.map(p => ({
             id: p.id,
             investor_id: p.investor_id,
-            investor_name: (p.investor as any)?.username || 'Unknown',
+            investor_name: (p.investor as any)?.profile?.name || (p.investor as any)?.email || 'Unknown',
             farmer_id: p.farmer_id,
-            farmer_name: (p.farmer as any)?.username || 'Unknown',
+            farmer_name: (p.farmer as any)?.profile?.name || (p.farmer as any)?.email || 'Unknown',
+            land_id: p.land_id,
+            land_name: (p.land as any)?.name,
             status: p.status,
             ai_reasoning: p.ai_reasoning,
             expires_at: p.expires_at,
             createdAt: p.createdAt,
+            target_type: p.target_type,
+            target_id: p.target_id,
+            target_name: p.target_name
         }));
     }
 
@@ -162,13 +175,21 @@ class ProofService {
 
         const saved = await this.proofRepo.save(proof);
 
+        // Reload relations for enriched socket events
+        const enriched = await this.proofRepo.findOne({
+            where: { id: saved.id },
+            relations: ['investor', 'farmer', 'land', 'investor.profile', 'farmer.profile']
+        });
+
+        if (!enriched) return saved;
+
         // Emit socket event for status update
         try {
             const io = getIO();
             const payload = {
-                proof: saved,
-                land_id: saved.land_id,
-                message: saved.status === ProofRequestStatus.VERIFIED
+                proof: enriched,
+                land_id: enriched.land_id,
+                message: enriched.status === ProofRequestStatus.VERIFIED
                     ? 'Proof verified successfully.'
                     : 'The submitted image was rejected by AI.'
             };
@@ -176,7 +197,7 @@ class ProofService {
             io.to(proof.farmer_id).emit('proof_status_updated', payload);
         } catch (e) { }
 
-        return saved;
+        return enriched;
     }
 }
 
