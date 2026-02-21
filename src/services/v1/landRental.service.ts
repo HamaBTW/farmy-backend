@@ -5,6 +5,7 @@ import { User } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
 import { stripeService } from './StripeService.js';
+import { hederaService } from './HederaService.js';
 
 interface CreateLandRentalData {
   land_id: string;
@@ -102,7 +103,35 @@ class LandRentalService {
       ...data,
       payment_status: paymentStatus
     });
-    return this.rentalRepo.save(rental);
+    const savedRental = await this.rentalRepo.save(rental);
+
+    // Record on Hedera (non-blocking)
+    try {
+      const amountPaid = (data as any).amountCharged ?? data.monthly_rent;
+      const paymentMethod = (data as any).payment_method_id === 'WALLET_CREDITS' ? 'credits' : 'stripe';
+      await hederaService.recordPurchase({
+        type: 'land_rental',
+        user_id: data.investor_id,
+        item_id: savedRental.id,
+        item_name: `Land Rental: ${land.name}`,
+        land_id: data.land_id,
+        amount: amountPaid,
+        currency: 'usd',
+        payment_method: paymentStatus === PaymentStatus.PAID ? paymentMethod : 'free',
+        timestamp: new Date().toISOString(),
+        metadata: {
+          rental_id: savedRental.id,
+          land_name: land.name,
+          payment_status: paymentStatus,
+          rental_start_date: data.rental_start_date,
+          rental_end_date: data.rental_end_date ?? null,
+        },
+      } as any);
+    } catch (hederaError) {
+      console.error('[HederaService] Non-fatal error recording land rental on Hedera:', hederaError);
+    }
+
+    return savedRental;
   }
 
   async findAll(filters?: {

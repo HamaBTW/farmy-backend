@@ -7,7 +7,7 @@ import {
 } from '@hashgraph/sdk';
 
 export interface PurchaseRecord {
-    type: 'item_purchase' | 'land_creation';
+    type: 'item_purchase' | 'land_creation' | 'land_rental';
     user_id: string;
     item_id?: string;        // variant_id or land_id
     item_name?: string;
