@@ -622,29 +622,50 @@ class ContractService {
         if (contract.status !== ContractStatus.PAYMENT_PENDING)
             throw new AppError(400, 'Contract must be in payment_pending status');
 
-        // Check for existing pending transaction (idempotency — don't create another PI)
+        // --- Catch-up check: verify if payment already succeeded but contract is pending ---
         const existingTx = await this.transactionRepo.findOne({
             where: {
                 contract_id: contractId,
-                status: TransactionStatus.PENDING,
                 type: TransactionType.SALARY_UPFRONT
-            }
+            },
+            order: { createdAt: 'DESC' }
         });
+
         if (existingTx) {
-            // Return existing payment intent details
-            const existingPI = await stripeService.retrievePaymentIntent(existingTx.stripe_payment_intent_id);
-            const investor = await this.userRepo.findOne({ where: { id: investorId } });
-            const ephemeralKey = await stripeService.createEphemeralKey(investor!.stripe_customer_id!);
-            return {
-                paymentIntentId: existingPI.id,
-                clientSecret: existingPI.client_secret,
-                ephemeralKey: ephemeralKey.secret,
-                customerId: investor!.stripe_customer_id,
-                amount: contract.salary_amount,
-                currency: 'usd',
-                contractId: contract.id,
-                publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
-            };
+            // 1. If we already saved it as SUCCEEDED but contract is stuck in PAYMENT_PENDING
+            if (existingTx.status === TransactionStatus.SUCCEEDED) {
+                console.log(`[Catch-up] Transaction already SUCCEEDED for contract ${contractId}. Activating now.`);
+                await AppDataSource.transaction(async (manager) => {
+                    await this.activateContractInternal(manager, contractId, existingTx.stripe_payment_intent_id, existingTx.metadata as any);
+                });
+                throw new AppError(200, 'Contract activated. You were already charged.');
+            }
+
+            // 2. If it's PENDING, check Stripe directly (webhook might be lost)
+            if (existingTx.status === TransactionStatus.PENDING) {
+                const intent = await stripeService.retrievePaymentIntent(existingTx.stripe_payment_intent_id);
+                if (intent.status === 'succeeded') {
+                    console.log(`[Catch-up] Stripe says SUCCEEDED for pending TX ${existingTx.id}. Syncing.`);
+                    await AppDataSource.transaction(async (manager) => {
+                        await this.activateContractInternal(manager, contractId, existingTx.stripe_payment_intent_id, intent.metadata as any);
+                    });
+                    throw new AppError(200, 'Contract was pending activation. Payment successful.');
+                }
+
+                // If still pending, return it to the UI to try paying again (Stripe UI handles "already paid" error if PENDING on their side too)
+                const investor = await this.userRepo.findOne({ where: { id: investorId } });
+                const ephemeralKey = await stripeService.createEphemeralKey(investor!.stripe_customer_id!);
+                return {
+                    paymentIntentId: intent.id,
+                    clientSecret: intent.client_secret,
+                    ephemeralKey: ephemeralKey.secret,
+                    customerId: investor!.stripe_customer_id,
+                    amount: contract.salary_amount,
+                    currency: 'usd',
+                    contractId: contract.id,
+                    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+                };
+            }
         }
 
         // Ensure investor has a Stripe customer
@@ -727,6 +748,105 @@ class ContractService {
     }
 
     /**
+     * Internal activation logic shared by Webhook and Manual check.
+     * Must be called within a transaction if manager is provided.
+     */
+    private async activateContractInternal(manager: any, contractId: string, paymentIntentId: string, metadata: Record<string, string>) {
+        const contract = await manager.findOne(LandWorkerContract, {
+            where: { id: contractId },
+            relations: ['land', 'worker', 'investor'],
+            lock: { mode: 'pessimistic_write' }
+        });
+
+        if (!contract) {
+            console.error(`[Activation] Contract ${contractId} not found`);
+            return;
+        }
+
+        // Double-activation prevention
+        if (contract.status === ContractStatus.ACTIVE) {
+            console.log(`[Activation] Contract ${contractId} already active.`);
+            return;
+        }
+
+        // 1. Update/Create transaction record → succeeded
+        let txRecord = await manager.findOne(Transaction, {
+            where: { stripe_payment_intent_id: paymentIntentId }
+        });
+
+        if (txRecord) {
+            txRecord.status = TransactionStatus.SUCCEEDED;
+            await manager.save(Transaction, txRecord);
+        } else {
+            txRecord = manager.create(Transaction, {
+                stripe_payment_intent_id: paymentIntentId,
+                contract_id: contractId,
+                investor_id: contract.investor_id,
+                worker_id: contract.worker_id,
+                amount: Number(contract.salary_amount),
+                currency: 'usd',
+                status: TransactionStatus.SUCCEEDED,
+                type: TransactionType.SALARY_UPFRONT,
+                metadata: metadata as any
+            });
+            await manager.save(Transaction, txRecord);
+        }
+
+        // 2. Activate contract
+        contract.status = ContractStatus.ACTIVE;
+        contract.first_payment_transaction_id = paymentIntentId;
+        await manager.save(LandWorkerContract, contract);
+
+        // 3. Update worker balance
+        let balance = await manager.findOne(WorkerBalance, {
+            where: { worker_id: contract.worker_id },
+            lock: { mode: 'pessimistic_write' }
+        });
+        if (!balance) {
+            balance = manager.create(WorkerBalance, {
+                worker_id: contract.worker_id,
+                available_balance: 0,
+                pending_balance: Number(contract.salary_amount)
+            });
+        } else {
+            balance.pending_balance = Number(balance.pending_balance) + Number(contract.salary_amount);
+        }
+        await manager.save(WorkerBalance, balance);
+
+        // 4. Create land_worker record
+        const existingLandWorker = await manager.findOne(LandWorker, {
+            where: { land_id: contract.land_id, worker_id: contract.worker_id, status: LandWorkerStatus.ACTIVE }
+        });
+        if (!existingLandWorker) {
+            const landWorker = manager.create(LandWorker, {
+                land_id: contract.land_id,
+                worker_id: contract.worker_id,
+                assigned_by: contract.investor_id,
+                role: 'contract',
+                salary: contract.salary_amount,
+                status: LandWorkerStatus.ACTIVE,
+                started_at: contract.contract_start_date
+            });
+            await manager.save(LandWorker, landWorker);
+        }
+
+        // 5. Emit socket events
+        try {
+            const io = getIO();
+            io.to(contract.worker_id).emit('contract_activated', {
+                contract,
+                message: `Your contract for ${contract.land?.name} is now active!`
+            });
+            io.to(contract.investor_id).emit('contract_activated', {
+                contract,
+                message: `Contract activated. Worker is now active on ${contract.land?.name}`
+            });
+        } catch (e) { /* socket not ready */ }
+
+        console.log(`[Activation] ✅ Contract ${contractId} activated via PI ${paymentIntentId}`);
+    }
+
+    /**
      * Handle Stripe webhook to confirm payment and activate contract.
      * THIS IS THE ONLY WAY TO ACTIVATE A CONTRACT.
      * 
@@ -744,131 +864,19 @@ class ContractService {
             return;
         }
 
-        // --- Idempotency check: if transaction already succeeded, skip ---
+        // Idempotency check
         const existingTx = await this.transactionRepo.findOne({
             where: { stripe_payment_intent_id: paymentIntentId, status: TransactionStatus.SUCCEEDED }
         });
         if (existingTx) {
-            console.log(`[Webhook] Duplicate webhook for PI ${paymentIntentId} — already processed. Skipping.`);
+            console.log(`[Webhook] Duplicate webhook for PI ${paymentIntentId} — already processed.`);
             return;
         }
 
-        // --- Run everything in a DB transaction with pessimistic lock ---
         await AppDataSource.transaction(async (manager) => {
-            // Lock the contract row to prevent race conditions
-            const contract = await manager.findOne(LandWorkerContract, {
-                where: { id: contractId },
-                relations: ['land', 'worker', 'investor'],
-                lock: { mode: 'pessimistic_write' }
-            });
-
-            if (!contract) {
-                console.error(`[Webhook] Contract ${contractId} not found for PI ${paymentIntentId}`);
-                return;
-            }
-
-            // Double-activation prevention
-            if (contract.status === ContractStatus.ACTIVE) {
-                console.log(`[Webhook] Contract ${contractId} already active. Skipping.`);
-                return;
-            }
-
-            if (contract.status !== ContractStatus.PAYMENT_PENDING) {
-                console.error(`[Webhook] Contract ${contractId} in unexpected status: ${contract.status}`);
-                return;
-            }
-
-            // Verify metadata matches contract (replay attack prevention)
-            if (metadata.investor_id && metadata.investor_id !== contract.investor_id) {
-                console.error(`[Webhook] Investor ID mismatch for contract ${contractId}`);
-                return;
-            }
-            if (metadata.worker_id && metadata.worker_id !== contract.worker_id) {
-                console.error(`[Webhook] Worker ID mismatch for contract ${contractId}`);
-                return;
-            }
-
-            // 1. Update transaction record → succeeded
-            const txRecord = await manager.findOne(Transaction, {
-                where: { stripe_payment_intent_id: paymentIntentId }
-            });
-            if (txRecord) {
-                txRecord.status = TransactionStatus.SUCCEEDED;
-                await manager.save(Transaction, txRecord);
-            } else {
-                // Create a transaction record if one doesn't exist (edge case: PI created outside our flow)
-                const newTx = manager.create(Transaction, {
-                    stripe_payment_intent_id: paymentIntentId,
-                    contract_id: contractId,
-                    investor_id: contract.investor_id,
-                    worker_id: contract.worker_id,
-                    amount: Number(contract.salary_amount),
-                    currency: 'usd',
-                    status: TransactionStatus.SUCCEEDED,
-                    type: TransactionType.SALARY_UPFRONT,
-                    metadata: metadata as any
-                });
-                await manager.save(Transaction, newTx);
-            }
-
-            // 2. Activate contract
-            contract.status = ContractStatus.ACTIVE;
-            contract.first_payment_transaction_id = paymentIntentId;
-            await manager.save(LandWorkerContract, contract);
-
-            // 3. Update worker balance — ALL goes to pending_balance (escrow)
-            let balance = await manager.findOne(WorkerBalance, {
-                where: { worker_id: contract.worker_id },
-                lock: { mode: 'pessimistic_write' }
-            });
-            if (!balance) {
-                balance = manager.create(WorkerBalance, {
-                    worker_id: contract.worker_id,
-                    available_balance: 0,
-                    pending_balance: Number(contract.salary_amount)
-                });
-            } else {
-                balance.pending_balance = Number(balance.pending_balance) + Number(contract.salary_amount);
-            }
-            await manager.save(WorkerBalance, balance);
-
-            // 4. Create land_worker record for backward compatibility
-            const existingLandWorker = await manager.findOne(LandWorker, {
-                where: { land_id: contract.land_id, worker_id: contract.worker_id, status: LandWorkerStatus.ACTIVE }
-            });
-            if (!existingLandWorker) {
-                const landWorker = manager.create(LandWorker, {
-                    land_id: contract.land_id,
-                    worker_id: contract.worker_id,
-                    assigned_by: contract.investor_id,
-                    role: 'contract',
-                    salary: contract.salary_amount,
-                    status: LandWorkerStatus.ACTIVE,
-                    started_at: contract.contract_start_date
-                });
-                await manager.save(LandWorker, landWorker);
-            }
-
-            // 5. Emit socket events (outside transaction is fine — best effort)
-            try {
-                const io = getIO();
-                io.to(contract.worker_id).emit('contract_activated', {
-                    contract,
-                    message: `Your contract for ${contract.land?.name} is now active!`
-                });
-                io.to(contract.investor_id).emit('contract_activated', {
-                    contract,
-                    message: `Contract activated. Worker is now active on ${contract.land?.name}`
-                });
-            } catch (e) { /* socket not ready */ }
-
-            console.log(`[Webhook] ✅ Contract ${contractId} activated via PI ${paymentIntentId}`);
+            await this.activateContractInternal(manager, contractId, paymentIntentId, metadata);
         });
     }
-
-    /**
-     * Handle failed payment webhook — mark transaction as failed.
-     */
     async handlePaymentFailedWebhook(paymentIntentId: string) {
         const txRecord = await this.transactionRepo.findOne({
             where: { stripe_payment_intent_id: paymentIntentId }
@@ -1049,13 +1057,14 @@ class ContractService {
 
     private async getActiveRental(landId: string): Promise<LandRental | null> {
         const currentDate = new Date();
-        return this.rentalRepo.findOne({
+        const rental = await this.rentalRepo.findOne({
             where: [
                 { land_id: landId, rental_end_date: IsNull(), rental_start_date: LessThanOrEqual(currentDate) },
                 { land_id: landId, rental_end_date: MoreThanOrEqual(currentDate), rental_start_date: LessThanOrEqual(currentDate) }
             ],
             order: { rental_start_date: 'DESC' }
-        }) || null;
+        });
+        return rental || null;
     }
 }
 
