@@ -5,8 +5,8 @@ import { AuthRequest } from '../../middlewares/auth.middleware.js';
 export const inviteWorker = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const result = await invitationService.inviteWorker(
-            req.params.landId,
-            req.user!.id,
+            req.params.landId as string,
+            req.user!.id as string,
             {
                 worker_id: req.body.worker_id,
                 message: req.body.message
@@ -19,8 +19,8 @@ export const inviteWorker = async (req: AuthRequest, res: Response, next: NextFu
 export const respondToInvitation = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const result = await invitationService.respondToInvitation(
-            req.params.id,
-            req.user!.id,
+            req.params.id as string,
+            req.user!.id as string,
             req.body.response
         );
         res.status(200).json({ success: true, message: `Invitation ${req.body.response}d`, data: result });
@@ -30,7 +30,7 @@ export const respondToInvitation = async (req: AuthRequest, res: Response, next:
 export const getInvitationsByLand = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const status = req.query.status as string | undefined;
-        const result = await invitationService.getInvitationsByLand(req.params.landId, status);
+        const result = await invitationService.getInvitationsByLand(req.params.landId as string, status);
         res.status(200).json({ success: true, data: result });
     } catch (error) { next(error); }
 };
@@ -44,7 +44,7 @@ export const getWorkerInvitations = async (req: AuthRequest, res: Response, next
 
 export const getApprovedWorkers = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const result = await invitationService.getApprovedWorkersForLand(req.params.landId);
+        const result = await invitationService.getApprovedWorkersForLand(req.params.landId as string);
         res.status(200).json({ success: true, data: result });
     } catch (error) { next(error); }
 };
