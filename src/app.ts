@@ -45,35 +45,44 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(compression());
 
 // CORS configuration
-const getAllowedOrigins = (): string[] => {
-    const productionOrigins = ['https://www.farmy.tn'];
-    const developmentOrigins = ['http://localhost:3000', 'http://localhost:3005', 'http://localhost:3001', 'http://localhost:5173'];
+// --- OLD: Restricted origins (uncomment to restore) ---
+// const getAllowedOrigins = (): string[] => {
+//     const productionOrigins = ['https://www.farmy.tn'];
+//     const developmentOrigins = ['http://localhost:3000', 'http://localhost:3005', 'http://localhost:3001', 'http://localhost:5173'];
+//
+//     if (process.env.NODE_ENV === 'production') {
+//         return productionOrigins;
+//     } else {
+//         return [...developmentOrigins, ...productionOrigins];
+//     }
+// };
+//
+// const allowedOrigins = getAllowedOrigins();
+//
+// app.use(cors({
+//     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+//         if (!origin && process.env.NODE_ENV !== 'production') {
+//             return callback(null, true);
+//         }
+//
+//         if (!origin || allowedOrigins.includes(origin)) {
+//             callback(null, true);
+//         } else {
+//             console.warn(`🚨 CORS: Blocked request from unauthorized origin: ${origin}`);
+//             callback(new Error('Not allowed by CORS'));
+//         }
+//     },
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD'],
+//     allowedHeaders: ['Content-Type', 'Authorization'],
+//     credentials: true,
+//     maxAge: 86400 // 24 hours
+// }));
 
-    if (process.env.NODE_ENV === 'production') {
-        return productionOrigins;
-    } else {
-        return [...developmentOrigins, ...productionOrigins];
-    }
-};
-
-const allowedOrigins = getAllowedOrigins();
-
+// --- NEW: Allow all origins ---
 app.use(cors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-        if (!origin && process.env.NODE_ENV !== 'production') {
-            return callback(null, true);
-        }
-
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.warn(`🚨 CORS: Blocked request from unauthorized origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
     maxAge: 86400 // 24 hours
 }));
 
@@ -84,8 +93,8 @@ app.use(express.urlencoded({ extended: true, limit: '3gb' }));
 // Apply environment variable check middleware
 app.use(envCheckMiddleware);
 
-// Rate Limiting
-app.use(generalLimiter);
+// Rate Limiting (disabled for now)
+// app.use(generalLimiter);
 
 // Routes
 app.use('/api', routes);
