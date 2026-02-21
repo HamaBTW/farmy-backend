@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { itemRequestService } from '../../services/v1/itemRequest.service.js';
+import { aiService } from '../../services/v1/ai.service.js';
+import { assetVariantService } from '../../services/v1/assetVariant.service.js';
 import { AuthRequest } from '../../middlewares/auth.middleware.js';
 import { AssetCategory, ItemRequestStatus } from '../../models/AssetCategory.js';
 import { AppError } from '../../middlewares/error.middleware.js';
@@ -107,8 +109,39 @@ export const getInvestorInventory = async (req: AuthRequest, res: Response, next
 
 export const approveItemRequest = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        console.log(`[ItemRequest] Approving request ${req.params.id} by admin ${req.user!.id}`);
-        const result = await itemRequestService.approve(req.params.id as string, req.user!.id);
+        const requestId = req.params.id as string;
+        console.log(`[ItemRequest] Approving request ${requestId} by admin/farmer ${req.user!.id}`);
+
+        // Get the specific request to check its type
+        const request = await itemRequestService.findById(requestId);
+
+        if (request.type === 'placement') {
+            const proofImage = req.file;
+            if (!proofImage) {
+                return res.status(400).json({ success: false, message: 'Proof image is required to activate an item placement.' });
+            }
+
+            // Fetch variant info to make the AI prompt more specific
+            let itemName = 'item';
+            try {
+                const variant = await assetVariantService.findById(request.asset_category, request.variant_id) as any;
+                itemName = variant?.type?.name || 'item';
+            } catch (err) {
+                console.warn('Could not fetch variant info for AI verification prompt', err);
+            }
+
+            const condition = `Verify if this image clearly shows a actual, deployed ${itemName} on a real farm or land.`;
+            const verification = await aiService.verifyImage(proofImage.buffer, proofImage.mimetype, condition);
+
+            if (!verification.success || !verification.verified) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'AI Verification Failed: ' + (verification.reasoning || verification.error || 'The image does not show the expected item.'),
+                });
+            }
+        }
+
+        const result = await itemRequestService.approve(requestId, req.user!.id);
 
         res.status(200).json({
             success: true,

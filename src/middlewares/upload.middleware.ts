@@ -45,12 +45,21 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
     }
 };
 
-// Generic upload instance
+// Generic upload instance (Disk Storage)
 export const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
         fileSize: 50 * 1024 * 1024 // 50MB limit
+    }
+});
+
+// Memory storage upload instance (useful for direct AI verification without saving to disk)
+export const uploadMem = multer({
+    storage: multer.memoryStorage(),
+    fileFilter: fileFilter,
+    limits: {
+        fileSize: 15 * 1024 * 1024 // 15MB limit
     }
 });
 

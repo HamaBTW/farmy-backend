@@ -9,6 +9,7 @@ import {
     movePlacedItemSchema,
     placeItemSchema
 } from '../../validators/v1/asset.validator.js';
+import { uploadMem } from '../../middlewares/upload.middleware.js';
 
 const router = Router();
 
@@ -20,7 +21,7 @@ router.get('/farmer/incoming', authenticate, itemRequestController.getIncomingRe
 router.get('/investor/inventory', authenticate, itemRequestController.getInvestorInventory);
 router.get('/:id', authenticate, itemRequestController.getItemRequestById);
 router.post('/', authenticate, validateRequest(createItemRequestSchema), itemRequestController.createItemRequest);
-router.post('/:id/approve', authenticate, itemRequestController.approveItemRequest);
+router.post('/:id/approve', authenticate, uploadMem.single('proof_image'), itemRequestController.approveItemRequest);
 router.post('/:id/reject', authenticate, validateRequest(rejectItemRequestSchema), itemRequestController.rejectItemRequest);
 router.post('/:id/cancel', authenticate, itemRequestController.cancelItemRequest);
 router.post('/:id/place', authenticate, validateRequest(placeItemSchema), itemRequestController.placeItemRequest);

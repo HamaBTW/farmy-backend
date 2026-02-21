@@ -16,6 +16,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@google/genai": "^1.42.0",
     "@hashgraph/sdk": "^2.80.0",
     "@types/multer": "^2.0.0",
     "@types/swagger-jsdoc": "^6.0.4",

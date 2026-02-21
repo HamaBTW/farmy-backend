@@ -10,6 +10,7 @@ import landGridRoutesV1 from './v1/landGrid.routes.js';
 import walletRoutesV1 from './v1/wallet.routes.js';
 import productRoutesV1 from './v1/product.routes.js';
 import hederaRoutesV1 from './v1/hedera.routes.js';
+import proofRoutesV1 from './v1/proof.routes.js';
 
 const router = Router();
 
