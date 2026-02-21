@@ -638,7 +638,7 @@ class ContractService {
                 await AppDataSource.transaction(async (manager) => {
                     await this.activateContractInternal(manager, contractId, existingTx.stripe_payment_intent_id, existingTx.metadata as any);
                 });
-                throw new AppError(200, 'Contract activated. You were already charged.');
+                return { activated: true, message: 'Contract activated. You were already charged.' };
             }
 
             // 2. If it's PENDING, check Stripe directly (webhook might be lost)
@@ -649,7 +649,7 @@ class ContractService {
                     await AppDataSource.transaction(async (manager) => {
                         await this.activateContractInternal(manager, contractId, existingTx.stripe_payment_intent_id, intent.metadata as any);
                     });
-                    throw new AppError(200, 'Contract was pending activation. Payment successful.');
+                    return { activated: true, message: 'Contract was pending activation. Payment successful.' };
                 }
 
                 // If still pending, return it to the UI to try paying again (Stripe UI handles "already paid" error if PENDING on their side too)
