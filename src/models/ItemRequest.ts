@@ -57,6 +57,9 @@ export class ItemRequest extends BaseEntity {
     @Column({ type: 'uuid', nullable: true })
     processed_by!: string | null;
 
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    hedera_transaction_id!: string | null;
+
     @OneToOne(() => PlacedItem, (placed) => placed.request)
     placed_item!: Relation<PlacedItem> | null;
 }

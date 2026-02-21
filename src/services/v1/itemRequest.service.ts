@@ -9,6 +9,7 @@ import { assetVariantService } from './assetVariant.service.js';
 import { landService } from './land.service.js';
 import { stripeService } from './StripeService.js';
 import { getIO } from '../../socket/socket.js';
+import { hederaService } from './HederaService.js';
 
 interface CreateItemRequestData {
     user_id: string;
@@ -104,7 +105,34 @@ class ItemRequestService {
             type: ItemRequestType.BUY
         });
 
-        return this.itemRequestRepo.save(itemRequest);
+        const savedRequest = await this.itemRequestRepo.save(itemRequest);
+
+        // Record purchase on Hedera (non-blocking — failure won't cancel the purchase)
+        try {
+            const variantDetails = (variant as any);
+            const hederaTxId = await hederaService.recordPurchase({
+                type: 'item_purchase',
+                user_id: data.user_id,
+                item_id: data.variant_id,
+                item_name: variantDetails.type?.name || variantDetails.variant_code || 'Unknown Item',
+                asset_category: data.asset_category,
+                land_id: data.land_id,
+                amount: price,
+                currency: 'usd',
+                payment_method: data.payment_method_id ? 'stripe' : (price > 0 ? 'credits' : 'free'),
+                timestamp: new Date().toISOString(),
+                metadata: { request_id: savedRequest.id },
+            });
+
+            if (hederaTxId) {
+                savedRequest.hedera_transaction_id = hederaTxId;
+                await this.itemRequestRepo.save(savedRequest);
+            }
+        } catch (hederaError) {
+            console.error('[HederaService] Non-fatal error recording item purchase on Hedera:', hederaError);
+        }
+
+        return savedRequest;
     }
 
     async findAll(filters?: {

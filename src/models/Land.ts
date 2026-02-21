@@ -167,6 +167,9 @@ export class Land extends BaseEntity {
     @Column({ type: 'boolean', default: true })
     is_active!: boolean;
 
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    hedera_transaction_id!: string | null;
+
     @OneToMany(() => PlacedItem, (item) => item.land)
     placed_items!: Relation<PlacedItem>[];
 

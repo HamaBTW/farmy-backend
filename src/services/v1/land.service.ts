@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../config/db.config.js';
 import { Land } from '../../models/Land.js';
 import { AppError } from '../../middlewares/error.middleware.js';
+import { hederaService } from './HederaService.js';
 
 interface CreateLandData {
     owner_id: string;
@@ -29,7 +30,35 @@ class LandService {
             height_m: height,
             boundaries: data.boundaries
         });
-        return this.landRepo.save(land);
+        const savedLand = await this.landRepo.save(land);
+
+        // Record land creation on Hedera (non-blocking)
+        try {
+            const hederaTxId = await hederaService.recordPurchase({
+                type: 'land_creation',
+                user_id: data.owner_id,
+                item_id: savedLand.id,
+                item_name: data.name,
+                amount: 0,
+                currency: 'usd',
+                payment_method: 'free',
+                timestamp: new Date().toISOString(),
+                metadata: {
+                    land_id: savedLand.id,
+                    width_m: width,
+                    height_m: height,
+                },
+            });
+
+            if (hederaTxId) {
+                savedLand.hedera_transaction_id = hederaTxId;
+                await this.landRepo.save(savedLand);
+            }
+        } catch (hederaError) {
+            console.error('[HederaService] Non-fatal error recording land creation on Hedera:', hederaError);
+        }
+
+        return savedLand;
     }
 
     async findAll(ownerId?: string, includeInactive = false) {
