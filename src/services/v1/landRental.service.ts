@@ -109,7 +109,7 @@ class LandRentalService {
     try {
       const amountPaid = (data as any).amountCharged ?? data.monthly_rent;
       const paymentMethod = (data as any).payment_method_id === 'WALLET_CREDITS' ? 'credits' : 'stripe';
-      await hederaService.recordPurchase({
+      const hederaTxId = await hederaService.recordPurchase({
         type: 'land_rental',
         user_id: data.investor_id,
         item_id: savedRental.id,
@@ -127,6 +127,11 @@ class LandRentalService {
           rental_end_date: data.rental_end_date ?? null,
         },
       } as any);
+
+      if (hederaTxId) {
+        savedRental.hedera_transaction_id = hederaTxId;
+        await this.rentalRepo.save(savedRental);
+      }
     } catch (hederaError) {
       console.error('[HederaService] Non-fatal error recording land rental on Hedera:', hederaError);
     }

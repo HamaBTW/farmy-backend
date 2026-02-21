@@ -9,6 +9,7 @@ import productionRoutesV1 from './v1/production.routes.js';
 import landGridRoutesV1 from './v1/landGrid.routes.js';
 import walletRoutesV1 from './v1/wallet.routes.js';
 import productRoutesV1 from './v1/product.routes.js';
+import hederaRoutesV1 from './v1/hedera.routes.js';
 
 const router = Router();
 
@@ -47,6 +48,9 @@ router.use('/v1/wallet', walletRoutesV1);
 
 console.log('Registering /v1/products routes');
 router.use('/v1/products', productRoutesV1);
+
+console.log('Registering /v1/hedera routes');
+router.use('/v1/hedera', hederaRoutesV1);
 
 import productTypeRoutesV1 from './v1/productType.routes.js';
 console.log('Registering /v1/product-types routes');

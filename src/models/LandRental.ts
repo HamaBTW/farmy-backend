@@ -47,4 +47,7 @@ export class LandRental extends BaseEntity {
 
   @Column({ type: 'datetime', nullable: true })
   payment_date!: Date | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  hedera_transaction_id!: string | null;
 }
