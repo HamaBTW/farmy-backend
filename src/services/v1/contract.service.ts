@@ -106,6 +106,7 @@ class ContractService {
         // Validate contract dates against rental period
         const startDate = new Date(data.contract_start_date);
         const endDate = new Date(data.contract_end_date);
+
         if (startDate >= endDate) throw new AppError(400, 'Contract start date must be before end date');
         if (activeRental.rental_end_date && endDate > activeRental.rental_end_date)
             throw new AppError(400, 'Contract end date cannot exceed rental period');
