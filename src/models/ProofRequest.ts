@@ -54,4 +54,7 @@ export class ProofRequest extends BaseEntity {
 
     @Column({ type: 'varchar', length: 255, nullable: true })
     target_name!: string | null;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    image_url!: string | null;
 }

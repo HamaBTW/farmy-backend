@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { AppDataSource } from '../../config/db.config.js';
 import { ProofRequest, ProofRequestStatus } from '../../models/ProofRequest.js';
 import { User } from '../../models/User.js';
@@ -7,6 +10,9 @@ import { aiService } from './ai.service.js';
 import { assetVariantService } from './assetVariant.service.js';
 import { itemRequestService } from './itemRequest.service.js';
 import { getIO } from '../../socket/socket.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class ProofService {
     private proofRepo = AppDataSource.getRepository(ProofRequest);
@@ -128,7 +134,8 @@ class ProofService {
             createdAt: p.createdAt,
             target_type: p.target_type,
             target_id: p.target_id,
-            target_name: p.target_name
+            target_name: p.target_name,
+            image_url: p.image_url
         }));
     }
 
@@ -171,6 +178,17 @@ class ProofService {
         } catch (e: any) {
             proof.status = ProofRequestStatus.REJECTED;
             proof.ai_reasoning = `AI Error: ${e.message}`;
+        }
+
+        // Save image to disk
+        try {
+            const fileName = `proof-${proof.id}-${Date.now()}.${mimetype.split('/')[1] || 'jpg'}`;
+            const uploadDir = path.join(__dirname, '../../uploads/proofs');
+            const filePath = path.join(uploadDir, fileName);
+            fs.writeFileSync(filePath, imageBuffer);
+            proof.image_url = `/uploads/proofs/${fileName}`;
+        } catch (e) {
+            console.error('Failed to save proof image:', e);
         }
 
         const saved = await this.proofRepo.save(proof);

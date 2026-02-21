@@ -14,8 +14,9 @@ const baseUploadDir = path.join(__dirname, '../uploads');
 // Ensure directories exist
 const productUploadDir = path.join(baseUploadDir, 'products');
 const kycUploadDir = path.join(baseUploadDir, 'kyc');
+const proofUploadDir = path.join(baseUploadDir, 'proofs');
 
-[productUploadDir, kycUploadDir].forEach(dir => {
+[productUploadDir, kycUploadDir, proofUploadDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
