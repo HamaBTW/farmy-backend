@@ -4,12 +4,20 @@ import { User } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { MoreThan } from 'typeorm';
 import { aiService } from './ai.service.js';
+import { assetVariantService } from './assetVariant.service.js';
+import { itemRequestService } from './itemRequest.service.js';
 import { getIO } from '../../socket/socket.js';
 
 class ProofService {
     private proofRepo = AppDataSource.getRepository(ProofRequest);
 
-    async requestProof(investorId: string, farmerId: string, landId?: string) {
+    async requestProof(
+        investorId: string,
+        farmerId: string,
+        landId?: string,
+        targetType: 'land' | 'item' = 'land',
+        targetId?: string
+    ) {
         // Validation: Verify both users exist
         const userRepository = AppDataSource.getRepository(User);
         const investor = await userRepository.findOne({ where: { id: investorId } });
@@ -19,32 +27,46 @@ class ProofService {
             throw new AppError(404, 'User not found');
         }
 
-        // Feature constraint: Max 3 requests a week
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        // Limit: 3 requests per week
+        const startOfWeek = new Date();
+        startOfWeek.setDate(startOfWeek.getDate() - 7);
 
-        const recentRequestsCount = await this.proofRepo.count({
+        const recentCount = await this.proofRepo.count({
             where: {
                 investor_id: investorId,
                 farmer_id: farmerId,
-                createdAt: MoreThan(oneWeekAgo)
+                createdAt: MoreThan(startOfWeek)
             }
         });
 
-        if (recentRequestsCount >= 3) {
-            throw new AppError(429, 'You have reached the maximum of 3 proof requests per week for this farmer.');
+        if (recentCount >= 3) {
+            throw new AppError(400, 'Proof request limit reached (3 per week for this worker).');
         }
 
         // Expiration logic: 1 hour from now
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 1);
 
+        let targetName = null;
+        if (targetType === 'item' && targetId) {
+            try {
+                const placedItem = await itemRequestService.getPlacedItemById(targetId);
+                const variant = await assetVariantService.findById(placedItem.asset_category, placedItem.variant_id) as any;
+                targetName = variant?.type?.name || 'Assigned Item';
+            } catch (e) {
+                targetName = 'Placed Item';
+            }
+        }
+
         const proof = this.proofRepo.create({
             investor_id: investorId,
             farmer_id: farmerId,
             land_id: landId,
             status: ProofRequestStatus.PENDING,
-            expires_at: expiresAt
+            expires_at: expiresAt,
+            target_type: targetType,
+            target_id: targetId,
+            target_name: targetName
         });
 
         const saved = await this.proofRepo.save(proof);
@@ -55,7 +77,7 @@ class ProofService {
             const payload = {
                 proof: saved,
                 land_id: landId,
-                message: 'New proof of work requested.'
+                message: targetType === 'item' ? `New proof requested for ${targetName}.` : 'New proof of work requested for land.'
             };
             io.to(farmerId).emit('proof_requested', payload);
             io.to(investorId).emit('proof_requested', payload);
@@ -118,15 +140,24 @@ class ProofService {
             throw new AppError(400, 'Proof request has expired');
         }
 
-        const condition = 'Verify if this image clearly shows ongoing farming activities, well-maintained land, or healthy crops/animals.';
-        const verification = await aiService.verifyImage(imageBuffer, mimetype, condition);
+        // Verify image via AI
+        try {
+            let condition = 'Verify if this image is a genuine farm or land clearly showing farming activity.';
+            if (proof.target_type === 'item' && proof.target_name) {
+                condition = `Verify if this image clearly shows a actual, deployed ${proof.target_name} on a real farm or land. Provide reasoning.`;
+            }
 
-        if (verification.success && verification.verified) {
-            proof.status = ProofRequestStatus.VERIFIED;
-            proof.ai_reasoning = verification.reasoning || 'AI verified the image successfully.';
-        } else {
+            const verification = await aiService.verifyImage(imageBuffer, mimetype, condition);
+
+            if (verification.success && verification.verified) {
+                proof.status = ProofRequestStatus.VERIFIED;
+            } else {
+                proof.status = ProofRequestStatus.REJECTED;
+            }
+            proof.ai_reasoning = verification.reasoning || verification.error || 'Verification failed';
+        } catch (e: any) {
             proof.status = ProofRequestStatus.REJECTED;
-            proof.ai_reasoning = verification.reasoning || verification.error || 'The image does not show clear farming activity.';
+            proof.ai_reasoning = `AI Error: ${e.message}`;
         }
 
         const saved = await this.proofRepo.save(proof);

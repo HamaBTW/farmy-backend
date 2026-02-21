@@ -45,4 +45,13 @@ export class ProofRequest extends BaseEntity {
 
     @Column({ type: 'timestamp' })
     expires_at!: Date;
+
+    @Column({ type: 'varchar', length: 50, default: 'land' })
+    target_type!: 'land' | 'item';
+
+    @Column({ type: 'uuid', nullable: true })
+    target_id!: string | null;
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    target_name!: string | null;
 }

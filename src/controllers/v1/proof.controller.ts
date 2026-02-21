@@ -5,12 +5,12 @@ import { AppError } from '../../middlewares/error.middleware.js';
 
 export const requestProof = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const { farmer_id, land_id } = req.body;
+        const { farmer_id, land_id, target_type, target_id } = req.body;
         if (!farmer_id) {
             throw new AppError(400, 'farmer_id is required');
         }
 
-        const result = await proofService.requestProof(req.user!.id, farmer_id, land_id);
+        const result = await proofService.requestProof(req.user!.id, farmer_id, land_id, target_type, target_id);
         res.status(201).json({
             success: true,
             message: 'Proof requested successfully. Farmer has 1 hour to submit.',

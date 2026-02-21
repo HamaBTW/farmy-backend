@@ -354,10 +354,30 @@ class ItemRequestService {
 
     // Placed Items methods
     async getPlacedItems(landId: string) {
-        return this.placedItemRepo.find({
+        const items = await this.placedItemRepo.find({
             where: { land_id: landId },
             order: { placed_at: 'DESC' }
         });
+
+        // Enrich with variant details
+        return Promise.all(items.map(async (item) => {
+            try {
+                const variant = await assetVariantService.findById(item.asset_category, item.variant_id);
+                return {
+                    ...item,
+                    details: {
+                        name: (variant as any).type?.name || 'Unknown',
+                        variant_name: (variant as any).variant_code,
+                        image_url: (variant as any).image_url || (variant as any).type?.icon_url,
+                    }
+                };
+            } catch (e) {
+                return {
+                    ...item,
+                    details: { name: 'Unknown Item', variant_name: 'Unknown', image_url: null }
+                };
+            }
+        }));
     }
 
     async getPlacedItemById(id: string) {
