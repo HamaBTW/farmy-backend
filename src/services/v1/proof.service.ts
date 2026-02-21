@@ -4,11 +4,12 @@ import { User } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { MoreThan } from 'typeorm';
 import { aiService } from './ai.service.js';
+import { getIO } from '../../socket/socket.js';
 
 class ProofService {
     private proofRepo = AppDataSource.getRepository(ProofRequest);
 
-    async requestProof(investorId: string, farmerId: string) {
+    async requestProof(investorId: string, farmerId: string, landId?: string) {
         // Validation: Verify both users exist
         const userRepository = AppDataSource.getRepository(User);
         const investor = await userRepository.findOne({ where: { id: investorId } });
@@ -41,11 +42,26 @@ class ProofService {
         const proof = this.proofRepo.create({
             investor_id: investorId,
             farmer_id: farmerId,
+            land_id: landId,
             status: ProofRequestStatus.PENDING,
             expires_at: expiresAt
         });
 
-        return await this.proofRepo.save(proof);
+        const saved = await this.proofRepo.save(proof);
+
+        // Emit socket event for real-time counter changes
+        try {
+            const io = getIO();
+            const payload = {
+                proof: saved,
+                land_id: landId,
+                message: 'New proof of work requested.'
+            };
+            io.to(farmerId).emit('proof_requested', payload);
+            io.to(investorId).emit('proof_requested', payload);
+        } catch (e) { }
+
+        return saved;
     }
 
     async getMyProofs(userId: string) {
@@ -113,7 +129,23 @@ class ProofService {
             proof.ai_reasoning = verification.reasoning || verification.error || 'The image does not show clear farming activity.';
         }
 
-        return await this.proofRepo.save(proof);
+        const saved = await this.proofRepo.save(proof);
+
+        // Emit socket event for status update
+        try {
+            const io = getIO();
+            const payload = {
+                proof: saved,
+                land_id: saved.land_id,
+                message: saved.status === ProofRequestStatus.VERIFIED
+                    ? 'Proof verified successfully.'
+                    : 'The submitted image was rejected by AI.'
+            };
+            io.to(proof.investor_id).emit('proof_status_updated', payload);
+            io.to(proof.farmer_id).emit('proof_status_updated', payload);
+        } catch (e) { }
+
+        return saved;
     }
 }
 

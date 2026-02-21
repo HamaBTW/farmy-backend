@@ -1,6 +1,7 @@
 import { Entity, Column, ManyToOne, JoinColumn, Relation } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
+import { Land } from './Land.js';
 
 export enum ProofRequestStatus {
     PENDING = 'pending',
@@ -24,6 +25,13 @@ export class ProofRequest extends BaseEntity {
     @ManyToOne(() => User, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'farmer_id' })
     farmer!: Relation<User>;
+
+    @Column({ type: 'uuid', nullable: true })
+    land_id!: string | null;
+
+    @ManyToOne(() => Land, { onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'land_id' })
+    land!: Relation<Land>;
 
     @Column({
         type: 'enum',
