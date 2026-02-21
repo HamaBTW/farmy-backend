@@ -79,6 +79,9 @@ import contractRoutesV1 from './v1/contract.routes.js';
 console.log('Registering /v1/workforce contract routes');
 router.use('/v1/workforce', contractRoutesV1);
 
+console.log('Registering /v1/proofs routes');
+router.use('/v1/proofs', proofRoutesV1);
+
 export default router;
 
 
