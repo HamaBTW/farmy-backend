@@ -43,7 +43,21 @@ class HederaService {
                 ? Client.forMainnet()
                 : Client.forTestnet();
 
-            client.setOperator(AccountId.fromString(accountId), PrivateKey.fromString(privateKey));
+            // Detect key format and use the appropriate parser
+            let parsedKey;
+            const keyStr = privateKey.startsWith('0x') ? privateKey.slice(2) : privateKey;
+            if (privateKey.startsWith('0x') || (keyStr.length === 64 && /^[0-9a-fA-F]+$/.test(keyStr))) {
+                // Raw hex ECDSA key
+                parsedKey = PrivateKey.fromStringECDSA(keyStr);
+            } else if (privateKey.startsWith('302')) {
+                // DER-encoded key (starts with 302e or 3030)
+                parsedKey = PrivateKey.fromStringDer(privateKey);
+            } else {
+                // ED25519 or other — let SDK decide
+                parsedKey = PrivateKey.fromStringED25519(privateKey);
+            }
+
+            client.setOperator(AccountId.fromString(accountId), parsedKey);
             this.client = client;
             this.topicId = process.env.HEDERA_TOPIC_ID || null;
             console.log(`[HederaService] Initialized on ${network}. Topic ID: ${this.topicId || 'Will be created on first use'}`);
