@@ -165,10 +165,50 @@ class ProductService {
 
             await transactionalEntityManager.save(product);
 
+            // Create Purchase Record
+            const { ProductPurchase } = await import('../../models/ProductPurchase.js');
+            const purchase = transactionalEntityManager.create(ProductPurchase, {
+                product_id: product.id,
+                buyer_id: buyerId,
+                seller_id: product.owner_id,
+                product_name: product.title,
+                quantity: quantity,
+                total_price: totalPrice,
+            });
+            const savedPurchase = await transactionalEntityManager.save(purchase);
+
+            // Non-blocking Hedera Record
+            const { hederaService } = await import('./HederaService.js');
+            hederaService.recordPurchase({
+                type: 'item_purchase',
+                user_id: buyerId,
+                item_id: savedPurchase.id,
+                item_name: `Product Purchase: ${product.title} (x${quantity})`,
+                amount: totalPrice,
+                currency: 'usd',
+                payment_method: 'credits',
+                timestamp: new Date().toISOString(),
+                metadata: {
+                    purchase_id: savedPurchase.id,
+                    product_id: product.id,
+                    seller_id: product.owner_id,
+                    quantity: quantity,
+                    unit_price: unitPrice,
+                },
+            }).then(async (hederaTxId) => {
+                if (hederaTxId) {
+                    savedPurchase.hedera_transaction_id = hederaTxId;
+                    await AppDataSource.getRepository(ProductPurchase).save(savedPurchase);
+                }
+            }).catch((err) => {
+                console.error('[HederaService] Non-fatal error recording product purchase:', err);
+            });
+
             return {
                 success: true,
                 message: 'Purchase successful',
                 product,
+                purchase_id: savedPurchase.id,
                 new_balance: buyer.credits,
                 remaining_quantity: product.quantity
             };

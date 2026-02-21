@@ -18,6 +18,7 @@ export { MachineVariant } from './MachineVariant.js';
 // Production System
 export { ProductType } from './ProductType.js';
 export { AssetProduction } from './AssetProduction.js';
+export { ProductPurchase } from './ProductPurchase.js';
 
 // Requests and Placement
 export { ItemRequest } from './ItemRequest.js';

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppDataSource } from '../../config/db.config.js';
 import { ItemRequest } from '../../models/ItemRequest.js';
 import { LandRental } from '../../models/LandRental.js';
+import { ProductPurchase } from '../../models/ProductPurchase.js';
 import { AuthRequest } from '../../middlewares/auth.middleware.js';
 
 export const getMyHederaRegistry = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -51,8 +52,29 @@ export const getMyHederaRegistry = async (req: AuthRequest, res: Response, next:
                 timestamp: r.createdAt,
             }));
 
-        // 3. Combine and sort by timestamp desc
-        const all = [...itemEntries, ...rentalEntries].sort(
+        // 3. Fetch product purchases with Hedera TxID
+        const productPurchases = await AppDataSource.getRepository(ProductPurchase).find({
+            where: { buyer_id: userId },
+            order: { createdAt: 'DESC' },
+        });
+
+        const productEntries = productPurchases
+            .filter((p) => p.hedera_transaction_id)
+            .map((p) => ({
+                type: 'product_purchase',
+                id: p.id,
+                label: `Product Purchase`,
+                sublabel: `${p.product_name} (x${p.quantity})`,
+                amount: Number(p.total_price),
+                currency: 'usd',
+                payment_method: 'credits',
+                status: 'paid',
+                hedera_transaction_id: p.hedera_transaction_id,
+                timestamp: p.createdAt,
+            }));
+
+        // 4. Combine and sort by timestamp desc
+        const all = [...itemEntries, ...rentalEntries, ...productEntries].sort(
             (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
 
