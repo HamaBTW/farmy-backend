@@ -4,26 +4,67 @@ import { PaymentMethod, PaymentMethodType } from '../../models/PaymentMethod.js'
 import { AppError } from '../../middlewares/error.middleware.js';
 import { stripeService } from './StripeService.js';
 
+export interface StripeSetupResponse {
+    setupIntent: string | null;
+    ephemeralKey: string | undefined;
+    customer: string;
+    publishableKey: string;
+}
+
+export interface StripePaymentResponse {
+    paymentIntent: string | null;
+    ephemeralKey: string | undefined;
+    customer: string;
+    publishableKey: string;
+}
+
 export class WalletService {
     private userRepository = AppDataSource.getRepository(User);
     private paymentMethodRepository = AppDataSource.getRepository(PaymentMethod);
 
-    async getWalletStatus(userId: string) {
-        let user = await this.userRepository.findOne({
+    private async getOrEnsureCustomer(userId: string): Promise<User> {
+        const user = await this.userRepository.findOne({
             where: { id: userId },
-            select: ['id', 'credits', 'stripe_customer_id', 'email', 'profile'] // Ensure email/profile is selected if needed for creation
+            select: ['id', 'email', 'stripe_customer_id', 'profile', 'credits']
         });
 
         if (!user) {
             throw new AppError(404, 'User not found');
         }
 
-        // Ensure user has a Stripe Customer ID
-        if (!user.stripe_customer_id) {
+        let needsSave = false;
+        let customerId = user.stripe_customer_id;
+
+        if (customerId) {
+            try {
+                // Verify the customer exists in Stripe
+                await stripeService.getCustomer(customerId);
+            } catch (error: any) {
+                // If Stripe says the customer doesn't exist (e.g., switched test accounts)
+                if (error.code === 'resource_missing' || (error.raw && error.raw.code === 'resource_missing')) {
+                    console.log(`[WalletService] Stripe customer ${customerId} not found. Re-creating for user ${userId}.`);
+                    customerId = null;
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        if (!customerId) {
             const customer = await stripeService.createCustomer(user.email, user.profile?.name);
             user.stripe_customer_id = customer.id;
+            needsSave = true;
+        }
+
+        if (needsSave) {
             await this.userRepository.save(user);
         }
+
+        return user;
+    }
+
+    async getWalletStatus(userId: string) {
+        const user = await this.getOrEnsureCustomer(userId);
 
         const paymentMethods = await this.paymentMethodRepository.find({
             where: { user_id: userId },
@@ -76,26 +117,29 @@ export class WalletService {
         return await this.paymentMethodRepository.save(paymentMethod);
     }
 
-    async createSetupIntent(userId: string) {
-        const user = await this.userRepository.findOne({ where: { id: userId } });
-        if (!user || !user.stripe_customer_id) {
-            // This should ideally strictly check for stripe_customer_id, 
-            // but getWalletStatus usually ensures it exists.
-            // For safety, re-fetch or error if flow is strict.
-            throw new AppError(400, 'User has no Stripe Customer ID');
+    async createSetupIntent(userId: string): Promise<StripeSetupResponse> {
+        const user = await this.getOrEnsureCustomer(userId);
+        const customerId = user.stripe_customer_id!;
+
+        try {
+            const setupIntent = await stripeService.createSetupIntent(customerId);
+            const ephemeralKey = await stripeService.createEphemeralKey(customerId);
+
+            return {
+                setupIntent: setupIntent.client_secret,
+                ephemeralKey: ephemeralKey.secret,
+                customer: customerId,
+                publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
+            };
+        } catch (error: any) {
+            // Final fallback if something was cached or raced
+            if (error.code === 'resource_missing' || (error.raw && error.raw.code === 'resource_missing')) {
+                console.log(`[WalletService] SetupIntent failed due to missing customer. Resetting and retrying...`);
+                await this.userRepository.update({ id: userId }, { stripe_customer_id: null as any });
+                return this.createSetupIntent(userId);
+            }
+            throw error;
         }
-
-        const setupIntent = await stripeService.createSetupIntent(user.stripe_customer_id);
-
-        // We also need an ephemeral key for the mobile sheet
-        const ephemeralKey = await stripeService.createEphemeralKey(user.stripe_customer_id);
-
-        return {
-            setupIntent: setupIntent.client_secret,
-            ephemeralKey: ephemeralKey.secret,
-            customer: user.stripe_customer_id,
-            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
-        };
     }
 
     async confirmSetup(userId: string, setupIntentId: string) {
@@ -120,26 +164,33 @@ export class WalletService {
         return await this.addPaymentMethod(userId, paymentMethodId);
     }
 
-    async createPaymentIntent(userId: string, amount: number) {
+    async createPaymentIntent(userId: string, amount: number): Promise<StripePaymentResponse> {
         if (amount <= 0) {
             throw new AppError(400, 'Amount must be greater than zero');
         }
 
-        const user = await this.userRepository.findOne({ where: { id: userId } });
-        if (!user || !user.stripe_customer_id) {
-            throw new AppError(400, 'User has no Stripe Customer ID');
+        const user = await this.getOrEnsureCustomer(userId);
+        const customerId = user.stripe_customer_id!;
+
+        try {
+            const paymentIntent = await stripeService.createPaymentIntent(amount, 'usd', customerId);
+            const ephemeralKey = await stripeService.createEphemeralKey(customerId);
+
+            return {
+                paymentIntent: paymentIntent.client_secret,
+                ephemeralKey: ephemeralKey.secret,
+                customer: customerId,
+                publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
+            };
+        } catch (error: any) {
+            // Final fallback if something was cached or raced
+            if (error.code === 'resource_missing' || (error.raw && error.raw.code === 'resource_missing')) {
+                console.log(`[WalletService] PaymentIntent failed due to missing customer. Resetting and retrying...`);
+                await this.userRepository.update({ id: userId }, { stripe_customer_id: null as any });
+                return this.createPaymentIntent(userId, amount);
+            }
+            throw error;
         }
-
-        const paymentIntent = await stripeService.createPaymentIntent(amount, 'usd', user.stripe_customer_id);
-
-        const ephemeralKey = await stripeService.createEphemeralKey(user.stripe_customer_id);
-
-        return {
-            paymentIntent: paymentIntent.client_secret,
-            ephemeralKey: ephemeralKey.secret,
-            customer: user.stripe_customer_id,
-            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
-        };
     }
 
     // This method is called AFTER successful payment on client (webhook or manual confirm)
