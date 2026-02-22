@@ -22,9 +22,9 @@ export interface AvatarGenerationResult {
     error?: string;
 }
 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const PIXAZO_API_KEY = process.env.PIXAZO_API_KEY || '';
-const PIXAZO_IMAGE_TO_IMAGE_URL = 'https://gateway.pixazo.ai/flux-dev/v1/dev/imageToImage';
-const PIXAZO_STATUS_URL = 'https://gateway.pixazo.ai/flux-dev-polling/dev/getFluxDevStatus';
+const PIXAZO_INPAINTING_URL = 'https://gateway.pixazo.ai/inpainting/v1/getImage';
 
 // Base upload directory (relative to this file's location to shift between src and dist automatically)
 const baseUploadDir = path.join(__dirname, '../../uploads');
@@ -55,7 +55,7 @@ class AiService {
         condition: string
     ): Promise<AIImageVerificationResult> {
         try {
-            if (!process.env.GEMINI_API_KEY) {
+            if (!GEMINI_API_KEY) {
                 return { success: false, error: 'GEMINI_API_KEY is not configured.' };
             }
 
@@ -128,7 +128,7 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
      */
     async generateAvatar(pictureUrl: string): Promise<AvatarGenerationResult> {
         try {
-            if (!process.env.GEMINI_API_KEY) {
+            if (!GEMINI_API_KEY) {
                 return { success: false, error: 'GEMINI_API_KEY is not configured.' };
             }
             if (!PIXAZO_API_KEY) {
@@ -161,22 +161,20 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
 
             console.log('[AiService] Image verified as human. Generating avatar...');
 
-            // --- Step 2: Generate avatar via Pixazo Flux Dev ---
+            // --- Step 2: Generate avatar via Pixazo Stable Diffusion Inpainting ---
             const avatarPrompt =
                 'Professional digital avatar portrait, vibrant illustration style, clean solid bright green (#00FF00) background only, detailed face, modern look, soft lighting, centered subject, no shadows on background, the background must be a completely uniform solid green color';
 
             const submitResponse = await axios.post(
-                PIXAZO_IMAGE_TO_IMAGE_URL,
+                PIXAZO_INPAINTING_URL,
                 {
-                    image_url: pictureUrl,
+                    imageUrl: pictureUrl,
                     prompt: avatarPrompt,
-                    strength: 0.65,
-                    num_inference_steps: 30,
-                    guidance_scale: 7.5,
-                    num_images: 1,
-                    enable_safety_checker: true,
-                    output_format: 'png',
-                    acceleration: 'regular',
+                    negative_prompt: 'watermark, blurry, distorted, low quality, shadows on background',
+                    height: 1024,
+                    width: 1024,
+                    num_steps: 25,
+                    guidance: 7.5,
                 },
                 {
                     headers: {
@@ -187,47 +185,16 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
                 }
             );
 
-            const requestId: string = submitResponse.data.request_id;
-            if (!requestId) {
-                return { success: false, error: 'Pixazo API did not return a request_id.' };
-            }
-
-            console.log('[AiService] Flux Dev request submitted, request_id:', requestId);
-
-            // --- Step 3: Poll for result (max 60 retries × 3s = 3 minutes) ---
-            let generatedImageUrl: string | null = null;
-            for (let i = 0; i < 60; i++) {
-                await new Promise(resolve => setTimeout(resolve, 3000));
-
-                const statusResponse = await axios.post(
-                    PIXAZO_STATUS_URL,
-                    { request_id: requestId },
-                    {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Cache-Control': 'no-cache',
-                        },
-                    }
-                );
-
-                const statusData = statusResponse.data;
-                console.log(`[AiService] Poll attempt ${i + 1}:`, JSON.stringify(statusData).substring(0, 100));
-
-                if (statusData.images && statusData.images.length > 0 && statusData.images[0].url) {
-                    generatedImageUrl = statusData.images[0].url;
-                    break;
-                }
-            }
-
+            const generatedImageUrl = submitResponse.data.imageUrl;
             if (!generatedImageUrl) {
-                return { success: false, error: 'Avatar generation timed out. Please try again.' };
+                return { success: false, error: 'Pixazo API did not return a generated imageUrl.' };
             }
 
-            console.log('[AiService] Generated avatar URL:', generatedImageUrl);
+            console.log('[AiService] Avatar generated at:', generatedImageUrl);
 
-            // --- Step 4: Download and remove green background ---
-            const generatedImageResponse = await axios.get(generatedImageUrl, { responseType: 'arraybuffer' });
-            const generatedBuffer = Buffer.from(generatedImageResponse.data);
+            // --- Step 3: Fetch the generated image for background removal ---
+            const generatedResponse = await axios.get(generatedImageUrl, { responseType: 'arraybuffer' });
+            const generatedBuffer = Buffer.from(generatedResponse.data);
 
             const image = await Jimp.read(generatedBuffer);
 
