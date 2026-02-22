@@ -164,9 +164,15 @@ export class WalletService {
         return await this.addPaymentMethod(userId, paymentMethodId);
     }
 
+    private readonly STRIPE_MAX_AMOUNT = 999999.99;
+
     async createPaymentIntent(userId: string, amount: number): Promise<StripePaymentResponse> {
         if (amount <= 0) {
             throw new AppError(400, 'Amount must be greater than zero');
+        }
+
+        if (amount > this.STRIPE_MAX_AMOUNT) {
+            throw new AppError(400, `Amount exceeds maximum limit of $${this.STRIPE_MAX_AMOUNT}`);
         }
 
         const user = await this.getOrEnsureCustomer(userId);
