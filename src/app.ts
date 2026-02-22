@@ -29,7 +29,7 @@ app.use(responseTime());
 
 // Security Headers
 const cspDirectives = helmet.contentSecurityPolicy.getDefaultDirectives();
-cspDirectives["img-src"] = ["'self'", 'data:', 'https:'];
+cspDirectives["img-src"] = ["'self'", 'data:', 'https:', 'http:'];
 
 app.use(helmet({
     contentSecurityPolicy: {
