@@ -57,4 +57,22 @@ export class WorkerProfile extends BaseEntity {
         default: WorkerAvailability.AVAILABLE
     })
     availability!: WorkerAvailability;
+
+    @Column({ type: 'simple-json', nullable: true })
+    certifications!: string[] | null;
+
+    @Column({ type: 'int', nullable: true })
+    years_of_experience!: number | null;
+
+    @Column({ type: 'simple-json', nullable: true })
+    preferred_tasks!: string[] | null;
+
+    @Column({ type: 'simple-json', nullable: true })
+    availability_calendar!: string | null;
+
+    @Column({ type: 'simple-json', nullable: true })
+    languages_spoken!: string[] | null;
+
+    @Column({ type: 'simple-json', nullable: true })
+    expected_rate_range!: { min: number; max: number } | null;
 }

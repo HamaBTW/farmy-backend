@@ -23,6 +23,10 @@ console.log('Registering /v1/auth routes');
 // API Version 1 Routes
 router.use('/v1/auth', authRoutesV1);
 
+import profileRoutesV1 from './v1/profile.routes.js';
+console.log('Registering /v1/profile routes');
+router.use('/v1/profile', profileRoutesV1);
+
 console.log('Registering /v1/kyc routes');
 router.use('/v1/kyc', kycRoutesV1);
 

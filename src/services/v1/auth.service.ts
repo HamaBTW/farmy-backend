@@ -1,8 +1,10 @@
+import { Not } from 'typeorm';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { AppDataSource } from '../../config/db.config.js';
 import { User, UserRole } from '../../models/User.js';
 import { RefreshToken } from '../../models/RefreshToken.js';
+import { LandRental, PaymentStatus } from '../../models/LandRental.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { emailService } from './EmailService.js';
 import { twoFactorService } from './twoFactor.service.js';
@@ -342,17 +344,81 @@ class AuthService {
         return { message: 'Password changed successfully' };
     }
 
-    async getPublicProfile(userId: string) {
+    private sanitizeProfile(user: User, requesterId?: string): Partial<User> {
+        const isOwner = requesterId === user.id;
+        const profile = user.profile;
+
+        if (!profile) return user;
+
+        // If not owner and profile is not discoverable, return minimal info
+        if (!isOwner && profile.privacy_settings?.discoverable === false) {
+            return {
+                id: user.id,
+                role: user.role,
+                is_verified: user.is_verified,
+                profile: {
+                    name: 'Anonymous User',
+                    picture: null
+                } as any
+            };
+        }
+
+        const sanitizedProfile = { ...profile };
+
+        if (!isOwner) {
+            // Hide contact info if not allowed
+            if (profile.privacy_settings?.show_contact_info === false) {
+                delete (user as any).email;
+                delete (user as any).phone;
+            }
+
+            // Field-level visibility
+            if (profile.privacy_settings?.field_visibility) {
+                const visibility = profile.privacy_settings.field_visibility;
+                for (const field in visibility) {
+                    if (visibility[field] === 'private') {
+                        delete (sanitizedProfile as any)[field];
+                    }
+                }
+            }
+
+            // Always hide sensitive structural fields from public
+            delete sanitizedProfile.farmer_details;
+            delete sanitizedProfile.investor_details;
+        }
+
+        return {
+            ...user,
+            profile: sanitizedProfile
+        };
+    }
+
+    async getPublicProfile(userId: string, requesterId?: string) {
         const user = await this.userRepository.findOne({
             where: { id: userId },
-            select: ['id', 'email', 'profile', 'is_verified', 'role', 'auth_provider', 'createdAt']
+            select: ['id', 'email', 'phone', 'profile', 'is_verified', 'role', 'auth_provider', 'createdAt']
         });
 
         if (!user) {
             throw new AppError(404, 'User not found');
         }
 
-        return user;
+        const sanitized = this.sanitizeProfile(user, requesterId);
+
+        // If investor, add rented lands count
+        if (user.role === UserRole.INVESTOR) {
+            const rentalRepository = AppDataSource.getRepository(LandRental);
+            // Count active/pending/overdue rentals (exclude cancelled)
+            const rentedLandsCount = await rentalRepository.count({
+                where: {
+                    investor_id: userId,
+                    payment_status: Not(PaymentStatus.CANCELLED) as any
+                }
+            });
+            (sanitized as any).rentedLandsCount = rentedLandsCount;
+        }
+
+        return sanitized;
     }
 }
 

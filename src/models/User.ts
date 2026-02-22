@@ -16,6 +16,52 @@ export enum UserRole {
     ADMIN = 'admin'
 }
 
+export interface UserProfile {
+    // Core Identity
+    username?: string;
+    name?: string;
+    picture?: string;
+    cover_image?: string;
+    dob?: string;
+    country?: string;
+    city?: string;
+    timezone?: string;
+    preferred_language?: string;
+
+    // Trust & Credibility
+    headline?: string;
+    bio?: string;
+    portfolio_links?: {
+        linkedin?: string;
+        website?: string;
+        farm_page?: string;
+    };
+
+    // Role-Aware
+    farmer_details?: {
+        business_name?: string;
+        farm_locations?: string[];
+        production_types?: string[];
+        workforce_size?: string;
+        preferred_hiring_types?: string[];
+    };
+    investor_details?: {
+        investment_focus?: string[];
+        budget_range?: string;
+        risk_profile?: string;
+        preferred_regions?: string[];
+        involvement_level?: string;
+    };
+
+    // Privacy Settings & Stats
+    privacy_settings?: {
+        discoverable?: boolean;
+        show_contact_info?: boolean;
+        field_visibility?: Record<string, 'public' | 'platform' | 'private'>;
+    };
+    completeness_score?: number;
+}
+
 @Entity('users')
 export class User extends BaseEntity {
     @Column({ type: 'varchar', unique: true })
@@ -35,7 +81,7 @@ export class User extends BaseEntity {
     role!: UserRole;
 
     @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
-    profile!: any;
+    profile!: UserProfile | null;
 
     @Column({
         type: 'point',

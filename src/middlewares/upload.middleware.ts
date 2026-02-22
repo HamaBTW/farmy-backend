@@ -15,8 +15,9 @@ const baseUploadDir = path.join(__dirname, '../uploads');
 const productUploadDir = path.join(baseUploadDir, 'products');
 const kycUploadDir = path.join(baseUploadDir, 'kyc');
 const proofUploadDir = path.join(baseUploadDir, 'proofs');
+const profileUploadDir = path.join(baseUploadDir, 'profile');
 
-[productUploadDir, kycUploadDir, proofUploadDir].forEach(dir => {
+[productUploadDir, kycUploadDir, proofUploadDir, profileUploadDir].forEach(dir => {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
@@ -28,6 +29,8 @@ const storage = multer.diskStorage({
         // Determine destination based on field name or route
         if (file.fieldname === 'images' || file.fieldname === 'image') {
             cb(null, productUploadDir);
+        } else if (file.fieldname === 'profile_picture') {
+            cb(null, profileUploadDir);
         } else {
             cb(null, kycUploadDir);
         }
@@ -39,7 +42,10 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    if (file.mimetype.startsWith('image/')) {
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic'];
+    const fileExtension = path.extname(file.originalname).toLowerCase();
+
+    if (file.mimetype.startsWith('image/') || allowedExtensions.includes(fileExtension)) {
         cb(null, true);
     } else {
         cb(new Error('Only image files are allowed!'));

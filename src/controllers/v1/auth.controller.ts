@@ -380,6 +380,7 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
                 id: user?.id,
                 email: user?.email,
                 role: user?.role,
+                phone: user?.phone,
                 is_verified: user?.is_verified,
                 is_banned: user?.is_banned,
                 auth_provider: user?.auth_provider,
@@ -473,16 +474,7 @@ export const getPublicUser = async (req: Request, res: Response, next: NextFunct
 
         res.status(200).json({
             success: true,
-            data: {
-                id: user.id,
-                email: user.email,
-                name: user.profile?.name,
-                picture: user.profile?.picture,
-                is_verified: user.is_verified,
-                role: user.role,
-                auth_provider: user.auth_provider,
-                createdAt: user.createdAt
-            }
+            data: user
         });
     } catch (error) {
         console.error('Error in getPublicUser:', error);
