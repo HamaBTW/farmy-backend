@@ -41,6 +41,12 @@ class AiService {
                 return { success: false, error: 'GEMINI_API_KEY is not configured.' };
             }
 
+            // Normalize MIME type if it's generic
+            let normalizedMimeType = imageType;
+            if (imageType === 'application/octet-stream' || !imageType) {
+                normalizedMimeType = 'image/jpeg'; // Default fallback for image verification
+            }
+
             const base64Image = imageBuffer.toString('base64');
             const prompt = `Analyze this image to verify the following condition: "${condition}"
 
@@ -59,7 +65,7 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
                         {
                             inlineData: {
                                 data: base64Image,
-                                mimeType: imageType,
+                                mimeType: normalizedMimeType,
                             },
                         },
                         {
