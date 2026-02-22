@@ -191,7 +191,12 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
             }
 
             if (!generatedBuffer) {
-                return { success: false, error: 'Gemini did not return an image part.' };
+                const textResponse = response.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
+                console.warn('[AiService] Gemini did not return an image part. Text response:', textResponse);
+                return {
+                    success: false,
+                    error: textResponse || 'Gemini did not return an image part.'
+                };
             }
 
             console.log('[AiService] Gemini image generated successfully. Buffer size:', generatedBuffer.length);
