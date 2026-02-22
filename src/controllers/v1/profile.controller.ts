@@ -3,6 +3,7 @@ import { AppDataSource } from '../../config/db.config.js';
 import { User, UserProfile } from '../../models/User.js';
 import { AuthRequest } from '../../middlewares/auth.middleware.js';
 import { AppError } from '../../middlewares/error.middleware.js';
+import { aiService } from '../../services/v1/ai.service.js';
 
 export const updateProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
@@ -159,6 +160,52 @@ export const checkUsername = async (req: AuthRequest, res: Response, next: NextF
             success: true,
             data: {
                 available: !existingUser
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const generateAvatar = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id;
+        const userRepository = AppDataSource.getRepository(User);
+        const user = await userRepository.findOne({ where: { id: userId } });
+
+        if (!user) throw new AppError(404, 'User not found');
+
+        const picture = user.profile?.picture;
+        if (!picture) {
+            throw new AppError(400, 'Please upload a profile picture first before generating an avatar.');
+        }
+
+        // Add correct full URL if it is a relative path
+        const pictureUrl = picture.startsWith('http')
+            ? picture
+            : `${req.protocol}://${req.get('host')}${picture}`;
+
+        const result = await aiService.generateAvatar(pictureUrl);
+
+        if (!result.success || !result.avatarUrl) {
+            throw new AppError(400, result.error || 'Failed to generate avatar');
+        }
+
+        // Update profile with new avatar URL
+        const currentProfile: any = user.profile || {};
+        const updatedProfile = {
+            ...currentProfile,
+            avatar: result.avatarUrl
+        };
+
+        user.profile = updatedProfile as UserProfile;
+        await userRepository.save(user);
+
+        res.status(200).json({
+            success: true,
+            message: 'Avatar generated successfully',
+            data: {
+                avatar: result.avatarUrl
             }
         });
     } catch (error) {

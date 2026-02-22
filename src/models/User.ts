@@ -21,6 +21,7 @@ export interface UserProfile {
     username?: string;
     name?: string;
     picture?: string;
+    avatar?: string;
     cover_image?: string;
     dob?: string;
     country?: string;

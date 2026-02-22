@@ -18,6 +18,7 @@
   "dependencies": {
     "@google/genai": "^1.42.0",
     "@hashgraph/sdk": "^2.80.0",
+    "@types/jimp": "^0.2.1",
     "@types/multer": "^2.0.0",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
@@ -31,6 +32,7 @@
     "firebase-admin": "^13.6.0",
     "google-auth-library": "^10.5.0",
     "helmet": "^8.1.0",
+    "jimp": "^1.6.0",
     "joi": "^18.0.2",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.0.2",

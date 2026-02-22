@@ -11,5 +11,6 @@ const router = Router();
 router.patch('/me', authenticate, validateRequest(updateProfileSchema), profileController.updateProfile);
 router.get('/check-username/:username', authenticate, profileController.checkUsername);
 router.post('/picture', authenticate, upload.single('profile_picture'), profileController.uploadProfilePicture);
+router.post('/avatar/generate', authenticate, profileController.generateAvatar);
 
 export default router;
