@@ -225,19 +225,11 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
             const filename = `avatar_${Date.now()}.png`;
             const outputPath = path.join(AVATAR_UPLOAD_DIR, filename);
             console.log('[AiService] Saving processed avatar to:', outputPath);
-            await new Promise<void>((resolve, reject) => {
-                (image as any).write(outputPath, (err: any) => {
-                    if (err) {
-                        console.error('[AiService] Error writing image:', err);
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                });
-            });
+
+            await (image as any).write(outputPath);
 
             const avatarUrl = `/uploads/avatar/${filename}`;
-            console.log('[AiService] Avatar saved to:', avatarUrl);
+            console.log('[AiService] Avatar saved successfully:', avatarUrl);
 
             return { success: true, avatarUrl };
         } catch (error) {
