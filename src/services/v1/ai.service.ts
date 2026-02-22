@@ -23,8 +23,6 @@ export interface AvatarGenerationResult {
 }
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const PIXAZO_API_KEY = process.env.PIXAZO_API_KEY || '';
-const PIXAZO_INPAINTING_URL = 'https://gateway.pixazo.ai/inpainting/v1/getImage';
 
 // Base upload directory (relative to this file's location to shift between src and dist automatically)
 const baseUploadDir = path.join(__dirname, '../../uploads');
@@ -37,11 +35,12 @@ if (!fs.existsSync(AVATAR_UPLOAD_DIR)) {
 
 class AiService {
     private ai: GoogleGenAI;
-    private model = 'gemma-3-27b-it';
+    private verifyModel = 'gemma-3-27b-it'; // Optimized for fast verification
+    private generateModel = 'gemini-2.5-flash-lite'; // Multimodal generation capabilities
 
     constructor() {
         this.ai = new GoogleGenAI({
-            apiKey: process.env.GEMINI_API_KEY || '',
+            apiKey: GEMINI_API_KEY,
         });
     }
 
@@ -88,7 +87,7 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
             ];
 
             const response = await this.ai.models.generateContent({
-                model: this.model,
+                model: this.verifyModel,
                 contents,
             });
 
@@ -122,17 +121,13 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
     }
 
     /**
-     * Verifies a profile picture URL is a human photo using Gemma, then generates
-     * an avatar using the Flux Dev image-to-image API. The avatar is generated with
-     * a solid green background, then the background is removed and saved as PNG.
+     * Generates an avatar using Gemini's native image generation.
+     * Renames the previous Pixazo implementation to generateAvatarLegacy.
      */
     async generateAvatar(pictureUrl: string): Promise<AvatarGenerationResult> {
         try {
             if (!GEMINI_API_KEY) {
                 return { success: false, error: 'GEMINI_API_KEY is not configured.' };
-            }
-            if (!PIXAZO_API_KEY) {
-                return { success: false, error: 'PIXAZO_API_KEY is not configured.' };
             }
 
             // --- Step 1: Fetch the profile picture and verify it's a human ---
@@ -159,49 +154,49 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
                 };
             }
 
-            console.log('[AiService] Image verified as human. Generating avatar...');
+            console.log('[AiService] Image verified as human. Generating avatar with Gemini...');
 
-            // --- Step 2: Generate avatar via Pixazo Stable Diffusion Inpainting ---
-            const avatarPrompt =
-                'Professional digital avatar portrait, vibrant illustration style, clean solid bright green (#00FF00) background only, detailed face, modern look, soft lighting, centered subject, no shadows on background, the background must be a completely uniform solid green color';
+            const avatarPrompt = "Professional digital avatar portrait of the person in the image, vibrant illustration style, clean solid bright green (#00FF00) background only, detailed face, modern look, soft lighting, centered subject, no shadows on background, the background must be a completely uniform solid green color";
 
-            const submitResponse = await axios.post(
-                PIXAZO_INPAINTING_URL,
+            const contents = [
                 {
-                    imageUrl: pictureUrl,
-                    prompt: avatarPrompt,
-                    negative_prompt: 'watermark, blurry, distorted, low quality, shadows on background',
-                    height: 1024,
-                    width: 1024,
-                    num_steps: 25,
-                    guidance: 7.5,
+                    role: 'user',
+                    parts: [
+                        { text: avatarPrompt },
+                        {
+                            inlineData: {
+                                mimeType: contentType,
+                                data: imageBuffer.toString('base64'),
+                            },
+                        },
+                    ],
                 },
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Cache-Control': 'no-cache',
-                        'Ocp-Apim-Subscription-Key': PIXAZO_API_KEY,
-                    },
-                }
-            );
+            ];
 
-            const generatedImageUrl = submitResponse.data.imageUrl;
-            if (!generatedImageUrl) {
-                return { success: false, error: 'Pixazo API did not return a generated imageUrl.' };
+            const response = await this.ai.models.generateContent({
+                model: this.generateModel,
+                contents,
+            });
+
+            let generatedBuffer: Buffer | null = null;
+
+            if (response.candidates && response.candidates.length > 0) {
+                const parts = response.candidates[0].content?.parts || [];
+                for (const part of parts) {
+                    if (part.inlineData && part.inlineData.data) {
+                        generatedBuffer = Buffer.from(part.inlineData.data, 'base64');
+                        break;
+                    }
+                }
             }
 
-            console.log('[AiService] Avatar generated at:', generatedImageUrl);
+            if (!generatedBuffer) {
+                return { success: false, error: 'Gemini did not return an image part.' };
+            }
 
-            // --- Step 3: Fetch the generated image for background removal ---
-            console.log('[AiService] Downloading generated image from R2...');
-            const generatedResponse = await axios.get(generatedImageUrl, {
-                responseType: 'arraybuffer',
-                timeout: 30000 // 30s timeout for download
-            });
-            const generatedBuffer = Buffer.from(generatedResponse.data);
-            console.log('[AiService] Downloaded image size:', generatedBuffer.length, 'bytes');
+            console.log('[AiService] Gemini image generated successfully. Buffer size:', generatedBuffer.length);
 
-            console.log('[AiService] Reading image with Jimp...');
+            // --- Step 4: Background removal with Jimp ---
             const image = await Jimp.read(generatedBuffer);
             console.log('[AiService] Image read successfully. Dimensions:', image.bitmap.width, 'x', image.bitmap.height);
 
@@ -233,10 +228,10 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
 
             return { success: true, avatarUrl };
         } catch (error) {
-            console.error('[AiService] Error generating avatar:', error);
+            console.error('[AiService] Error generating avatar with Gemini:', error);
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown avatar generation error'
+                error: error instanceof Error ? error.message : 'Unknown generation error'
             };
         }
     }
