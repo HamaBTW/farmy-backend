@@ -193,12 +193,21 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
             console.log('[AiService] Avatar generated at:', generatedImageUrl);
 
             // --- Step 3: Fetch the generated image for background removal ---
-            const generatedResponse = await axios.get(generatedImageUrl, { responseType: 'arraybuffer' });
+            console.log('[AiService] Downloading generated image from R2...');
+            const generatedResponse = await axios.get(generatedImageUrl, {
+                responseType: 'arraybuffer',
+                timeout: 30000 // 30s timeout for download
+            });
             const generatedBuffer = Buffer.from(generatedResponse.data);
+            console.log('[AiService] Downloaded image size:', generatedBuffer.length, 'bytes');
 
+            console.log('[AiService] Reading image with Jimp...');
             const image = await Jimp.read(generatedBuffer);
+            console.log('[AiService] Image read successfully. Dimensions:', image.bitmap.width, 'x', image.bitmap.height);
 
             // Chroma key: remove pixels that are "green enough"
+            console.log('[AiService] Starting chroma key background removal...');
+            const startScan = Date.now();
             image.scan(0, 0, image.bitmap.width, image.bitmap.height, function (this: any, x: number, y: number, idx: number) {
                 const r = this.bitmap.data[idx + 0];
                 const g = this.bitmap.data[idx + 1];
@@ -210,14 +219,20 @@ Do not include markdown blocks, just raw JSON. Be lenient but accurate; if the i
                     this.bitmap.data[idx + 3] = 0; // set alpha to 0 (transparent)
                 }
             });
+            console.log('[AiService] Background removal finished in:', Date.now() - startScan, 'ms');
 
             // --- Step 5: Save PNG to uploads/avatar directory ---
             const filename = `avatar_${Date.now()}.png`;
             const outputPath = path.join(AVATAR_UPLOAD_DIR, filename);
+            console.log('[AiService] Saving processed avatar to:', outputPath);
             await new Promise<void>((resolve, reject) => {
                 (image as any).write(outputPath, (err: any) => {
-                    if (err) reject(err);
-                    else resolve();
+                    if (err) {
+                        console.error('[AiService] Error writing image:', err);
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
                 });
             });
 
