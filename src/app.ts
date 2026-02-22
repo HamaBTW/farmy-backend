@@ -38,53 +38,19 @@ app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
 
-// Serve static files
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Compression
-app.use(compression());
-
-// CORS configuration
-// --- OLD: Restricted origins (uncomment to restore) ---
-// const getAllowedOrigins = (): string[] => {
-//     const productionOrigins = ['https://www.farmy.tn'];
-//     const developmentOrigins = ['http://localhost:3000', 'http://localhost:3005', 'http://localhost:3001', 'http://localhost:5173'];
-//
-//     if (process.env.NODE_ENV === 'production') {
-//         return productionOrigins;
-//     } else {
-//         return [...developmentOrigins, ...productionOrigins];
-//     }
-// };
-//
-// const allowedOrigins = getAllowedOrigins();
-//
-// app.use(cors({
-//     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-//         if (!origin && process.env.NODE_ENV !== 'production') {
-//             return callback(null, true);
-//         }
-//
-//         if (!origin || allowedOrigins.includes(origin)) {
-//             callback(null, true);
-//         } else {
-//             console.warn(`🚨 CORS: Blocked request from unauthorized origin: ${origin}`);
-//             callback(new Error('Not allowed by CORS'));
-//         }
-//     },
-//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD'],
-//     allowedHeaders: ['Content-Type', 'Authorization'],
-//     credentials: true,
-//     maxAge: 86400 // 24 hours
-// }));
-
-// --- NEW: Allow all origins ---
+// CORS — must come before static files so /uploads responses include CORS headers
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     maxAge: 86400 // 24 hours
 }));
+
+// Compression
+app.use(compression());
+
+// Serve static files (after CORS so headers are included)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Body parsing with suggested limits
 app.use(express.json({ limit: '5gb' }));
