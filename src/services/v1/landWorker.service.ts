@@ -4,7 +4,7 @@ import { Land } from '../../models/Land.js';
 import { LandRental, PaymentStatus } from '../../models/LandRental.js';
 import { WorkerProfile, VerificationStatus } from '../../models/WorkerProfile.js';
 import { AppError } from '../../middlewares/error.middleware.js';
-import { IsNull, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { IsNull, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
 
 interface AssignWorkerData {
     worker_id: string;
@@ -64,16 +64,28 @@ class LandWorkerService {
             throw new AppError(400, 'Worker must be verified before being assigned');
         }
 
-        // 4. Check if worker is already active on this land
+        // 4. Check if worker is already on this land (Active, Suspended, etc.)
         const existingAssignment = await this.landWorkerRepo.findOne({
             where: {
                 land_id: landId,
-                worker_id: data.worker_id,
-                status: LandWorkerStatus.ACTIVE
+                worker_id: data.worker_id
             }
         });
         if (existingAssignment) {
-            throw new AppError(409, 'Worker is already assigned to this land');
+            throw new AppError(409, `Worker is already assigned to this land with status: ${existingAssignment.status}`);
+        }
+
+        // 4.5 Check for pending invitations to prevent duplicate recruitment streams
+        const invitationRepo = AppDataSource.getRepository('land_worker_invitations');
+        const existingInvitation = await invitationRepo.findOne({
+            where: {
+                land_id: landId,
+                worker_id: data.worker_id,
+                status: In(['invitation_pending', 'invitation_approved'])
+            } as any
+        });
+        if (existingInvitation) {
+            throw new AppError(409, 'This worker already has a pending or approved invitation for this land');
         }
 
         // 5. Create assignment
