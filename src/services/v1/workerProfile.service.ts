@@ -95,12 +95,24 @@ class WorkerProfileService {
 
         if (filters.excludeLandId) {
             qb.andWhere(qb => {
-                const subQuery = qb.subQuery()
+                // Exclude if already in land_workers
+                const workerSubQuery = qb.subQuery()
                     .select('lw.worker_id')
                     .from('land_workers', 'lw')
                     .where('lw.land_id = :excludeLandId', { excludeLandId: filters.excludeLandId })
                     .getQuery();
-                return 'wp.user_id NOT IN ' + subQuery;
+
+                // Exclude if has pending/approved invitation
+                const invitationSubQuery = qb.subQuery()
+                    .select('li.worker_id')
+                    .from('land_worker_invitations', 'li')
+                    .where('li.land_id = :excludeLandId', { excludeLandId: filters.excludeLandId })
+                    .andWhere('li.status IN (:...invStatuses)', {
+                        invStatuses: ['invitation_pending', 'invitation_approved']
+                    })
+                    .getQuery();
+
+                return `wp.user_id NOT IN ${workerSubQuery} AND wp.user_id NOT IN ${invitationSubQuery}`;
             });
         }
 
