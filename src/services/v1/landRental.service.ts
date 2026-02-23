@@ -260,11 +260,22 @@ class LandRentalService {
     }
 
     const currentDate = new Date();
+    const bufferBase = new Date(currentDate.getTime() + 60 * 60 * 1000); // 1 hour buffer for starting soon
 
     return this.rentalRepo.find({
       where: [
-        { ...where, rental_end_date: IsNull() },
-        { ...where, rental_end_date: MoreThanOrEqual(currentDate) }
+        {
+          ...where,
+          payment_status: PaymentStatus.PAID,
+          rental_end_date: IsNull(),
+          rental_start_date: LessThanOrEqual(bufferBase)
+        },
+        {
+          ...where,
+          payment_status: PaymentStatus.PAID,
+          rental_end_date: MoreThanOrEqual(currentDate),
+          rental_start_date: LessThanOrEqual(bufferBase)
+        }
       ],
       relations: ['land', 'investor'],
       order: { rental_start_date: 'DESC' }

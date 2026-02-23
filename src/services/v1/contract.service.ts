@@ -5,7 +5,7 @@ import { ContractNegotiation } from '../../models/ContractNegotiation.js';
 import { WorkerBalance } from '../../models/WorkerBalance.js';
 import { Transaction, TransactionStatus, TransactionType } from '../../models/Transaction.js';
 import { LandWorker, LandWorkerStatus } from '../../models/LandWorker.js';
-import { LandRental } from '../../models/LandRental.js';
+import { LandRental, PaymentStatus } from '../../models/LandRental.js';
 import { Land } from '../../models/Land.js';
 import { User, UserRole } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
@@ -1057,10 +1057,22 @@ class ContractService {
 
     private async getActiveRental(landId: string): Promise<LandRental | null> {
         const currentDate = new Date();
+        const bufferBase = new Date(currentDate.getTime() + 60 * 60 * 1000); // 1 hour buffer for starting soon
+
         const rental = await this.rentalRepo.findOne({
             where: [
-                { land_id: landId, rental_end_date: IsNull(), rental_start_date: LessThanOrEqual(currentDate) },
-                { land_id: landId, rental_end_date: MoreThanOrEqual(currentDate), rental_start_date: LessThanOrEqual(currentDate) }
+                {
+                    land_id: landId,
+                    payment_status: PaymentStatus.PAID,
+                    rental_end_date: IsNull(),
+                    rental_start_date: LessThanOrEqual(bufferBase)
+                },
+                {
+                    land_id: landId,
+                    payment_status: PaymentStatus.PAID,
+                    rental_end_date: MoreThanOrEqual(currentDate),
+                    rental_start_date: LessThanOrEqual(bufferBase)
+                }
             ],
             order: { rental_start_date: 'DESC' }
         });
