@@ -6,6 +6,7 @@ import { AppError } from '../../middlewares/error.middleware.js';
 import { LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
 import { stripeService } from './StripeService.js';
 import { hederaService } from './HederaService.js';
+import { entitlementService } from './entitlement.service.js';
 
 interface CreateLandRentalData {
   land_id: string;
@@ -38,6 +39,18 @@ class LandRentalService {
     });
     if (!investor) {
       throw new AppError(404, 'Investor not found');
+    }
+
+    // Entitlement Check for Investor
+    const activeRentals = await this.rentalRepo.count({
+      where: {
+        investor_id: data.investor_id,
+        payment_status: PaymentStatus.PAID // Assuming only paid rentals count towards limit
+      }
+    });
+    const canRent = await entitlementService.canRentLand(data.investor_id, activeRentals);
+    if (!canRent) {
+      throw new AppError(403, 'Rental limit reached for your current subscription plan. Upgrade to Investor Plus for unlimited land rentals.');
     }
 
     let paymentStatus = data.payment_status || PaymentStatus.PENDING;
