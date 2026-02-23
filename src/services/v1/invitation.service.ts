@@ -6,6 +6,7 @@ import { User, UserRole } from '../../models/User.js';
 import { WorkerProfile, VerificationStatus } from '../../models/WorkerProfile.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { getIO } from '../../socket/socket.js';
+import { In } from 'typeorm';
 
 class InvitationService {
     private invitationRepo = AppDataSource.getRepository(LandWorkerInvitation);
