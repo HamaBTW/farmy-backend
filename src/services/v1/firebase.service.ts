@@ -63,13 +63,16 @@ class FirebaseService {
                 tokens: allTokens,
             };
 
+            logger.info(`Sending notification to ${allTokens.length} tokens for users: ${ids.join(', ')}`);
             const response = await admin.messaging().sendEachForMulticast(message);
+            logger.info(`Notification sent. Success: ${response.successCount}, Failure: ${response.failureCount}`);
 
             // Clean up invalid tokens
             if (response.failureCount > 0) {
                 const tokensToRemove: string[] = [];
                 response.responses.forEach((resp, idx) => {
                     if (!resp.success) {
+                        logger.error(`Token ${idx} failed: ${resp.error?.code} - ${resp.error?.message}`);
                         const errorCode = resp.error?.code;
                         if (errorCode === 'messaging/invalid-registration-token' ||
                             errorCode === 'messaging/registration-token-not-registered') {
