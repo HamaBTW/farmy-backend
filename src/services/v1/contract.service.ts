@@ -12,6 +12,7 @@ import { AppError } from '../../middlewares/error.middleware.js';
 import { stripeService } from './StripeService.js';
 import { getIO } from '../../socket/socket.js';
 import { In, Not, IsNull, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { firebaseService } from './firebase.service.js';
 
 // Valid state transitions
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -156,6 +157,14 @@ class ContractService {
                 contract: full,
                 message: `You have received a hiring proposal for ${invitation.land?.name}`
             });
+
+            // Send Push Notification to Worker (non-blocking)
+            const senderName = investor.profile?.name || investor.email.split('@')[0];
+            firebaseService.sendToUsers(
+                invitation.worker_id,
+                'New Hiring Proposal',
+                `${senderName} sent you a hiring proposal for ${invitation.land?.name}.`
+            ).catch(err => console.error('[ContractService] Failed to send notification:', err));
         } catch (e) { /* socket not ready */ }
 
         return full;
@@ -230,6 +239,15 @@ class ContractService {
                             : `Worker declined the hiring proposal.`
                     });
                 });
+
+                // Send Push Notification to Investor (non-blocking)
+                const actionLabel = response === 'approve' ? 'approved' : 'declined';
+                const workerName = (contract.worker as any)?.profile?.name || (contract.worker as any)?.email.split('@')[0] || 'The worker';
+                firebaseService.sendToUsers(
+                    contract.investor_id,
+                    'Hiring Update',
+                    `${workerName} has ${actionLabel} your hiring proposal for ${contract.land?.name}.`
+                ).catch(err => console.error('[ContractService] Failed to send notification:', err));
             } catch (e) { /* socket not ready */ }
 
             return saved;
@@ -319,6 +337,15 @@ class ContractService {
                             : `Investor declined the negotiation.`
                     });
                 });
+
+                // Send Push Notification to Worker (non-blocking)
+                const actionLabel = response === 'accept' ? 'accepted' : 'declined';
+                const investorName = (contract.investor as any)?.profile?.name || (contract.investor as any)?.email.split('@')[0] || 'Investor';
+                firebaseService.sendToUsers(
+                    contract.worker_id,
+                    'Hiring Update',
+                    `${investorName} has ${actionLabel} the contract terms for ${contract.land?.name}.`
+                ).catch(err => console.error('[ContractService] Failed to send notification:', err));
             } catch (e) { /* socket not ready */ }
 
             return saved;
@@ -399,6 +426,17 @@ class ContractService {
                         message: `New negotiation message on contract for ${contract.land?.name}`
                     });
                 });
+
+                // Send Push Notification to the OTHER party (non-blocking)
+                const otherPartyId = senderId === contract.investor_id ? contract.worker_id : contract.investor_id;
+                const sender = senderId === contract.investor_id ? contract.investor : contract.worker;
+                const senderName = (sender as any)?.profile?.name || (sender as any)?.email.split('@')[0] || 'Someone';
+
+                firebaseService.sendToUsers(
+                    otherPartyId,
+                    'New Counter-Offer',
+                    `${senderName} sent a new negotiation message on contract for ${contract.land?.name}.`
+                ).catch(err => console.error('[ContractService] Failed to send notification:', err));
             } catch (e) { /* socket not ready */ }
 
             return { contract: saved, negotiation };
@@ -833,14 +871,31 @@ class ContractService {
         // 5. Emit socket events
         try {
             const io = getIO();
-            io.to(contract.worker_id).emit('contract_activated', {
+            const payload = {
                 contract,
                 message: `Your contract for ${contract.land?.name} is now active!`
-            });
+            };
+            io.to(contract.worker_id).emit('contract_activated', payload);
             io.to(contract.investor_id).emit('contract_activated', {
                 contract,
                 message: `Contract activated. Worker is now active on ${contract.land?.name}`
             });
+
+            // Send Push Notifications (non-blocking)
+            const investorName = contract.investor?.profile?.name || contract.investor?.email.split('@')[0] || 'An investor';
+            const workerName = contract.worker?.profile?.name || contract.worker?.email.split('@')[0] || 'A worker';
+
+            firebaseService.sendToUsers(
+                contract.worker_id,
+                'Contract Active!',
+                `You are now officially hired by ${investorName} for ${contract.land?.name}.`
+            ).catch(err => console.error('[ContractService] Failed to send notification:', err));
+
+            firebaseService.sendToUsers(
+                contract.investor_id,
+                'Payment Successful',
+                `Contract with ${workerName} for ${contract.land?.name} is now active.`
+            ).catch(err => console.error('[ContractService] Failed to send notification:', err));
         } catch (e) { /* socket not ready */ }
 
         console.log(`[Activation] ✅ Contract ${contractId} activated via PI ${paymentIntentId}`);

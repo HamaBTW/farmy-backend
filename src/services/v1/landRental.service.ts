@@ -6,6 +6,7 @@ import { AppError } from '../../middlewares/error.middleware.js';
 import { LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
 import { stripeService } from './StripeService.js';
 import { hederaService } from './HederaService.js';
+import { firebaseService } from './firebase.service.js';
 
 interface CreateLandRentalData {
   land_id: string;
@@ -135,6 +136,14 @@ class LandRentalService {
     } catch (hederaError) {
       console.error('[HederaService] Non-fatal error recording land rental on Hedera:', hederaError);
     }
+
+    // Notify Land Owner (non-blocking)
+    const senderName = investor.profile?.name || investor.email.split('@')[0];
+    firebaseService.sendToUsers(
+      land.owner_id,
+      'New Rental!',
+      `${senderName} has rented your land: ${land.name}`
+    ).catch(err => console.error('[LandRentalService] Failed to send notification:', err));
 
     return savedRental;
   }

@@ -5,6 +5,7 @@ import { LandRental } from '../../models/LandRental.js';
 import { User } from '../../models/User.js';
 import { AssetCategory, ItemRequestStatus, ItemRequestType } from '../../models/AssetCategory.js';
 import { AppError } from '../../middlewares/error.middleware.js';
+import { firebaseService } from './firebase.service.js';
 import { assetVariantService } from './assetVariant.service.js';
 import { landService } from './land.service.js';
 import { stripeService } from './StripeService.js';
@@ -65,10 +66,10 @@ class ItemRequestService {
 
         const price = (variant as any).final_price;
 
-        if (price > 0) {
-            const user = await this.userRepo.findOne({ where: { id: data.user_id } });
-            if (!user) throw new AppError(404, 'User not found');
+        const user = await this.userRepo.findOne({ where: { id: data.user_id } });
+        if (!user) throw new AppError(404, 'User not found');
 
+        if (price > 0) {
             if (data.payment_method_id) {
                 // If user doesn't have stripe customer id, create one 
                 if (!user.stripe_customer_id) {
@@ -131,6 +132,18 @@ class ItemRequestService {
         } catch (hederaError) {
             console.error('[HederaService] Non-fatal error recording item purchase on Hedera:', hederaError);
         }
+
+        // Notify Land Owner (non-blocking)
+        const land = await landService.findById(data.land_id);
+        const variantDetails = (variant as any);
+        const itemName = variantDetails.type?.name || variantDetails.variant_code || 'Item';
+
+        const requesterName = user.profile?.name || user.email.split('@')[0];
+        firebaseService.sendToUsers(
+            land.owner_id,
+            'New Purchase Request!',
+            `${requesterName} wants to buy ${itemName} for ${land.name}.`
+        ).catch(err => console.error('[ItemRequestService] Failed to send notification:', err));
 
         return savedRequest;
     }
@@ -273,6 +286,19 @@ class ItemRequestService {
 
         const savedRequest = await this.itemRequestRepo.save(request);
 
+        // Notify Investor (Mark Available)
+        try {
+            const variant = await assetVariantService.findById(request.asset_category, request.variant_id);
+            const itemName = (variant as any).type?.name || 'Item';
+            const location = request.type === ItemRequestType.PLACEMENT ? 'Land' : 'Inventory';
+
+            firebaseService.sendToUsers(
+                request.user_id,
+                'Item Available!',
+                `Your ${itemName} is now available in your ${location}.`
+            ).catch(err => console.error('[ItemRequestService] Failed to send notification:', err));
+        } catch (e) { }
+
         // Activation logic: If this is a placement request, activate the item
         if (request.type === ItemRequestType.PLACEMENT && request.parent_id) {
             // Find the PlacedItem linked to the PARENT (BUY) request
@@ -319,6 +345,15 @@ class ItemRequestService {
 
         // Notify Investor
         try {
+            const variant = await assetVariantService.findById(request.asset_category, request.variant_id);
+            const itemName = (variant as any).type?.name || 'Item';
+
+            firebaseService.sendToUsers(
+                request.user_id,
+                'Request Declined',
+                `Your request for ${itemName} was not approved.`
+            ).catch(err => console.error('[ItemRequestService] Failed to send notification:', err));
+
             getIO().to(request.user_id).emit('notification', {
                 type: 'error',
                 title: 'Request Rejected',
@@ -503,7 +538,23 @@ class ItemRequestService {
             parent_id: request.id // Link to the original BUY request
         });
 
-        return this.itemRequestRepo.save(placementRequest);
+        const savedPlacementRequest = await this.itemRequestRepo.save(placementRequest);
+
+        // Notify Land Owner (non-blocking)
+        try {
+            const variant = await assetVariantService.findById(request.asset_category, request.variant_id);
+            const itemName = (variant as any).type?.name || 'Item';
+            const land = await landService.findById(request.land_id);
+            const requesterName = request.user?.profile?.name || request.user?.email.split('@')[0] || 'Someone';
+
+            firebaseService.sendToUsers(
+                land.owner_id,
+                'Placement Request!',
+                `${requesterName} wants to place ${itemName} on ${land.name}.`
+            ).catch(err => console.error('[ItemRequestService] Failed to send notification:', err));
+        } catch (e) { }
+
+        return savedPlacementRequest;
     }
 }
 

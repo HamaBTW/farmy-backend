@@ -7,6 +7,7 @@ import { WorkerProfile, VerificationStatus } from '../../models/WorkerProfile.js
 import { AppError } from '../../middlewares/error.middleware.js';
 import { getIO } from '../../socket/socket.js';
 import { In } from 'typeorm';
+import { firebaseService } from './firebase.service.js';
 
 class InvitationService {
     private invitationRepo = AppDataSource.getRepository(LandWorkerInvitation);
@@ -86,6 +87,14 @@ class InvitationService {
                 invitation: full,
                 message: `You have been invited to work on ${land.name}`
             });
+
+            // Send Push Notification to Worker (non-blocking)
+            const requesterName = farmer.profile?.name || farmer.email.split('@')[0];
+            firebaseService.sendToUsers(
+                data.worker_id,
+                'Job Invitation',
+                `${requesterName} invited you to work on ${land.name}.`
+            ).catch(err => console.error('[InvitationService] Failed to send notification:', err));
         } catch (e) { /* socket not ready */ }
 
         return full;
@@ -132,6 +141,15 @@ class InvitationService {
                     ? `Worker accepted your invitation for ${invitation.land?.name}`
                     : `Worker declined your invitation for ${invitation.land?.name}`
             });
+
+            // Send Push Notification to Farmer (non-blocking)
+            const workerName = (invitation.worker as any)?.profile?.name || (invitation.worker as any)?.email.split('@')[0] || 'A worker';
+            const actionLabel = response === 'approve' ? 'accepted' : 'declined';
+            firebaseService.sendToUsers(
+                invitation.farmer_id,
+                'Invitation Update',
+                `${workerName} has ${actionLabel} your invitation for ${invitation.land?.name}.`
+            ).catch(err => console.error('[InvitationService] Failed to send notification:', err));
         } catch (e) { /* socket not ready */ }
 
         return saved;

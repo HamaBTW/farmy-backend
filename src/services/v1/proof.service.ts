@@ -10,6 +10,7 @@ import { aiService } from './ai.service.js';
 import { assetVariantService } from './assetVariant.service.js';
 import { itemRequestService } from './itemRequest.service.js';
 import { getIO } from '../../socket/socket.js';
+import { firebaseService } from './firebase.service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,6 +96,17 @@ class ProofService {
             };
             io.to(farmerId).emit('proof_requested', payload);
             io.to(investorId).emit('proof_requested', payload);
+
+            // Send Push Notification to Farmer (non-blocking)
+            const land = landId ? await AppDataSource.getRepository('Land').findOne({ where: { id: landId } }) as any : null;
+            const landName = land?.name || 'your land';
+            const requesterName = investor.profile?.name || investor.email.split('@')[0];
+
+            firebaseService.sendToUsers(
+                farmerId,
+                'Proof Requested!',
+                `${requesterName} requested proof of work for ${landName}.`
+            ).catch(err => console.error('[ProofService] Failed to send notification:', err));
         } catch (e) { }
 
         return enriched;
@@ -213,6 +225,15 @@ class ProofService {
             };
             io.to(proof.investor_id).emit('proof_status_updated', payload);
             io.to(proof.farmer_id).emit('proof_status_updated', payload);
+
+            // Send Push Notification to Investor (non-blocking)
+            const statusLabel = enriched.status === ProofRequestStatus.VERIFIED ? 'Verified' : 'Rejected';
+            const landName = (enriched.land as any)?.name || 'Land';
+            firebaseService.sendToUsers(
+                proof.investor_id,
+                `Proof ${statusLabel}`,
+                `AI has ${statusLabel.toLowerCase()} the proof for ${landName}.`
+            ).catch(err => console.error('[ProofService] Failed to send notification:', err));
         } catch (e) { }
 
         return enriched;

@@ -3,6 +3,7 @@ import { Product, ProductStatus } from '../../models/Product.js';
 import { User } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { FindOptionsWhere, Like } from 'typeorm';
+import { firebaseService } from './firebase.service.js';
 
 interface CreateProductData {
     title: string;
@@ -203,6 +204,14 @@ class ProductService {
             }).catch((err) => {
                 console.error('[HederaService] Non-fatal error recording product purchase:', err);
             });
+
+            // Notify Seller (non-blocking)
+            const buyerName = buyer.profile?.name || buyer.email.split('@')[0];
+            firebaseService.sendToUsers(
+                product.owner_id,
+                'Item Sold!',
+                `${buyerName} bought ${quantity} of ${product.title}.`
+            ).catch(err => console.error('[ProductService] Failed to send notification:', err));
 
             return {
                 success: true,
