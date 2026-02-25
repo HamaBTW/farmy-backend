@@ -11,6 +11,8 @@ import walletRoutesV1 from './v1/wallet.routes.js';
 import productRoutesV1 from './v1/product.routes.js';
 import hederaRoutesV1 from './v1/hedera.routes.js';
 import proofRoutesV1 from './v1/proof.routes.js';
+import deviceRoutesV1 from './v1/device.routes.js';
+
 
 const router = Router();
 
@@ -86,6 +88,10 @@ router.use('/v1/workforce', contractRoutesV1);
 console.log('Registering /v1/proofs routes');
 router.use('/v1/proofs', proofRoutesV1);
 
+console.log('Registering /v1/devices routes');
+router.use('/v1/devices', deviceRoutesV1);
+
 export default router;
+
 
 

@@ -41,3 +41,5 @@ export { ContractNegotiation } from './ContractNegotiation.js';
 export { WorkerBalance } from './WorkerBalance.js';
 export { Transaction, TransactionStatus, TransactionType } from './Transaction.js';
 export { ProofRequest, ProofRequestStatus } from './ProofRequest.js';
+export { Device } from './Device.js';
+
