@@ -58,21 +58,22 @@ export class DeviceController {
 
     async testSend(req: Request, res: Response) {
         try {
-            const { userId, title, body, data } = req.body;
+            const { userId, userIds, title, body, data } = req.body;
+            const targetIds = userIds || userId;
 
-            if (!userId || !title || !body) {
+            if (!targetIds || !title || !body) {
                 return res.status(400).json({
                     success: false,
-                    message: 'userId, title, and body are required'
+                    message: 'userId/userIds, title, and body are required'
                 });
             }
 
             const { firebaseService } = await import('../../services/v1/firebase.service.js');
-            const result = await firebaseService.sendToUser(userId, title, body, data);
+            const result = await firebaseService.sendToUsers(targetIds, title, body, data);
 
             res.status(200).json({
                 success: true,
-                message: 'Test notification sent',
+                message: 'Test notification(s) sent',
                 data: result
             });
         } catch (error: any) {

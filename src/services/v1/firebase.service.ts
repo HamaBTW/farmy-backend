@@ -34,13 +34,23 @@ class FirebaseService {
         }
     }
 
-    async sendToUser(userId: string, title: string, body: string, data?: any): Promise<admin.messaging.BatchResponse | void> {
+    async sendToUsers(userIds: string | string[], title: string, body: string, data?: any): Promise<admin.messaging.BatchResponse | void> {
         try {
-            const devices = await deviceService.getDevicesByUserId(userId);
-            const tokens = devices.map(d => d.token);
+            if (admin.apps.length === 0) {
+                logger.error('❌ Firebase Admin SDK not initialized. Please check your service account file.');
+                return;
+            }
 
-            if (tokens.length === 0) {
-                logger.info(`No devices found for user ${userId}`);
+            const ids = Array.isArray(userIds) ? userIds : [userIds];
+            const allTokens: string[] = [];
+
+            for (const userId of ids) {
+                const devices = await deviceService.getDevicesByUserId(userId);
+                allTokens.push(...devices.map(d => d.token));
+            }
+
+            if (allTokens.length === 0) {
+                logger.info(`No devices found for users: ${ids.join(', ')}`);
                 return;
             }
 
@@ -50,7 +60,7 @@ class FirebaseService {
                     body,
                 },
                 data: data || {},
-                tokens: tokens,
+                tokens: allTokens,
             };
 
             const response = await admin.messaging().sendEachForMulticast(message);
@@ -63,7 +73,7 @@ class FirebaseService {
                         const errorCode = resp.error?.code;
                         if (errorCode === 'messaging/invalid-registration-token' ||
                             errorCode === 'messaging/registration-token-not-registered') {
-                            tokensToRemove.push(tokens[idx]);
+                            tokensToRemove.push(allTokens[idx]);
                         }
                     }
                 });
@@ -72,7 +82,7 @@ class FirebaseService {
                     for (const token of tokensToRemove) {
                         await deviceService.removeToken(token);
                     }
-                    logger.info(`Removed ${tokensToRemove.length} invalid tokens for user ${userId}`);
+                    logger.info(`Removed ${tokensToRemove.length} invalid tokens`);
                 }
             }
 
