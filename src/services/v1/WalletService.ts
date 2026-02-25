@@ -4,6 +4,7 @@ import { PaymentMethod, PaymentMethodType } from '../../models/PaymentMethod.js'
 import { AppError } from '../../middlewares/error.middleware.js';
 import { stripeService } from './StripeService.js';
 import { firebaseService } from './firebase.service.js';
+import { NotificationType } from '../../models/Notification.js';
 
 export interface StripeSetupResponse {
     setupIntent: string | null;
@@ -237,7 +238,9 @@ export class WalletService {
         firebaseService.sendToUsers(
             userId,
             'Credits Added!',
-            `$${amount} has been added to your wallet.`
+            `$${amount} has been added to your wallet.`,
+            null,
+            NotificationType.WALLET
         ).catch(err => console.error('[WalletService] Failed to send notification:', err));
 
         return savedUser;

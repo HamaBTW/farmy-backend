@@ -6,6 +6,7 @@ import { User } from '../../models/User.js';
 import { AssetCategory, ItemRequestStatus, ItemRequestType } from '../../models/AssetCategory.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { firebaseService } from './firebase.service.js';
+import { NotificationType } from '../../models/Notification.js';
 import { assetVariantService } from './assetVariant.service.js';
 import { landService } from './land.service.js';
 import { stripeService } from './StripeService.js';
@@ -142,7 +143,9 @@ class ItemRequestService {
         firebaseService.sendToUsers(
             land.owner_id,
             'New Purchase Request!',
-            `${requesterName} wants to buy ${itemName} for ${land.name}.`
+            `${requesterName} wants to buy ${itemName} for ${land.name}.`,
+            { land_id: land.id, request_id: savedRequest.id, asset_category: data.asset_category },
+            NotificationType.ITEM_REQUEST
         ).catch(err => console.error('[ItemRequestService] Failed to send notification:', err));
 
         return savedRequest;
@@ -295,7 +298,9 @@ class ItemRequestService {
             firebaseService.sendToUsers(
                 request.user_id,
                 'Item Available!',
-                `Your ${itemName} is now available in your ${location}.`
+                `Your ${itemName} is now available in your ${location}.`,
+                { request_id: request.id, land_id: request.land_id, asset_category: request.asset_category },
+                NotificationType.ITEM_REQUEST
             ).catch(err => console.error('[ItemRequestService] Failed to send notification:', err));
         } catch (e) { }
 
@@ -351,7 +356,9 @@ class ItemRequestService {
             firebaseService.sendToUsers(
                 request.user_id,
                 'Request Declined',
-                `Your request for ${itemName} was not approved.`
+                `Your request for ${itemName} was not approved.`,
+                { request_id: request.id, reason },
+                NotificationType.ITEM_REQUEST
             ).catch(err => console.error('[ItemRequestService] Failed to send notification:', err));
 
             getIO().to(request.user_id).emit('notification', {
@@ -550,7 +557,9 @@ class ItemRequestService {
             firebaseService.sendToUsers(
                 land.owner_id,
                 'Placement Request!',
-                `${requesterName} wants to place ${itemName} on ${land.name}.`
+                `${requesterName} wants to place ${itemName} on ${land.name}.`,
+                { land_id: land.id, request_id: savedPlacementRequest.id },
+                NotificationType.ITEM_REQUEST
             ).catch(err => console.error('[ItemRequestService] Failed to send notification:', err));
         } catch (e) { }
 

@@ -4,6 +4,7 @@ import { User } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { FindOptionsWhere, Like } from 'typeorm';
 import { firebaseService } from './firebase.service.js';
+import { NotificationType } from '../../models/Notification.js';
 
 interface CreateProductData {
     title: string;
@@ -210,7 +211,9 @@ class ProductService {
             firebaseService.sendToUsers(
                 product.owner_id,
                 'Item Sold!',
-                `${buyerName} bought ${quantity} of ${product.title}.`
+                `${buyerName} bought ${quantity} of ${product.title}.`,
+                { product_id: product.id, quantity, total_price: totalPrice },
+                NotificationType.PURCHASE
             ).catch(err => console.error('[ProductService] Failed to send notification:', err));
 
             return {

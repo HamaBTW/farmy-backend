@@ -12,6 +12,7 @@ import productRoutesV1 from './v1/product.routes.js';
 import hederaRoutesV1 from './v1/hedera.routes.js';
 import proofRoutesV1 from './v1/proof.routes.js';
 import deviceRoutesV1 from './v1/device.routes.js';
+import notificationRoutesV1 from './v1/notification.routes.js';
 
 
 const router = Router();
@@ -90,6 +91,9 @@ router.use('/v1/proofs', proofRoutesV1);
 
 console.log('Registering /v1/devices routes');
 router.use('/v1/devices', deviceRoutesV1);
+
+console.log('Registering /v1/notifications routes');
+router.use('/v1/notifications', notificationRoutesV1);
 
 export default router;
 

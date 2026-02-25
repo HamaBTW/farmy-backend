@@ -3,6 +3,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { DeviceService } from './device.service.js';
 import logger from '../../utils/logger.js';
+import { AppDataSource } from '../../config/db.config.js';
+import { Notification, NotificationType } from '../../models/Notification.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,7 +36,13 @@ class FirebaseService {
         }
     }
 
-    async sendToUsers(userIds: string | string[], title: string, body: string, data?: any): Promise<admin.messaging.BatchResponse | void> {
+    async sendToUsers(
+        userIds: string | string[],
+        title: string,
+        body: string,
+        data?: any,
+        type: NotificationType = NotificationType.SYSTEM
+    ): Promise<admin.messaging.BatchResponse | void> {
         try {
             if (admin.apps.length === 0) {
                 logger.error('❌ Firebase Admin SDK not initialized. Please check your service account file.');
@@ -88,6 +96,20 @@ class FirebaseService {
                     logger.info(`Removed ${tokensToRemove.length} invalid tokens`);
                 }
             }
+
+            // Persistent Storage (non-blocking save)
+            const notificationRepo = AppDataSource.getRepository(Notification);
+            const persistPromises = ids.map(uid => {
+                const n = notificationRepo.create({
+                    user_id: uid,
+                    title,
+                    message: body,
+                    type,
+                    data: data || null
+                });
+                return notificationRepo.save(n);
+            });
+            Promise.all(persistPromises).catch(err => logger.error('Failed to persist notifications:', err));
 
             return response;
         } catch (error) {

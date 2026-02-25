@@ -13,6 +13,7 @@ import { stripeService } from './StripeService.js';
 import { getIO } from '../../socket/socket.js';
 import { In, Not, IsNull, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
 import { firebaseService } from './firebase.service.js';
+import { NotificationType } from '../../models/Notification.js';
 
 // Valid state transitions
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -163,7 +164,9 @@ class ContractService {
             firebaseService.sendToUsers(
                 invitation.worker_id,
                 'New Hiring Proposal',
-                `${senderName} sent you a hiring proposal for ${invitation.land?.name}.`
+                `${senderName} sent you a hiring proposal for ${invitation.land?.name}.`,
+                { land_id: invitation.land_id, contract_id: saved.id },
+                NotificationType.CONTRACT
             ).catch(err => console.error('[ContractService] Failed to send notification:', err));
         } catch (e) { /* socket not ready */ }
 
@@ -246,7 +249,9 @@ class ContractService {
                 firebaseService.sendToUsers(
                     contract.investor_id,
                     'Hiring Update',
-                    `${workerName} has ${actionLabel} your hiring proposal for ${contract.land?.name}.`
+                    `${workerName} has ${actionLabel} your hiring proposal for ${contract.land?.name}.`,
+                    { land_id: contract.land_id, contract_id: contract.id, response },
+                    NotificationType.CONTRACT
                 ).catch(err => console.error('[ContractService] Failed to send notification:', err));
             } catch (e) { /* socket not ready */ }
 
@@ -344,7 +349,9 @@ class ContractService {
                 firebaseService.sendToUsers(
                     contract.worker_id,
                     'Hiring Update',
-                    `${investorName} has ${actionLabel} the contract terms for ${contract.land?.name}.`
+                    `${investorName} has ${actionLabel} the contract terms for ${contract.land?.name}.`,
+                    { land_id: contract.land_id, contract_id: contract.id, response },
+                    NotificationType.CONTRACT
                 ).catch(err => console.error('[ContractService] Failed to send notification:', err));
             } catch (e) { /* socket not ready */ }
 
@@ -435,7 +442,9 @@ class ContractService {
                 firebaseService.sendToUsers(
                     otherPartyId,
                     'New Counter-Offer',
-                    `${senderName} sent a new negotiation message on contract for ${contract.land?.name}.`
+                    `${senderName} sent a new negotiation message on contract for ${contract.land?.name}.`,
+                    { land_id: contract.land_id, contract_id: contract.id },
+                    NotificationType.CONTRACT
                 ).catch(err => console.error('[ContractService] Failed to send notification:', err));
             } catch (e) { /* socket not ready */ }
 
@@ -888,13 +897,17 @@ class ContractService {
             firebaseService.sendToUsers(
                 contract.worker_id,
                 'Contract Active!',
-                `You are now officially hired by ${investorName} for ${contract.land?.name}.`
+                `You are now officially hired by ${investorName} for ${contract.land?.name}.`,
+                { land_id: contract.land_id, contract_id: contract.id },
+                NotificationType.CONTRACT
             ).catch(err => console.error('[ContractService] Failed to send notification:', err));
 
             firebaseService.sendToUsers(
                 contract.investor_id,
                 'Payment Successful',
-                `Contract with ${workerName} for ${contract.land?.name} is now active.`
+                `Contract with ${workerName} for ${contract.land?.name} is now active.`,
+                { land_id: contract.land_id, contract_id: contract.id },
+                NotificationType.CONTRACT
             ).catch(err => console.error('[ContractService] Failed to send notification:', err));
         } catch (e) { /* socket not ready */ }
 

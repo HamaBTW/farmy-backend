@@ -8,6 +8,7 @@ import { AppError } from '../../middlewares/error.middleware.js';
 import { getIO } from '../../socket/socket.js';
 import { In } from 'typeorm';
 import { firebaseService } from './firebase.service.js';
+import { NotificationType } from '../../models/Notification.js';
 
 class InvitationService {
     private invitationRepo = AppDataSource.getRepository(LandWorkerInvitation);
@@ -93,7 +94,9 @@ class InvitationService {
             firebaseService.sendToUsers(
                 data.worker_id,
                 'Job Invitation',
-                `${requesterName} invited you to work on ${land.name}.`
+                `${requesterName} invited you to work on ${land.name}.`,
+                { land_id: land.id, invitation_id: saved.id },
+                NotificationType.INVITATION
             ).catch(err => console.error('[InvitationService] Failed to send notification:', err));
         } catch (e) { /* socket not ready */ }
 
@@ -148,7 +151,9 @@ class InvitationService {
             firebaseService.sendToUsers(
                 invitation.farmer_id,
                 'Invitation Update',
-                `${workerName} has ${actionLabel} your invitation for ${invitation.land?.name}.`
+                `${workerName} has ${actionLabel} your invitation for ${invitation.land?.name}.`,
+                { land_id: invitation.land_id, invitation_id: invitation.id, response },
+                NotificationType.INVITATION
             ).catch(err => console.error('[InvitationService] Failed to send notification:', err));
         } catch (e) { /* socket not ready */ }
 

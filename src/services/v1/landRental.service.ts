@@ -7,6 +7,7 @@ import { LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
 import { stripeService } from './StripeService.js';
 import { hederaService } from './HederaService.js';
 import { firebaseService } from './firebase.service.js';
+import { NotificationType } from '../../models/Notification.js';
 
 interface CreateLandRentalData {
   land_id: string;
@@ -142,7 +143,9 @@ class LandRentalService {
     firebaseService.sendToUsers(
       land.owner_id,
       'New Rental!',
-      `${senderName} has rented your land: ${land.name}`
+      `${senderName} has rented your land: ${land.name}`,
+      { land_id: land.id },
+      NotificationType.RENTAL
     ).catch(err => console.error('[LandRentalService] Failed to send notification:', err));
 
     return savedRental;

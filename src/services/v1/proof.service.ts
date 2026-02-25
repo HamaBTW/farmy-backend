@@ -11,6 +11,7 @@ import { assetVariantService } from './assetVariant.service.js';
 import { itemRequestService } from './itemRequest.service.js';
 import { getIO } from '../../socket/socket.js';
 import { firebaseService } from './firebase.service.js';
+import { NotificationType } from '../../models/Notification.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -105,7 +106,9 @@ class ProofService {
             firebaseService.sendToUsers(
                 farmerId,
                 'Proof Requested!',
-                `${requesterName} requested proof of work for ${landName}.`
+                `${requesterName} requested proof of work for ${landName}.`,
+                { land_id: landId, proof_id: enriched.id },
+                NotificationType.PROOF
             ).catch(err => console.error('[ProofService] Failed to send notification:', err));
         } catch (e) { }
 
@@ -232,7 +235,9 @@ class ProofService {
             firebaseService.sendToUsers(
                 proof.investor_id,
                 `Proof ${statusLabel}`,
-                `AI has ${statusLabel.toLowerCase()} the proof for ${landName}.`
+                `AI has ${statusLabel.toLowerCase()} the proof for ${landName}.`,
+                { land_id: enriched.land_id, proof_id: enriched.id, status: enriched.status },
+                NotificationType.PROOF
             ).catch(err => console.error('[ProofService] Failed to send notification:', err));
         } catch (e) { }
 
