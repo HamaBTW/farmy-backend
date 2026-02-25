@@ -4,7 +4,6 @@ import { User } from './User.js';
 
 @Entity('devices')
 export class Device extends BaseEntity {
-    @Index()
     @Column({ type: 'varchar', unique: true })
     token!: string;
 
@@ -21,6 +20,6 @@ export class Device extends BaseEntity {
     @JoinColumn({ name: 'userId' })
     user!: User;
 
-    @Column()
+    @Column({ type: 'varchar' })
     userId!: string;
 }
