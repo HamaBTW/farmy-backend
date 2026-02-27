@@ -160,6 +160,15 @@ export class User extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.00 })
     credits!: number;
 
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.00 })
+    credits_balance!: number;
+
     @Column({ type: 'varchar', nullable: true })
     stripe_customer_id!: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    current_subscription_id!: string | null;
+
+    @Column({ type: 'varchar', default: 'none' })
+    subscription_status!: string;
 }

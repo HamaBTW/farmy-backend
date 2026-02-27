@@ -11,9 +11,8 @@ router.get('/plans', subscriptionController.getPlans);
 router.use(authenticate);
 
 router.get('/current', subscriptionController.getCurrentSubscription);
-router.post('/subscribe', subscriptionController.createCheckoutSession);
-router.post('/confirm', subscriptionController.confirmSubscription);
-router.post('/cancel', subscriptionController.cancelSubscription);
+router.post('/subscribe/stripe', subscriptionController.createCheckoutSession);
+router.post('/subscribe/credits', subscriptionController.upgradeWithCredits);
 
 // Admin/Internal only (could be gated further)
 router.post('/seed', subscriptionController.seedPlans);

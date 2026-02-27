@@ -47,33 +47,31 @@ export class SubscriptionController {
                 return res.status(400).json({ message: 'planKey and billingCycle are required' });
             }
 
-            const paymentIntent = await subscriptionService.createCheckoutSession(userId, planKey, billingCycle);
+            const plan = await subscriptionService.getPlans().then(plans => plans.find(p => p.plan_key === planKey));
+            if (!plan) return res.status(404).json({ message: 'Plan not found' });
+
+            const paymentIntent = await subscriptionService.createStripePaymentIntent(userId, plan.id, billingCycle);
             res.status(200).json(paymentIntent);
         } catch (error: any) {
             res.status(500).json({ message: error.message });
         }
     }
 
-    async confirmSubscription(req: Request, res: Response) {
+    async upgradeWithCredits(req: Request, res: Response) {
         try {
             const userId = (req as any).user.id;
-            const { planKey, billingCycle, paymentIntentId } = req.body;
+            const { planKey, billingCycle } = req.body;
 
-            if (!planKey || !billingCycle || !paymentIntentId) {
-                return res.status(400).json({ message: 'planKey, billingCycle, and paymentIntentId are required' });
+            if (!planKey || !billingCycle) {
+                return res.status(400).json({ message: 'planKey and billingCycle are required' });
             }
 
-            const subscription = await subscriptionService.confirmSubscription(userId, planKey, billingCycle, paymentIntentId);
-            res.status(200).json(subscription);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
-        }
-    }
+            // We look up plan by planKey since frontend sends planKey, or we can look it up in service.
+            // Service expects planId. Let's find planId here or adjust service.
+            const plan = await subscriptionService.getPlans().then(plans => plans.find(p => p.plan_key === planKey));
+            if (!plan) return res.status(404).json({ message: 'Plan not found' });
 
-    async cancelSubscription(req: Request, res: Response) {
-        try {
-            const userId = (req as any).user.id;
-            const subscription = await subscriptionService.cancelSubscription(userId);
+            const subscription = await subscriptionService.upgradeWithCredits(userId, plan.id, billingCycle);
             res.status(200).json(subscription);
         } catch (error: any) {
             res.status(500).json({ message: error.message });

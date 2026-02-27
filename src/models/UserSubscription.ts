@@ -4,13 +4,9 @@ import { User } from './User.js';
 import { SubscriptionPlan } from './SubscriptionPlan.js';
 
 export enum SubscriptionStatus {
-    NEW = 'new',
-    TRIALING = 'trialing',
     ACTIVE = 'active',
-    PAST_DUE = 'past_due',
-    GRACE = 'grace',
-    CANCELED = 'canceled',
-    EXPIRED = 'expired'
+    EXPIRED = 'expired',
+    CANCELLED = 'cancelled'
 }
 
 @Entity('user_subscriptions')
@@ -32,7 +28,7 @@ export class UserSubscription extends BaseEntity {
     @Column({
         type: 'enum',
         enum: SubscriptionStatus,
-        default: SubscriptionStatus.NEW
+        default: SubscriptionStatus.ACTIVE
     })
     status!: SubscriptionStatus;
 
@@ -40,10 +36,13 @@ export class UserSubscription extends BaseEntity {
     start_date!: Date;
 
     @Column({ type: 'timestamp', nullable: true })
-    current_period_end!: Date;
+    end_date!: Date | null;
 
     @Column({ type: 'boolean', default: false })
-    cancel_at_period_end!: boolean;
+    auto_renew!: boolean;
+
+    @Column({ type: 'varchar', default: 'free' })
+    payment_method!: string; // 'stripe' | 'credits' | 'free'
 
     @Column({ type: 'varchar', nullable: true })
     stripe_payment_intent_id!: string | null;

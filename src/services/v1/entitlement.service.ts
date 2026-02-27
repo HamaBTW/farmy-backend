@@ -26,8 +26,8 @@ export class EntitlementService {
             return freeEntitlements;
         }
 
-        // If in GRACE or ACTIVE or CANCELED (but not yet expired), return plan entitlements
-        if ([SubscriptionStatus.ACTIVE, SubscriptionStatus.GRACE, SubscriptionStatus.CANCELED, SubscriptionStatus.TRIALING].includes(userSub.status)) {
+        // If ACTIVE, return plan entitlements
+        if (userSub.status === SubscriptionStatus.ACTIVE) {
             return {
                 ...freeEntitlements,
                 ...userSub.plan.entitlements

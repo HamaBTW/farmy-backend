@@ -8,6 +8,7 @@ import { AppDataSource, createDatabaseIfNotExists } from './config/db.config.js'
 import { checkEnvVariables } from './middlewares/envCheck.middleware.js';
 import { initSocket } from './socket/socket.js';
 import logger from './utils/logger.js';
+import { startSubscriptionCron } from './cron/subscriptionCron.js';
 
 const port = process.env.PORT || 5000;
 const server = createServer(app);
@@ -22,6 +23,8 @@ const startServer = async () => {
         await createDatabaseIfNotExists();
         await AppDataSource.initialize();
         logger.info('✅ Database connected successfully');
+
+        startSubscriptionCron();
 
         initSocket(server);
         logger.info('🔌 Socket.io initialized');
