@@ -77,6 +77,23 @@ export class SubscriptionController {
             res.status(500).json({ message: error.message });
         }
     }
+
+    async confirmStripePayment(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user.id;
+            const { paymentIntentId } = req.body;
+
+            if (!paymentIntentId) {
+                return res.status(400).json({ message: 'paymentIntentId is required' });
+            }
+
+            const subscription = await subscriptionService.confirmStripePayment(userId, paymentIntentId);
+            res.status(200).json(subscription);
+        } catch (error: any) {
+            const statusCode = error.statusCode || 500;
+            res.status(statusCode).json({ message: error.message });
+        }
+    }
 }
 
 export const subscriptionController = new SubscriptionController();

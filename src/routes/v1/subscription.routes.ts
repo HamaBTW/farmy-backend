@@ -13,6 +13,7 @@ router.use(authenticate);
 router.get('/current', subscriptionController.getCurrentSubscription);
 router.post('/subscribe/stripe', subscriptionController.createCheckoutSession);
 router.post('/subscribe/credits', subscriptionController.upgradeWithCredits);
+router.post('/subscribe/confirm', subscriptionController.confirmStripePayment);
 
 // Admin/Internal only (could be gated further)
 router.post('/seed', subscriptionController.seedPlans);

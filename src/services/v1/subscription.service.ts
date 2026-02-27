@@ -147,7 +147,7 @@ class SubscriptionService {
         });
         if (existingSub) {
             console.log(`PaymentIntent ${paymentIntentId} already processed. Skipping.`);
-            return;
+            return existingSub;
         }
 
         const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -193,6 +193,32 @@ class SubscriptionService {
         });
 
         await this.historyRepository.save(history);
+        return newSub;
+    }
+
+    /**
+     * Confirms a Stripe payment by verifying the PaymentIntent status directly with Stripe.
+     * This is the primary activation path (webhook is a fallback safety net).
+     */
+    async confirmStripePayment(userId: string, paymentIntentId: string) {
+        // 1. Retrieve the PaymentIntent from Stripe to verify status
+        const paymentIntent = await stripeService.retrievePaymentIntent(paymentIntentId);
+
+        if (paymentIntent.status !== 'succeeded') {
+            throw new AppError(400, `Payment has not succeeded. Status: ${paymentIntent.status}`);
+        }
+
+        // 2. Verify that the metadata belongs to this user (security check)
+        if (paymentIntent.metadata.userId !== userId) {
+            throw new AppError(403, 'Payment does not belong to this user');
+        }
+
+        // 3. Activate the subscription using the existing handler (idempotent)
+        const result = await this.handleStripeWebhookSuccess(paymentIntentId, paymentIntent.metadata);
+
+        // 4. Return fresh subscription data
+        const subscription = await this.getUserSubscription(userId);
+        return subscription;
     }
 
     async upgradeWithCredits(userId: string, planId: string, billingCycle: 'monthly' | 'yearly') {
