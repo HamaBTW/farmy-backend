@@ -229,13 +229,13 @@ class SubscriptionService {
 
         const price = Number(billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly);
 
-        if (Number(user.credits_balance) < price) {
+        if (Number(user.credits) < price) {
             throw new AppError(400, 'Insufficient credits balance');
         }
 
         // Deduct credits
-        user.credits_balance = Number(user.credits_balance) - price;
-        user.credits = Number(user.credits_balance); // Keep both in sync just in case
+        user.credits = Number(user.credits) - price;
+        user.credits_balance = Number(user.credits); // Keep both in sync
 
         const oldSub = await this.expireOldSubscription(user.id);
 
