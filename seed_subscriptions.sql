@@ -47,7 +47,7 @@ VALUES
     'farmer', 
     14.99, 
     119.99, 
-    '{"land_limit": -1, "premium_assets": true, "ai_crop_planner": true, "advanced_analytics": true, "unlimited_products": true, "unlimited_tasks": true, "priority_kyc": true, "worker_search_filters": true, "production_analytics": true, "hedera_export": true}', 
+    '{"land_limit": -1, "product_limit": -1, "task_limit_per_land": -1, "premium_assets": true, "ai_crop_planner": true, "advanced_analytics": true, "priority_kyc": true, "worker_search_filters": true, "production_analytics": true, "hedera_export": true}', 
     CURRENT_TIMESTAMP, 
     CURRENT_TIMESTAMP
 ),
@@ -59,7 +59,7 @@ VALUES
     'investor', 
     24.99, 
     199.99, 
-    '{"rental_limit": -1, "early_land_access": true, "roi_analytics": true, "portfolio_dashboard": true, "unlimited_contracts": true, "priority_hiring": true, "advanced_contract_templates": true, "ai_investment_advisor": true, "hedera_portfolio_report": true, "priority_kyc": true, "bulk_item_requests": true}', 
+    '{"rental_limit": -1, "early_land_access": true, "roi_analytics": true, "portfolio_dashboard": true, "contract_negotiations_limit": -1, "priority_hiring": true, "advanced_contract_templates": true, "ai_investment_advisor": true, "hedera_portfolio_report": true, "priority_kyc": true, "bulk_item_requests": true}', 
     CURRENT_TIMESTAMP, 
     CURRENT_TIMESTAMP
 ),
