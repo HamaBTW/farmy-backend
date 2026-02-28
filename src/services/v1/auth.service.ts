@@ -8,6 +8,7 @@ import { LandRental, PaymentStatus } from '../../models/LandRental.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { emailService } from './EmailService.js';
 import { twoFactorService } from './twoFactor.service.js';
+import { subscriptionService } from './subscription.service.js';
 
 class AuthService {
     private userRepository = AppDataSource.getRepository(User);
@@ -76,6 +77,12 @@ class AuthService {
         });
 
         await this.userRepository.save(user);
+
+        try {
+            await subscriptionService.assignFreePlan(user);
+        } catch (error) {
+            console.error('Failed to assign free plan during registration:', error);
+        }
 
         // Send verification email
         try {
@@ -291,6 +298,7 @@ class AuthService {
 
                 // Social login confirms the email is valid
                 user.is_verified = true;
+                await this.userRepository.save(user);
             } else {
                 // Create a new user
                 const salt = await bcrypt.genSalt(10);
@@ -307,8 +315,14 @@ class AuthService {
                     github_id: provider === 'github' ? providerId : null,
                     auth_provider: provider
                 });
+                await this.userRepository.save(user);
+
+                try {
+                    await subscriptionService.assignFreePlan(user);
+                } catch (error) {
+                    console.error('Failed to assign free plan during social registration:', error);
+                }
             }
-            await this.userRepository.save(user);
         }
 
         if (user.is_two_factor_enabled) {

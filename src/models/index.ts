@@ -41,6 +41,11 @@ export { ContractNegotiation } from './ContractNegotiation.js';
 export { WorkerBalance } from './WorkerBalance.js';
 export { Transaction, TransactionStatus, TransactionType } from './Transaction.js';
 export { ProofRequest, ProofRequestStatus } from './ProofRequest.js';
+
+// Subscription System
+export { SubscriptionPlan } from './SubscriptionPlan.js';
+export { UserSubscription, SubscriptionStatus } from './UserSubscription.js';
+export { SubscriptionHistory, SubscriptionEventType } from './SubscriptionHistory.js';
 export { Device } from './Device.js';
 export { Notification, NotificationType } from './Notification.js';
 

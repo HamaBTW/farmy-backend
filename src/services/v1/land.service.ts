@@ -2,6 +2,7 @@ import { AppDataSource } from '../../config/db.config.js';
 import { Land } from '../../models/Land.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { hederaService } from './HederaService.js';
+import { entitlementService } from './entitlement.service.js';
 
 interface CreateLandData {
     owner_id: string;
@@ -22,6 +23,13 @@ class LandService {
         // Map legacy grid fields to meters if meters are not provided
         const width = data.width_m ?? data.grid_width ?? 10.0;
         const height = data.height_m ?? data.grid_height ?? 10.0;
+
+        // Entitlement Check
+        const currentCount = await this.landRepo.count({ where: { owner_id: data.owner_id } });
+        const canCreate = await entitlementService.canCreateLand(data.owner_id, currentCount);
+        if (!canCreate) {
+            throw new AppError(403, 'Land limit reached for your current subscription plan. Upgrade to Farmer Pro for unlimited land listings.');
+        }
 
         const land = this.landRepo.create({
             owner_id: data.owner_id,

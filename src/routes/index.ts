@@ -89,6 +89,14 @@ router.use('/v1/workforce', contractRoutesV1);
 console.log('Registering /v1/proofs routes');
 router.use('/v1/proofs', proofRoutesV1);
 
+import subscriptionRoutesV1 from './v1/subscription.routes.js';
+console.log('Registering /v1/subscriptions routes');
+router.use('/v1/subscriptions', subscriptionRoutesV1);
+
+import stripeRoutesV1 from './v1/stripe.routes.js';
+console.log('Registering /v1/stripe routes');
+router.use('/v1/stripe', stripeRoutesV1);
+
 console.log('Registering /v1/devices routes');
 router.use('/v1/devices', deviceRoutesV1);
 
