@@ -35,7 +35,40 @@ export class StripeWebhookController {
                 }
                 break;
             }
-            // We can handle payment_intent.payment_failed here later
+
+            case 'invoice.paid': {
+                const invoice = event.data.object as any;
+                try {
+                    if (invoice.payment_intent && typeof invoice.payment_intent === 'string') {
+                        const pi = await stripe.paymentIntents.retrieve(invoice.payment_intent);
+                        await subscriptionService.handleStripeWebhookSuccess(pi.id, pi.metadata as any);
+                    }
+                } catch (e: any) {
+                    console.error('Error handling invoice.paid:', e.message);
+                }
+                break;
+            }
+
+            case 'customer.subscription.deleted': {
+                const subscription = event.data.object as Stripe.Subscription;
+                try {
+                    await subscriptionService.handleSubscriptionCancelled(subscription.customer as string);
+                } catch (e: any) {
+                    console.error('Error handling subscription.deleted:', e.message);
+                }
+                break;
+            }
+
+            case 'invoice.payment_failed': {
+                const failedInvoice = event.data.object as Stripe.Invoice;
+                try {
+                    await subscriptionService.handlePaymentFailed(failedInvoice.customer as string);
+                } catch (e: any) {
+                    console.error('Error handling invoice.payment_failed:', e.message);
+                }
+                break;
+            }
+
             default:
                 console.log(`Unhandled event type ${event.type}`);
         }

@@ -6,7 +6,7 @@ import { AppError } from '../../middlewares/error.middleware.js';
 import { LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
 import { stripeService } from './StripeService.js';
 import { hederaService } from './HederaService.js';
-import { entitlementService } from './entitlement.service.js';
+import { subscriptionService } from './subscription.service.js';
 import { firebaseService } from './firebase.service.js';
 import { NotificationType } from '../../models/Notification.js';
 
@@ -50,7 +50,7 @@ class LandRentalService {
         payment_status: PaymentStatus.PAID // Assuming only paid rentals count towards limit
       }
     });
-    const canRent = await entitlementService.canRentLand(data.investor_id, activeRentals);
+    const canRent = await subscriptionService.checkLimit(data.investor_id, 'rental_limit', activeRentals);
     if (!canRent) {
       throw new AppError(403, 'Rental limit reached for your current subscription plan. Upgrade to Investor Plus for unlimited land rentals.');
     }

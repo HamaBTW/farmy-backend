@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import { subscriptionService } from '../../services/v1/subscription.service.js';
-import { entitlementService } from '../../services/v1/entitlement.service.js';
 import { UserRole } from '../../models/User.js';
 
 export class SubscriptionController {
@@ -27,7 +26,7 @@ export class SubscriptionController {
         try {
             const userId = (req as any).user.id;
             const subscription = await subscriptionService.getUserSubscription(userId);
-            const entitlements = await entitlementService.getEntitlements(userId);
+            const entitlements = await subscriptionService.getUserEntitlements(userId);
 
             res.status(200).json({
                 subscription,

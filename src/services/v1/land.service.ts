@@ -2,7 +2,7 @@ import { AppDataSource } from '../../config/db.config.js';
 import { Land } from '../../models/Land.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { hederaService } from './HederaService.js';
-import { entitlementService } from './entitlement.service.js';
+import { subscriptionService } from './subscription.service.js';
 
 interface CreateLandData {
     owner_id: string;
@@ -26,7 +26,7 @@ class LandService {
 
         // Entitlement Check
         const currentCount = await this.landRepo.count({ where: { owner_id: data.owner_id } });
-        const canCreate = await entitlementService.canCreateLand(data.owner_id, currentCount);
+        const canCreate = await subscriptionService.checkLimit(data.owner_id, 'land_limit', currentCount);
         if (!canCreate) {
             throw new AppError(403, 'Land limit reached for your current subscription plan. Upgrade to Farmer Pro for unlimited land listings.');
         }

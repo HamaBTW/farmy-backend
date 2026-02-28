@@ -2,11 +2,13 @@ import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { SubscriptionPlan } from './SubscriptionPlan.js';
+import { jsonTransformer } from '../utils/transformers.js';
 
 export enum SubscriptionStatus {
     ACTIVE = 'active',
     EXPIRED = 'expired',
-    CANCELLED = 'cancelled'
+    CANCELLED = 'cancelled',
+    PAST_DUE = 'past_due'
 }
 
 @Entity('user_subscriptions')
@@ -52,4 +54,7 @@ export class UserSubscription extends BaseEntity {
 
     @Column({ type: 'varchar', default: 'monthly' })
     billing_cycle!: 'monthly' | 'yearly';
+
+    @Column({ type: 'text', nullable: true, transformer: jsonTransformer })
+    entitlements_snapshot!: Record<string, any> | null;
 }
