@@ -107,6 +107,10 @@ import deliveryRoutesV1 from './v1/delivery.routes.js';
 console.log('Registering /v1/deliveries routes');
 router.use('/v1/deliveries', deliveryRoutesV1);
 
+import vendorDeliveryRoutesV1 from './v1/vendorDelivery.routes.js';
+console.log('Registering /v1/vendor/deliveries routes');
+router.use('/v1/vendor/deliveries', vendorDeliveryRoutesV1);
+
 export default router;
 
 
