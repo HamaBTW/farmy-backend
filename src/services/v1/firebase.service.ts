@@ -68,6 +68,14 @@ class FirebaseService {
                     body,
                 },
                 data: data || {},
+                apns: {
+                    payload: {
+                        aps: {
+                            sound: 'default',
+                            contentAvailable: true,
+                        },
+                    },
+                },
                 tokens: allTokens,
             };
 
