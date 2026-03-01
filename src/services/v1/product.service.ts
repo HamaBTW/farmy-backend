@@ -222,7 +222,7 @@ class ProductService {
                 orderId: savedPurchase.id,
                 buyerId: buyerId,
                 sellerId: product.owner_id,
-                deliveryAddress: buyer.profile?.city || null,
+                deliveryAddress: buyer.profile?.city ?? undefined,
                 destinationLatitude: buyer.location?.latitude,
                 destinationLongitude: buyer.location?.longitude,
                 estimatedMinutes: 60
