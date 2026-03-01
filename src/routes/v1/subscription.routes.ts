@@ -11,6 +11,7 @@ router.get('/plans', subscriptionController.getPlans);
 router.use(authenticate);
 
 router.get('/current', subscriptionController.getCurrentSubscription);
+router.get('/has-subscription', subscriptionController.checkSubscriptionExistence);
 router.post('/subscribe/stripe', subscriptionController.createCheckoutSession);
 router.post('/subscribe/credits', subscriptionController.upgradeWithCredits);
 router.post('/subscribe/confirm', subscriptionController.confirmStripePayment);

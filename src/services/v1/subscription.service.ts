@@ -26,6 +26,22 @@ class SubscriptionService {
         });
     }
 
+    async checkSubscriptionExistence(userId: string): Promise<{ hasSubscription: boolean; activeSubscription: UserSubscription | null }> {
+        const historyCount = await this.historyRepository.count({
+            where: { user_id: userId }
+        });
+
+        const activeSubscription = await this.subscriptionRepository.findOne({
+            where: { user_id: userId, status: SubscriptionStatus.ACTIVE },
+            relations: ['plan']
+        });
+
+        return {
+            hasSubscription: historyCount > 0,
+            activeSubscription: activeSubscription ?? null
+        };
+    }
+
     async seedPlans() {
         console.log('Seed plans requested. Please verify against seed_subscriptions.sql.');
     }

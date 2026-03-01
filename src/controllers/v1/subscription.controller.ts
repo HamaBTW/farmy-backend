@@ -37,6 +37,16 @@ export class SubscriptionController {
         }
     }
 
+    async checkSubscriptionExistence(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user.id;
+            const result = await subscriptionService.checkSubscriptionExistence(userId);
+            res.status(200).json(result);
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
     async createCheckoutSession(req: Request, res: Response) {
         try {
             const userId = (req as any).user.id;
