@@ -103,6 +103,10 @@ router.use('/v1/devices', deviceRoutesV1);
 console.log('Registering /v1/notifications routes');
 router.use('/v1/notifications', notificationRoutesV1);
 
+import deliveryRoutesV1 from './v1/delivery.routes.js';
+console.log('Registering /v1/deliveries routes');
+router.use('/v1/deliveries', deliveryRoutesV1);
+
 export default router;
 
 

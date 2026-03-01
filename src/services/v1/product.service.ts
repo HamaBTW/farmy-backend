@@ -216,6 +216,18 @@ class ProductService {
                 NotificationType.PURCHASE
             ).catch(err => console.error('[ProductService] Failed to send notification:', err));
 
+            // Create Delivery record (non-blocking)
+            const { deliveryService } = await import('./delivery.service.js');
+            deliveryService.createForOrder({
+                orderId: savedPurchase.id,
+                buyerId: buyerId,
+                sellerId: product.owner_id,
+                deliveryAddress: buyer.profile?.city || null,
+                destinationLatitude: buyer.location?.latitude,
+                destinationLongitude: buyer.location?.longitude,
+                estimatedMinutes: 60
+            }).catch(err => console.error('[ProductService] Failed to create delivery:', err));
+
             return {
                 success: true,
                 message: 'Purchase successful',
