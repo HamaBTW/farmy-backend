@@ -50,8 +50,22 @@ class FirebaseService {
             }
 
             const ids = Array.isArray(userIds) ? userIds : [userIds];
-            const allTokens: string[] = [];
 
+            // Persistent Storage (non-blocking save - do this before early return)
+            const notificationRepo = AppDataSource.getRepository(Notification);
+            const persistPromises = ids.map(uid => {
+                const n = notificationRepo.create({
+                    user_id: uid,
+                    title,
+                    message: body,
+                    type,
+                    data: data || null
+                });
+                return notificationRepo.save(n);
+            });
+            Promise.all(persistPromises).catch(err => logger.error('Failed to persist notifications:', err));
+
+            const allTokens: string[] = [];
             for (const userId of ids) {
                 const devices = await deviceService.getDevicesByUserId(userId);
                 allTokens.push(...devices.map(d => d.token));
@@ -59,6 +73,7 @@ class FirebaseService {
 
             if (allTokens.length === 0) {
                 logger.info(`No devices found for users: ${ids.join(', ')}`);
+                // We still returned void/BatchResponse, but now DB is updated
                 return;
             }
 
@@ -96,20 +111,6 @@ class FirebaseService {
                     logger.info(`Removed ${tokensToRemove.length} invalid tokens`);
                 }
             }
-
-            // Persistent Storage (non-blocking save)
-            const notificationRepo = AppDataSource.getRepository(Notification);
-            const persistPromises = ids.map(uid => {
-                const n = notificationRepo.create({
-                    user_id: uid,
-                    title,
-                    message: body,
-                    type,
-                    data: data || null
-                });
-                return notificationRepo.save(n);
-            });
-            Promise.all(persistPromises).catch(err => logger.error('Failed to persist notifications:', err));
 
             return response;
         } catch (error) {

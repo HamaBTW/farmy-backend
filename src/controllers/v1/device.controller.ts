@@ -18,6 +18,8 @@ export class DeviceController {
 
             const device = await deviceService.upsertDevice(userId, token, fingerprint, platform);
 
+            console.log(`📱 Device registered: User ${userId}, Platform: ${platform}, Token: ${token.substring(0, 10)}...`);
+
             res.status(200).json({
                 success: true,
                 message: 'Device registered successfully',
