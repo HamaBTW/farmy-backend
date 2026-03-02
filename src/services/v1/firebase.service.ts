@@ -24,7 +24,7 @@ class FirebaseService {
             // In a real scenario, the service account file should be provided.
             // We'll look for it in the config or root.
             const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH ||
-                path.join(__dirname, '../../../firebase-service-account.json');
+                path.join(process.cwd(), 'firebase-service-account.json');
 
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccountPath),
