@@ -305,8 +305,24 @@ class SubscriptionService {
     // --- Entitlement & Feature Gating Methods ---
 
     /**
+     * Helper: checks if an entitlements object is usable (non-null, non-empty).
+     */
+    private isValidEntitlements(obj: any): obj is Record<string, any> {
+        return obj != null && typeof obj === 'object' && Object.keys(obj).length > 0;
+    }
+
+    /**
      * Retrieves the entitlements for a user based on their active subscription.
-     * If expired or none exists, it falls back to the default free plan for their role.
+     *
+     * Fallback chain (first non-empty wins):
+     *   1. activeSub.entitlements_snapshot  — snapshot stored at purchase time
+     *   2. activeSub.plan.entitlements      — live plan definition (covers cases
+     *      where the snapshot was empty / null at creation time)
+     *   3. Free plan entitlements for the user's role
+     *   4. Hard-coded free defaults
+     *
+     * If (1) was missing but (2) existed, the snapshot is self-healed so
+     * subsequent calls hit the fast path.
      */
     async getUserEntitlements(userId: string): Promise<Record<string, any>> {
         const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -314,11 +330,30 @@ class SubscriptionService {
 
         const activeSub = await this.getUserSubscription(userId);
 
-        if (activeSub && activeSub.entitlements_snapshot) {
-            return activeSub.entitlements_snapshot;
+        if (activeSub) {
+            // ── 1. Snapshot from purchase time ───────────────────────────
+            if (this.isValidEntitlements(activeSub.entitlements_snapshot)) {
+                return activeSub.entitlements_snapshot!;
+            }
+
+            // ── 2. Live plan entitlements (self-heal the snapshot) ───────
+            const planEntitlements = activeSub.plan?.entitlements;
+            if (this.isValidEntitlements(planEntitlements)) {
+                // Self-heal: persist so future queries hit the fast path
+                try {
+                    activeSub.entitlements_snapshot = planEntitlements;
+                    await this.subscriptionRepository.save(activeSub);
+                    console.log(`[Entitlements] Self-healed snapshot for user ${userId} from plan "${activeSub.plan?.plan_key}"`);
+                } catch (healErr) {
+                    console.warn(`[Entitlements] Self-heal failed for user ${userId}:`, healErr);
+                }
+                return planEntitlements;
+            }
+
+            console.warn(`[Entitlements] Active sub ${activeSub.id} for user ${userId} has NO usable entitlements — falling back to free plan`);
         }
 
-        // Fallback to Free Plan based on User Role
+        // ── 3. Free plan for this role ──────────────────────────────────
         let freePlan = await this.planRepository.findOne({
             where: { role: user.role, price_monthly: 0 }
         });
@@ -327,7 +362,13 @@ class SubscriptionService {
             freePlan = await this.planRepository.findOne({ where: { price_monthly: 0 } });
         }
 
-        const freeEntitlements = freePlan?.entitlements || {
+        if (this.isValidEntitlements(freePlan?.entitlements)) {
+            return freePlan!.entitlements;
+        }
+
+        // ── 4. Hard-coded safety net ────────────────────────────────────
+        console.warn(`[Entitlements] No free plan found for role ${user.role} — using hard-coded defaults`);
+        return {
             land_limit: 2,
             rental_limit: 1,
             contract_limit: 2,
@@ -340,8 +381,6 @@ class SubscriptionService {
             farmbox_active: false,
             worker_plus_active: false
         };
-
-        return freeEntitlements;
     }
 
     /**
