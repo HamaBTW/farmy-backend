@@ -147,7 +147,7 @@ export class InvestmentAgentService {
             inventory: vegetation.map((v: any) => ({ id: v.id, name: `${v.variant_code} (${v.type.name})`, price: v.base_price })),
             animals: animals.map((a: any) => ({ id: a.id, name: `${a.variant_code} (${a.type.name})`, price: a.base_price })),
             machines: machineVariants.map((m: any) => ({ id: m.id, name: `${m.variant_code} (${m.type.name})`, price: m.base_price })),
-            labor: topWorkers.map((w: any) => ({ id: w.user_id, name: w.user?.profile?.name || 'Worker', rate: w.hourly_rate, rating: w.rating }))
+            labor: topWorkers.map((w: any) => ({ id: w.id, name: w.user?.profile?.name || 'Worker', rate: w.hourly_rate, rating: w.rating }))
         };
 
         const prompt = `
@@ -162,7 +162,7 @@ REAL-TIME API DATA (API-NINJAS & OPENWEATHER):
 - Weather forecast: ${JSON.stringify(weatherData)}
 
 AVAILABLE OPTIONS:
-- Land: ${JSON.stringify(availableFarms.map((f: any) => ({ name: f.name, price: f.price })))}
+- Land: ${JSON.stringify(availableFarms.map((f: any) => ({ id: f.id, name: f.name, price: f.price })))}
 - Marketplace Items: ${JSON.stringify(marketplaceContext)}
 
 Instructions:
@@ -170,11 +170,11 @@ Instructions:
 2. Balance it with weather conditions (e.g. don't suggest wheat if drought).
 3. Do not overspend.
 4. **CRITICAL**: If the "USER CURRENT ESTATE" (gameContext) is empty/null while they ask for analysis, explicitly state: "No existing data found for analysis." and then pivot to suggest a starting investment.
-5. **INTERACTIVE LINKS**: When mentioning any Land, Marketplace Asset, or Worker, you MUST wrap it in a deep link:
-   - For Land: [Land Name](farmy://land/ID)
-   - For Marketplace (Vegetation/Animal/Machine): [Item Name](farmy://asset/CATEGORY/ID) (replace CATEGORY with: animal, vegetation, or machine).
-   - For Labor/Workers: [Worker Name](farmy://worker/ID)
-   - These links will allow the user to navigate directly to the item details.
+5. **INTERACTIVE LINKS**: When mentioning any Land, Marketplace Asset, or Worker, you MUST wrap it in a deep link. 
+   - **VERY IMPORTANT**: You MUST use the exact **UUID** (e.g. 550e8400-e29b...) provided in the JSON data as the ID. **NEVER use the name or slug as the ID.**
+   - For Land: [Land Name](farmy://land/UUID)
+   - For Marketplace (Vegetation/Animal/Machine): [Item Name](farmy://asset/CATEGORY/UUID) (CATEGORY must be: animal, vegetation, or machine).
+   - For Labor/Workers: [Worker Name](farmy://worker/UUID)
 `;
 
         try {
