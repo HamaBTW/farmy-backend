@@ -89,27 +89,15 @@ router.use('/v1/workforce', contractRoutesV1);
 console.log('Registering /v1/proofs routes');
 router.use('/v1/proofs', proofRoutesV1);
 
-import subscriptionRoutesV1 from './v1/subscription.routes.js';
-console.log('Registering /v1/subscriptions routes');
-router.use('/v1/subscriptions', subscriptionRoutesV1);
-
-import stripeRoutesV1 from './v1/stripe.routes.js';
-console.log('Registering /v1/stripe routes');
-router.use('/v1/stripe', stripeRoutesV1);
-
 console.log('Registering /v1/devices routes');
 router.use('/v1/devices', deviceRoutesV1);
 
 console.log('Registering /v1/notifications routes');
 router.use('/v1/notifications', notificationRoutesV1);
 
-import deliveryRoutesV1 from './v1/delivery.routes.js';
-console.log('Registering /v1/deliveries routes');
-router.use('/v1/deliveries', deliveryRoutesV1);
-
-import vendorDeliveryRoutesV1 from './v1/vendorDelivery.routes.js';
-console.log('Registering /v1/vendor/deliveries routes');
-router.use('/v1/vendor/deliveries', vendorDeliveryRoutesV1);
+import investmentAgentRoutesV1 from './v1/investmentAgent.routes.js';
+console.log('Registering /v1/investment-agent routes');
+router.use('/v1/investment-agent', investmentAgentRoutesV1);
 
 export default router;
 
