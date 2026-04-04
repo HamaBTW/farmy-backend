@@ -4,16 +4,47 @@ import { AppDataSource } from '../../config/db.config.js';
 import { ItemRequest } from '../../models/ItemRequest.js';
 import { VegetationVariant } from '../../models/VegetationVariant.js';
 import { AnimalVariant } from '../../models/AnimalVariant.js';
-import { InvestmentStrategySession } from '../../models/InvestmentStrategySession.js'; // We can reuse the session model for history
+import { FarmerStrategySession } from '../../models/FarmerStrategySession.js'; 
 import { In } from 'typeorm';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_expected' });
 
 export class FarmerAgentService {
-    async getProfitAnalysis(userId: string, landId?: string, question?: string) {
+    private sessionRepo = AppDataSource.getRepository(FarmerStrategySession);
+
+    async getHistory(userId: string) {
+        return await this.sessionRepo.find({
+            where: { user_id: userId, is_active: true },
+            order: { createdAt: 'DESC' },
+            select: ['id', 'title', 'createdAt']
+        });
+    }
+
+    async getSessionDetails(userId: string, sessionId: string) {
+        return await this.sessionRepo.findOne({
+            where: { id: sessionId, user_id: userId }
+        });
+    }
+
+    async deleteSession(userId: string, sessionId: string) {
+        const session = await this.sessionRepo.findOne({ where: { id: sessionId, user_id: userId } });
+        if (session) {
+            session.is_active = false;
+            await this.sessionRepo.save(session);
+            return true;
+        }
+        return false;
+    }
+
+    async getProfitAnalysis(userId: string, landId?: string, question?: string, sessionId?: string) {
         const itemRequestRepo = AppDataSource.getRepository(ItemRequest);
         const vegRepo = AppDataSource.getRepository(VegetationVariant);
         const animalRepo = AppDataSource.getRepository(AnimalVariant);
+
+        let session: FarmerStrategySession | null = null;
+        if (sessionId) {
+            session = await this.sessionRepo.findOne({ where: { id: sessionId, user_id: userId } });
+        }
 
         // 1. Fetch current farm state
         const where: any = { user_id: userId };
@@ -24,7 +55,6 @@ export class FarmerAgentService {
             relations: ['placed_item']
         });
 
-        // Resolve names for the AI
         const variantIds = myAssets.map(a => a.variant_id);
         const vegVariants = await vegRepo.find({ where: { id: In(variantIds) }, relations: ['type'] });
         const animalVariants = await animalRepo.find({ where: { id: In(variantIds) }, relations: ['type'] });
@@ -34,15 +64,11 @@ export class FarmerAgentService {
         animalVariants.forEach(a => nameMap[a.id] = `${a.variant_code} (${a.type.name})`);
 
         const placedAssets = myAssets.filter(a => a.placed_item);
-        const pendingAssets = myAssets.filter(a => a.status === 'pending');
-        
-        // Calculate total investment
         const totalSpent = myAssets.reduce((sum, a) => sum + Number(a.price_paid || 0), 0);
 
         const farmContext = {
             totalInvested: totalSpent,
             activeAssetsCount: placedAssets.length,
-            pendingOrdersCount: pendingAssets.length,
             activeAssets: placedAssets.map(a => ({
                 name: nameMap[a.variant_id] || 'Asset',
                 invested: a.price_paid,
@@ -50,38 +76,56 @@ export class FarmerAgentService {
             }))
         };
 
+        const currentMessages: any[] = session?.messages || [];
+        if (question) {
+            currentMessages.push({ role: 'user', content: question, timestamp: new Date().toISOString() });
+        }
+
         const prompt = `
-You are the "Farmy Production Guru". Your job is to help the FARMER maximize profit.
-${question ? `The Farmer has a specific question: "${question}"` : 'Analyze the current farm state and provide a Profit & Loss (P&L) insight.'}
+You are the "Farmy Production Guru". Help the FARMER maximize profit.
+${question ? `Farmer's latest message: "${question}"` : 'Initial farm analysis.'}
 
 FARM STATE:
 ${JSON.stringify(farmContext)}
 
-MARKET TRENDS (STUB):
+CONVERSATION HISTORY:
+${JSON.stringify(currentMessages.slice(-5))}
+
+MARKET TRENDS:
 - Wheat: High Demand (+5% price)
 - Tomatoes: Over-supply (-10% price)
-- Work Labor: Seasonal shortage (Costs +15%)
-
-Instructions:
-1. Be encouraging but realistic.
-2. Highlight the "ROI" (Return on Investment).
-3. Provide 3 actionable tips (e.g. "Sell wheat now", "Wait to harvester tomatoes").
-4. Keep it under 150 words.
-5. Use markdown, bold text, and bullet points.
+- Labor: Shortage (+15% costs)
 `;
 
         try {
             const completion = await groq.chat.completions.create({
                 messages: [
-                    { role: 'system', content: 'You are a production analyst for a digital farming platform.' },
+                    { role: 'system', content: 'You are a production analyst. Provide concise, bold, markdown-formatted harvest advice.' },
                     { role: 'user', content: prompt }
                 ],
                 model: 'llama-3.1-8b-instant',
             });
 
+            const analysis = completion.choices[0]?.message?.content || 'Analysis unavailable.';
+            currentMessages.push({ role: 'assistant', content: analysis, timestamp: new Date().toISOString() });
+
+            // Create or update session
+            if (!session) {
+                session = this.sessionRepo.create({
+                    user_id: userId,
+                    title: question ? (question.length > 30 ? question.substring(0, 30) + '...' : question) : 'Farm Analysis',
+                    context_data: farmContext,
+                    messages: currentMessages
+                });
+            } else {
+                session.messages = currentMessages;
+            }
+            await this.sessionRepo.save(session);
+
             return {
-                analysis: completion.choices[0]?.message?.content || 'Analysis unavailable.',
-                context: farmContext
+                analysis,
+                context: farmContext,
+                sessionId: session.id
             };
         } catch (error) {
             console.error('[FarmerAgentService] Error:', error);
