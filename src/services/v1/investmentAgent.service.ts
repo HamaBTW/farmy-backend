@@ -68,7 +68,7 @@ Provide a concise, analytical response recommending exactly 3 farms and explaini
                     { role: 'system', content: 'You are a smart investment recommendation system for an agritech platform.' },
                     { role: 'user', content: prompt }
                 ],
-                model: 'llama3-8b-8192',
+                model: 'llama-3.1-8b-instant',
             });
 
             return {
