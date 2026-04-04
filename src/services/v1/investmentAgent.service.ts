@@ -151,6 +151,7 @@ Instructions:
 1. Always suggest exactly 3 items to buy/rent (Land, Item, Worker).
 2. Balance it with weather conditions (e.g. don't suggest wheat if drought).
 3. Do not overspend.
+4. **CRITICAL**: If the "USER CURRENT ESTATE" or Context is empty/null while they ask for analysis, explicitly state: "No existing data found for analysis." and then pivot to suggest a starting investment.
 `;
 
         try {
