@@ -7,6 +7,7 @@ import { InvestmentStrategySession } from '../../models/InvestmentStrategySessio
 import { VegetationVariant } from '../../models/VegetationVariant.js';
 import { AnimalVariant } from '../../models/AnimalVariant.js';
 import { MachineVariant } from '../../models/MachineVariant.js';
+import { ItemRequest } from '../../models/ItemRequest.js';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_expected' });
 
@@ -96,7 +97,24 @@ export class InvestmentAgentService {
         let session: InvestmentStrategySession | null = null;
         let availableFarms: any[] = [];
 
-        // 2. Fetch Marketplace Assets for detailed planning
+        let gameContext: any = userContext || {};
+        if (userContext?.landId) {
+            const itemRequestRepo = AppDataSource.getRepository(ItemRequest);
+            const requests = await itemRequestRepo.find({
+                where: { land_id: userContext.landId, user_id: userId },
+                relations: ['placed_item']
+            });
+            
+            gameContext = {
+                ...gameContext,
+                inventoryCount: requests.filter(r => r.status === 'approved' && !r.placed_item).length,
+                placedCount: requests.filter(r => r.placed_item).length,
+                pendingCount: requests.filter(r => r.status === 'pending').length,
+                activeAssets: requests.filter(r => r.placed_item).map(r => r.variant_id)
+            };
+        }
+
+        // 3. Fetch Marketplace Assets for detailed planning
         const vegetation = await vegRepo.find({ take: 5, where: { is_available: true }, relations: ['type'] });
         const animals = await animalRepo.find({ take: 3, where: { is_available: true }, relations: ['type'] });
         const machineVariants = await machineRepo.find({ take: 3, where: { is_available: true }, relations: ['type'] });
@@ -133,11 +151,11 @@ export class InvestmentAgentService {
         };
 
         const prompt = `
-You are the "Farmy Wealth Manager". Respond to the budget or context with a complete 1-2-3 Starter Kit.
+You are the "Farmy Wealth Manager". Respond to the budget or context with a complete 1-2-3 Balanced Kit.
 Be extremely concise (max 100 words). Use bold text and bullet points only.
 
 USER BUDGET/ASK: ${investorPreferences}
-USER CURRENT ESTATE: ${JSON.stringify(userContext || 'Empty')}
+USER CURRENT ESTATE (INVENTORY/LANDS): ${JSON.stringify(gameContext)}
 
 REAL-TIME API DATA (API-NINJAS & OPENWEATHER):
 - Market: ${JSON.stringify(marketData)}
@@ -151,7 +169,12 @@ Instructions:
 1. Always suggest exactly 3 items to buy/rent (Land, Item, Worker).
 2. Balance it with weather conditions (e.g. don't suggest wheat if drought).
 3. Do not overspend.
-4. **CRITICAL**: If the "USER CURRENT ESTATE" or Context is empty/null while they ask for analysis, explicitly state: "No existing data found for analysis." and then pivot to suggest a starting investment.
+4. **CRITICAL**: If the "USER CURRENT ESTATE" (gameContext) is empty/null while they ask for analysis, explicitly state: "No existing data found for analysis." and then pivot to suggest a starting investment.
+5. **INTERACTIVE LINKS**: When mentioning any Land, Marketplace Asset, or Worker, you MUST wrap it in a deep link:
+   - For Land: [Land Name](farmy://land/ID)
+   - For Marketplace (Vegetation/Animal/Machine): [Item Name](farmy://asset/CATEGORY/ID) (replace CATEGORY with: animal, vegetation, or machine).
+   - For Labor/Workers: [Worker Name](farmy://worker/ID)
+   - These links will allow the user to navigate directly to the item details.
 `;
 
         try {
