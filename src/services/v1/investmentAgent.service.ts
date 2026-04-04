@@ -120,19 +120,18 @@ export class InvestmentAgentService {
                 relations: ['placed_item']
             });
             
-            // Fetch names for active assets to make them more human-readable for the AI
             const activeAssetIds = requests.filter(r => r.placed_item).map(r => r.variant_id);
-            const activeAssetNames: string[] = [];
+            // Map active assets to detailed objects for interactive AI linking
+            const activeAssetMap: any[] = [];
             
             if (activeAssetIds.length > 0) {
-                // Try to find names in vegetation, animals, or machines (rough lookup)
-                const vegVariants = await vegRepo.find({ where: { id: In(activeAssetIds) } });
-                const animalVariants = await animalRepo.find({ where: { id: In(activeAssetIds) } });
-                const machineVariantsRes = await machineRepo.find({ where: { id: In(activeAssetIds) } });
+                const vegVariants = await vegRepo.find({ where: { id: In(activeAssetIds) }, relations: ['type'] });
+                const animalVariants = await animalRepo.find({ where: { id: In(activeAssetIds) }, relations: ['type'] });
+                const machineVariantsRes = await machineRepo.find({ where: { id: In(activeAssetIds) }, relations: ['type'] });
                 
-                activeAssetNames.push(...vegVariants.map(v => v.variant_code));
-                activeAssetNames.push(...animalVariants.map(v => v.variant_code));
-                activeAssetNames.push(...machineVariantsRes.map(m => m.variant_code));
+                activeAssetMap.push(...vegVariants.map(v => ({ id: v.id, name: v.variant_code, category: 'vegetation' })));
+                activeAssetMap.push(...animalVariants.map(a => ({ id: a.id, name: a.variant_code, category: 'animal' })));
+                activeAssetMap.push(...machineVariantsRes.map(m => ({ id: m.id, name: m.variant_code, category: 'machine' })));
             }
 
             gameContext = {
@@ -140,7 +139,7 @@ export class InvestmentAgentService {
                 inventoryCount: requests.filter(r => r.status === 'approved' && !r.placed_item).length,
                 placedCount: requests.filter(r => r.placed_item).length,
                 pendingCount: requests.filter(r => r.status === 'pending').length,
-                activeAssets: activeAssetNames.length > 0 ? activeAssetNames : activeAssetIds
+                activeAssets: activeAssetMap
             };
         }
 
