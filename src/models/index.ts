@@ -49,4 +49,5 @@ export { SubscriptionHistory, SubscriptionEventType } from './SubscriptionHistor
 export { Device } from './Device.js';
 export { Notification, NotificationType } from './Notification.js';
 export { Delivery, DeliveryStatus, DELIVERY_TRANSITIONS, TERMINAL_STATUSES } from './Delivery.js';
+export { InvestmentStrategySession } from './InvestmentStrategySession.js';
 
