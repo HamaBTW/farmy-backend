@@ -3,10 +3,10 @@ import { investmentAgentService } from '../../services/v1/investmentAgent.servic
 
 export const getInvestmentRecommendations = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { preferences, sessionId } = req.body;
+        const { preferences, sessionId, userContext } = req.body;
         const userId = (req as any).user?.id!;
         
-        const result = await investmentAgentService.getRecommendations(preferences, userId, sessionId);
+        const result = await investmentAgentService.getRecommendations(preferences, userId, sessionId, userContext);
 
         res.status(200).json({
             success: true,
@@ -40,5 +40,16 @@ export const getInvestmentSession = async (req: Request, res: Response): Promise
         res.status(200).json({ success: true, data: session });
     } catch (error: any) {
         res.status(500).json({ success: false, message: 'Failed to load investment session.' });
+    }
+};
+
+export const deleteInvestmentSession = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).user?.id!;
+        const { sessionId } = req.params;
+        await investmentAgentService.deleteSession(userId, sessionId as string);
+        res.status(200).json({ success: true, message: 'Strategic session deleted successfully.' });
+    } catch (error: any) {
+        res.status(500).json({ success: false, message: 'Failed to delete investment session.' });
     }
 };

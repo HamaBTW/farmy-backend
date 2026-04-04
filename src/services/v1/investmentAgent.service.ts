@@ -6,8 +6,30 @@ import { InvestmentStrategySession } from '../../models/InvestmentStrategySessio
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_expected' });
 
+// Simulated API Connectors for Dynamic Data
+class DynamicDataProvider {
+    static async getMarketData() {
+        // In a real app, this would be an axios call to a market API
+        return {
+            grainPrice: `+${(Math.random() * 5).toFixed(1)}%`,
+            oilseedTrend: Math.random() > 0.5 ? "Bullish" : "Stable",
+            demandIndex: "High",
+            fetchTime: new Date().toISOString()
+        };
+    }
+
+    static async getWeatherData() {
+        // In a real app, OpenWeatherMap or similar
+        return {
+            temperature: `${(20 + Math.random() * 12).toFixed(1)}°C`,
+            humidity: `${(40 + Math.random() * 40).toFixed(0)}%`,
+            alert: "None",
+        };
+    }
+}
+
 export class InvestmentAgentService {
-    async getRecommendations(investorPreferences: string, userId: string, sessionId?: string) {
+    async getRecommendations(investorPreferences: string, userId: string, sessionId?: string, userContext?: any) {
         const landRepo = AppDataSource.getRepository(Land);
         const workerRepo = AppDataSource.getRepository(WorkerProfile);
         const sessionRepo = AppDataSource.getRepository(InvestmentStrategySession);
@@ -15,12 +37,15 @@ export class InvestmentAgentService {
         let session: InvestmentStrategySession | null = null;
         let availableFarms = [];
 
+        // Dynamic API Data
+        const marketData = await DynamicDataProvider.getMarketData();
+        const weatherForecast = await DynamicDataProvider.getWeatherData();
+
         if (sessionId) {
             session = await sessionRepo.findOne({ where: { id: sessionId, user_id: userId } });
             if (!session) throw new Error('Investment session not found');
             availableFarms = session.context_data || [];
         } else {
-            // First time - fetch farms and start session
             const lands = await landRepo.find({
                 where: { is_active: true },
                 relations: ['owner'],
@@ -29,7 +54,7 @@ export class InvestmentAgentService {
 
             for (const land of lands) {
                 const worker = await workerRepo.findOne({ where: { user_id: land.owner_id } });
-                const weatherRiskScore = (Math.random() * 5 + 1).toFixed(1); 
+                const weatherRiskScore = (Math.random() * 3 + 1).toFixed(1); 
                 
                 availableFarms.push({
                     id: land.id,
@@ -37,11 +62,11 @@ export class InvestmentAgentService {
                     price: land.price,
                     description: land.description,
                     weatherRiskScore: `${weatherRiskScore}/10`,
+                    fullData: land,
                     farmer: worker ? {
                         id: worker.user_id,
                         rating: worker.rating,
-                        completedTasks: worker.completed_tasks,
-                        onTimeRate: worker.on_time_rate
+                        completed_tasks: worker.completed_tasks,
                     } : null
                 });
             }
@@ -59,29 +84,42 @@ export class InvestmentAgentService {
             { role: 'user' as const, content: investorPreferences, timestamp: new Date().toISOString() }
         ];
 
+        const minifiedFarms = availableFarms.map((f: any) => ({
+            id: f.id,
+            name: f.name,
+            price: f.price,
+            weatherRisk: f.weatherRiskScore,
+            farmerRating: f.farmer?.rating || 'N/A'
+        }));
+
         const prompt = `
-You are an expert AI Portfolio Strategist for "Farmy", an agritech platform.
-The user is an investor. Analyze the available farms and provide strategic recommendations.
+You are the "Farmy Strategic Analyst". Be EXTREMELY concise. Respond ONLY about the farms/context below.
 
-Context (Available Farms):
-${JSON.stringify(availableFarms, null, 2)}
+PLAYER CONTEXT (User's Current Estate):
+${JSON.stringify(userContext || 'None')}
 
-Chat History:
-${JSON.stringify(session!.messages.slice(-5), null, 2)}
+LIVE API TOOLS:
+- Market: ${JSON.stringify(marketData)}
+- Weather: ${JSON.stringify(weatherForecast)}
+
+Context (Top Available Farms):
+${JSON.stringify(minifiedFarms)}
+
+Chat History (Last 2):
+${JSON.stringify(session!.messages.slice(-2).map(m => ({ role: m.role, content: m.content.substring(0, 500) })))}
 
 Instructions:
-1. If this is the start, recommend exactly 3 farms with a diversification logic.
-2. If the user asks questions about specific farms or choices, explain analytically.
-3. Be professional, concise, and prioritize risk management (weather + farmer reliability).
-4. Use Markdown. Refer to farms by their name.
+1. Suggest exactly 3 farms if asked.
+2. If providing context analysis for revenue/portfolio, prioritize diversification.
+3. Keep it under 100 words. Bullet points only. Use Markdown.
 `;
 
         try {
             const completion = await groq.chat.completions.create({
                 messages: [
-                    { role: 'system', content: 'You are a smart investment strategy assistant for an agritech platform.' },
+                    { role: 'system', content: 'You are a concise smart investment strategy assistant.' },
                     ...session!.messages.map(m => ({ role: m.role, content: m.content })),
-                    { role: 'system', content: prompt } // Re-injecting instructions
+                    { role: 'system', content: prompt }
                 ],
                 model: 'llama-3.1-8b-instant',
             });
@@ -99,7 +137,11 @@ Instructions:
                 recommendation: aiContent,
                 farms: availableFarms,
                 sessionId: session!.id,
-                history: session!.messages
+                history: session!.messages,
+                tools: {
+                    market: marketData,
+                    weather: weatherForecast
+                }
             };
         } catch (error: any) {
             console.error('[InvestmentAgentService] Groq Error:', error);
@@ -120,6 +162,12 @@ Instructions:
         return await sessionRepo.findOne({
             where: { id: sessionId, user_id: userId }
         });
+    }
+
+    async deleteSession(userId: string, sessionId: string) {
+        const sessionRepo = AppDataSource.getRepository(InvestmentStrategySession);
+        await sessionRepo.delete({ id: sessionId, user_id: userId });
+        return true;
     }
 }
 

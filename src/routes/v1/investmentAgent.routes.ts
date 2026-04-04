@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getInvestmentRecommendations, getInvestmentHistory, getInvestmentSession } from '../../controllers/v1/investmentAgent.controller.js';
+import { getInvestmentRecommendations, getInvestmentHistory, getInvestmentSession, deleteInvestmentSession } from '../../controllers/v1/investmentAgent.controller.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 
 const router = Router();
@@ -14,5 +14,6 @@ router.get('/history', getInvestmentHistory);
 
 // /api/v1/investment-agent/session/:sessionId
 router.get('/session/:sessionId', getInvestmentSession);
+router.delete('/session/:sessionId', deleteInvestmentSession);
 
 export default router;
