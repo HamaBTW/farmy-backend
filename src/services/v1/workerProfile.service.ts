@@ -61,6 +61,17 @@ class WorkerProfileService {
         return profile;
     }
 
+    async findById(profileId: string) {
+        const profile = await this.profileRepo.findOne({
+            where: { id: profileId },
+            relations: ['user']
+        });
+        if (!profile) {
+            throw new AppError(404, 'Worker profile not found');
+        }
+        return profile;
+    }
+
     async findByUserIdOptional(userId: string) {
         return this.profileRepo.findOne({
             where: { user_id: userId },

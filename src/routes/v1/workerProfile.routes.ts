@@ -16,6 +16,9 @@ router.put('/me', authenticate, workerProfileController.updateMyWorkerProfile);
 // Browse marketplace (verified workers only)
 router.get('/marketplace', authenticate, workerProfileController.getMarketplace);
 
+// Get specific worker profile
+router.get('/:profileId', authenticate, workerProfileController.getWorkerProfileById);
+
 // Admin: verify/reject worker profile
 router.patch('/:profileId/verify', authenticate, authorize('admin'), workerProfileController.verifyWorkerProfile);
 

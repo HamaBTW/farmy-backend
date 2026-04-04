@@ -68,6 +68,18 @@ export const getMarketplace = async (req: AuthRequest, res: Response, next: Next
     }
 };
 
+export const getWorkerProfileById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const result = await workerProfileService.findById(req.params.profileId as string);
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const verifyWorkerProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const result = await workerProfileService.verifyProfile(
