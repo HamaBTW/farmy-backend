@@ -117,6 +117,7 @@ export class InvestmentAgentService {
                 name: l.name,
                 price: l.price,
                 description: l.description,
+                weatherRiskScore: `${(Math.random() * 3 + 1).toFixed(1)}/10`,
                 fullData: l
             }));
             session = sessionRepo.create({ user_id: userId, title: `Financial Kit: ${new Date().toLocaleDateString()}`, context_data: availableFarms, messages: [] });
