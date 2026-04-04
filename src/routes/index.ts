@@ -99,6 +99,10 @@ import investmentAgentRoutesV1 from './v1/investmentAgent.routes.js';
 console.log('Registering /v1/investment-agent routes');
 router.use('/v1/investment-agent', investmentAgentRoutesV1);
 
+import farmerAgentRoutesV1 from './v1/farmerAgent.routes.js';
+console.log('Registering /v1/farmer-agent routes');
+router.use('/v1/farmer-agent', farmerAgentRoutesV1);
+
 export default router;
 
 
