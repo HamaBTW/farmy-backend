@@ -354,6 +354,25 @@ class AuthService {
 
         return user;
     }
+
+    async updateUserLocation(userId: string, location: { latitude: number; longitude: number }) {
+        const user = await this.userRepository.findOne({ where: { id: userId } });
+
+        if (!user) {
+            throw new AppError(404, 'User not found');
+        }
+
+        user.location = {
+            latitude: location.latitude,
+            longitude: location.longitude
+        };
+
+        await this.userRepository.save(user);
+
+        console.log(`✅ Updated location for user ${userId}: ${JSON.stringify(user.location)}`);
+
+        return user;
+    }
 }
 
 export const authService = new AuthService();
