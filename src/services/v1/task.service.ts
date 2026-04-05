@@ -10,6 +10,7 @@ import { IsNull, MoreThanOrEqual } from 'typeorm';
 import { firebaseService } from './firebase.service.js';
 import { NotificationType } from '../../models/Notification.js';
 import logger from '../../utils/logger.js';
+import { getIO } from '../../socket/socket.js';
 
 interface CreateTaskData {
     title: string;
@@ -228,7 +229,34 @@ class TaskService {
             await this.profileRepo.save(workerProfile);
         }
 
-        return this.taskRepo.save(task);
+        const savedTask = await this.taskRepo.save(task);
+
+        // Notify the investor via Socket so the game UI updates immediately
+        try {
+            const land = await this.landRepo.findOne({ where: { id: task.land_id } });
+            if (land) {
+                const currentDate = new Date();
+                const activeRental = await this.rentalRepo.findOne({
+                    where: [
+                        { land_id: task.land_id, rental_end_date: IsNull() },
+                        { land_id: task.land_id, rental_end_date: MoreThanOrEqual(currentDate) }
+                    ],
+                    order: { rental_start_date: 'DESC' }
+                });
+                const investorId = activeRental ? activeRental.investor_id : land.owner_id;
+                
+                getIO().to(investorId).emit('worker_task_completed', {
+                    workerId: userId,
+                    landId: task.land_id,
+                    taskId: task.id
+                });
+                logger.info(`🔌 Emitted worker_task_completed to investor ${investorId} for worker ${userId}`);
+            }
+        } catch (e) {
+            logger.error('Failed to emit worker_task_completed:', e);
+        }
+
+        return savedTask;
     }
 
     async findByLand(landId: string, status?: TaskStatus) {

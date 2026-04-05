@@ -4,6 +4,7 @@ import { authService } from '../../services/v1/auth.service.js';
 import { oAuthService } from '../../services/v1/OAuthService.js';
 import { AuthRequest } from '../../middlewares/auth.middleware.js';
 import { AppError } from '../../middlewares/error.middleware.js';
+import { workerProfileService } from '../../services/v1/workerProfile.service.js';
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -59,7 +60,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
                     is_verified: user.is_verified,
                     is_banned: user.is_banned,
                     auth_provider: user.auth_provider,
-                    is_two_factor_enabled: user.is_two_factor_enabled
+                    is_two_factor_enabled: user.is_two_factor_enabled,
+                    has_worker_profile: !!(await workerProfileService.findByUserIdOptional(user.id))
                 },
                 ...tokens
             }
@@ -386,7 +388,8 @@ export const getProfile = async (req: AuthRequest, res: Response, next: NextFunc
                 auth_provider: user?.auth_provider,
                 is_two_factor_enabled: user?.is_two_factor_enabled,
                 profile: user?.profile,
-                credits: user?.credits
+                credits: user?.credits,
+                has_worker_profile: !!(await workerProfileService.findByUserIdOptional(user!.id))
             }
         });
     } catch (error) {
