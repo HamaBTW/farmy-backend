@@ -3,6 +3,7 @@ import { LandWorker, LandWorkerStatus } from '../../models/LandWorker.js';
 import { Land } from '../../models/Land.js';
 import { LandRental, PaymentStatus } from '../../models/LandRental.js';
 import { WorkerProfile, VerificationStatus } from '../../models/WorkerProfile.js';
+import { Task, TaskStatus } from '../../models/Task.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { IsNull, MoreThanOrEqual, LessThanOrEqual, In } from 'typeorm';
 
@@ -17,6 +18,7 @@ class LandWorkerService {
     private landRepo = AppDataSource.getRepository(Land);
     private rentalRepo = AppDataSource.getRepository(LandRental);
     private profileRepo = AppDataSource.getRepository(WorkerProfile);
+    private taskRepo = AppDataSource.getRepository(Task);
 
     /**
      * Core hiring logic:
@@ -120,18 +122,50 @@ class LandWorkerService {
         if (landWorkers.length === 0) return [];
 
         const workerIds = landWorkers.map(w => w.worker_id);
+
+        // Determine availability by checking for active (non-completed) tasks
+        const activeTasks = await this.taskRepo.find({
+            where: [
+                { land_id: landId, status: TaskStatus.ASSIGNED },
+                { land_id: landId, status: TaskStatus.IN_PROGRESS }
+            ]
+        });
+
+        // Build a Set of worker IDs that have active tasks
+        const busyWorkerIds = new Set(
+            activeTasks
+                .filter(t => t.assigned_to !== null)
+                .map(t => t.assigned_to!)
+        );
+
         const profiles = await this.profileRepo.find({
             where: { user_id: In(workerIds) }
         });
 
         return landWorkers.map(lw => {
-            const profile = profiles.find(p => p.user_id === lw.worker_id);
+            const isBusy = busyWorkerIds.has(lw.worker_id);
             return {
-                ...lw,
-                worker_availability: profile?.availability || 'available'
+                // Core fields
+                id: lw.id,
+                land_id: lw.land_id,
+                worker_id: lw.worker_id,
+                assigned_by: lw.assigned_by,
+                role: lw.role,
+                salary: lw.salary,
+                status: lw.status,
+                started_at: lw.started_at,
+                ended_at: lw.ended_at,
+                createdAt: lw.createdAt,
+                updatedAt: lw.updatedAt,
+                // Relations (preserved as nested objects for Flutter parsing)
+                worker: lw.worker,
+                assigner: lw.assigner,
+                // Computed availability from active tasks (not stale DB field)
+                worker_availability: isBusy ? 'busy' : 'available'
             };
         });
     }
+
 
     async findByWorker(workerId: string) {
         return this.landWorkerRepo.find({

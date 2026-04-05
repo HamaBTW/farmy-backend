@@ -44,6 +44,7 @@ class LandGridService {
                     if (cell.x >= 0 && cell.x < land.grid_width && cell.y >= 0 && cell.y < land.grid_height) {
                         matrix[cell.y][cell.x] = {
                             id: item.id,
+                            land_id: land.id,
                             category: item.asset_category,
                             variant_id: item.variant_id,
                             variant_code: (variant as any).variant_code,

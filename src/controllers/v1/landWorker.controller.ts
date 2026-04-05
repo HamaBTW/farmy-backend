@@ -26,7 +26,8 @@ export const assignWorker = async (req: AuthRequest, res: Response, next: NextFu
 
 export const getLandWorkers = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        const result = await landWorkerService.findByLand(req.params.landId as string);
+        // Use findActiveByLand which computes availability from live task data
+        const result = await landWorkerService.findActiveByLand(req.params.landId as string);
 
         res.status(200).json({
             success: true,
