@@ -4,6 +4,7 @@ import { AppDataSource } from '../../config/db.config.js';
 import { ItemRequest } from '../../models/ItemRequest.js';
 import { VegetationVariant } from '../../models/VegetationVariant.js';
 import { AnimalVariant } from '../../models/AnimalVariant.js';
+import { User } from '../../models/User.js';
 import { FarmerStrategySession } from '../../models/FarmerStrategySession.js'; 
 import { In } from 'typeorm';
 
@@ -41,6 +42,10 @@ export class FarmerAgentService {
         const vegRepo = AppDataSource.getRepository(VegetationVariant);
         const animalRepo = AppDataSource.getRepository(AnimalVariant);
 
+        const userRepo = AppDataSource.getRepository(User);
+        const user = await userRepo.findOne({ where: { id: userId } });
+        const userCredits = user ? Number(user.credits) : 0;
+
         let session: FarmerStrategySession | null = null;
         if (sessionId) {
             session = await this.sessionRepo.findOne({ where: { id: sessionId, user_id: userId } });
@@ -68,6 +73,7 @@ export class FarmerAgentService {
 
         const farmContext = {
             totalInvested: totalSpent,
+            currentCredits: userCredits,
             activeAssetsCount: placedAssets.length,
             activeAssets: placedAssets.map(a => ({
                 name: nameMap[a.variant_id] || 'Asset',
@@ -84,6 +90,11 @@ export class FarmerAgentService {
         const prompt = `
 You are the "Farmy Production Guru". Help the FARMER maximize profit.
 ${question ? `Farmer's latest message: "${question}"` : 'Initial farm analysis.'}
+
+IMPORTANT FINANCIAL RULES:
+1. Always prioritize the user's 'currentCredits' budget.
+2. DO NOT suggest purchases or upgrades that exceed 'currentCredits'.
+3. If funds are low, suggest organic growth, soil preparation, or cost-cutting.
 
 FARM STATE:
 ${JSON.stringify(farmContext)}

@@ -8,6 +8,7 @@ import { VegetationVariant } from '../../models/VegetationVariant.js';
 import { AnimalVariant } from '../../models/AnimalVariant.js';
 import { MachineVariant } from '../../models/MachineVariant.js';
 import { ItemRequest } from '../../models/ItemRequest.js';
+import { User } from '../../models/User.js';
 import { In } from 'typeorm';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || 'dummy_expected' });
@@ -105,6 +106,10 @@ export class InvestmentAgentService {
         const machineRepo = AppDataSource.getRepository(MachineVariant);
         const sessionRepo = AppDataSource.getRepository(InvestmentStrategySession);
 
+        const userRepo = AppDataSource.getRepository(User);
+        const user = await userRepo.findOne({ where: { id: userId } });
+        const userCredits = user ? Number(user.credits) : 0;
+
         // 1. Fetch Real-time Market & Weather
         const marketData = await ExternalAPIConnectors.getRealMarketData();
         const weatherData = await ExternalAPIConnectors.getRealWeatherData();
@@ -112,7 +117,10 @@ export class InvestmentAgentService {
         let session: InvestmentStrategySession | null = null;
         let availableFarms: any[] = [];
 
-        let gameContext: any = userContext || {};
+        let gameContext: any = { 
+            ...(userContext || {}),
+            currentCredits: userCredits
+        };
         if (userContext?.landId) {
             const itemRequestRepo = AppDataSource.getRepository(ItemRequest);
             const requests = await itemRequestRepo.find({
@@ -194,7 +202,7 @@ AVAILABLE OPTIONS:
 Instructions:
 1. Always suggest exactly 3 items to buy/rent (Land, Item, Worker).
 2. Balance it with weather conditions (e.g. don't suggest wheat if drought).
-3. Do not overspend.
+3. STRIKE THE BUDGET: The user has exactly ${gameContext.currentCredits} TND. You MUST recommend exactly 3 items that TOGETHER cost LESS than this budget.
 4. **CRITICAL**: If the "USER CURRENT ESTATE" (gameContext) is empty/null while they ask for analysis, explicitly state: "No existing data found for analysis." and then pivot to suggest a starting investment.
 5. **INTERACTIVE LINKS**: When mentioning any Land, Marketplace Asset, or Worker, you MUST wrap it in a deep link. 
    - **VERY IMPORTANT**: You MUST use the exact **UUID** (e.g. 550e8400-e29b...) provided in the JSON data as the ID. **NEVER use the name or slug as the ID.**
