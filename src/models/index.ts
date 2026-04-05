@@ -23,6 +23,7 @@ export { ProductPurchase } from './ProductPurchase.js';
 // Requests and Placement
 export { ItemRequest } from './ItemRequest.js';
 export { PlacedItem } from './PlacedItem.js';
+export { AssetTask } from './AssetTask.js';
 
 // Core Entities
 export { User } from './User.js';
@@ -32,7 +33,7 @@ export { LandRental, PaymentStatus } from './LandRental.js';
 // Worker System
 export { WorkerProfile, VerificationStatus, WorkerAvailability } from './WorkerProfile.js';
 export { LandWorker, LandWorkerStatus } from './LandWorker.js';
-export { Task, TaskType, TaskStatus } from './Task.js';
+export { Task, TaskStatus } from './Task.js';
 
 // Worker Lifecycle
 export { LandWorkerInvitation, InvitationStatus } from './LandWorkerInvitation.js';

@@ -2,15 +2,10 @@ import { Entity, Column, ManyToOne, JoinColumn, Relation } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { Land } from './Land.js';
 import { User } from './User.js';
+import { PlacedItem } from './PlacedItem.js';
+import { AssetTask } from './AssetTask.js';
 
-export enum TaskType {
-    WATER = 'water',
-    HARVEST = 'harvest',
-    FEED = 'feed',
-    INSTALL = 'install',
-    VERIFY = 'verify',
-    MAINTENANCE = 'maintenance'
-}
+// Removed TaskType enum to allow dynamic varchar actions
 
 export enum TaskStatus {
     OPEN = 'open',
@@ -50,11 +45,24 @@ export class Task extends BaseEntity {
     description!: string | null;
 
     @Column({
-        type: 'enum',
-        enum: TaskType,
-        default: TaskType.MAINTENANCE
+        type: 'varchar',
+        default: 'maintenance'
     })
-    type!: TaskType;
+    type!: string;
+
+    @Column({ type: 'uuid', nullable: true })
+    placed_item_id!: string | null;
+
+    @ManyToOne(() => PlacedItem, { onDelete: 'SET NULL', nullable: true })
+    @JoinColumn({ name: 'placed_item_id' })
+    placed_item!: Relation<PlacedItem> | null;
+
+    @Column({ type: 'uuid', nullable: true })
+    asset_task_id!: string | null;
+
+    @ManyToOne(() => AssetTask, { onDelete: 'SET NULL', nullable: true })
+    @JoinColumn({ name: 'asset_task_id' })
+    asset_task!: Relation<AssetTask> | null;
 
     @Column({
         type: 'enum',

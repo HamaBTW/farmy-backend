@@ -111,10 +111,25 @@ class LandWorkerService {
     }
 
     async findActiveByLand(landId: string) {
-        return this.landWorkerRepo.find({
+        const landWorkers = await this.landWorkerRepo.find({
             where: { land_id: landId, status: LandWorkerStatus.ACTIVE },
             relations: ['worker', 'assigner'],
             order: { createdAt: 'DESC' }
+        });
+
+        if (landWorkers.length === 0) return [];
+
+        const workerIds = landWorkers.map(w => w.worker_id);
+        const profiles = await this.profileRepo.find({
+            where: { user_id: In(workerIds) }
+        });
+
+        return landWorkers.map(lw => {
+            const profile = profiles.find(p => p.user_id === lw.worker_id);
+            return {
+                ...lw,
+                worker_availability: profile?.availability || 'available'
+            };
         });
     }
 

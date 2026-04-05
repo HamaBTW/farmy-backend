@@ -12,7 +12,10 @@ export const createTask = async (req: AuthRequest, res: Response, next: NextFunc
                 description: req.body.description,
                 type: req.body.type,
                 reward: req.body.reward,
-                time_required_minutes: req.body.time_required_minutes
+                time_required_minutes: req.body.time_required_minutes,
+                placed_item_id: req.body.placed_item_id,
+                asset_task_id: req.body.asset_task_id,
+                assigned_to: req.body.assigned_to
             }
         );
 

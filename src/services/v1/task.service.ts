@@ -1,5 +1,5 @@
 import { AppDataSource } from '../../config/db.config.js';
-import { Task, TaskType, TaskStatus } from '../../models/Task.js';
+import { Task, TaskStatus } from '../../models/Task.js';
 import { Land } from '../../models/Land.js';
 import { LandWorker, LandWorkerStatus } from '../../models/LandWorker.js';
 import { LandRental } from '../../models/LandRental.js';
@@ -10,9 +10,12 @@ import { IsNull, MoreThanOrEqual } from 'typeorm';
 interface CreateTaskData {
     title: string;
     description?: string;
-    type?: TaskType;
+    type?: string;
     reward?: number;
     time_required_minutes?: number;
+    placed_item_id?: string;
+    asset_task_id?: string;
+    assigned_to?: string;
 }
 
 interface CompleteTaskData {
@@ -41,15 +44,42 @@ class TaskService {
             throw new AppError(403, 'You do not have permission to create tasks on this land');
         }
 
+        // If assigned directly on creation, check worker's availability
+        if (data.assigned_to) {
+            const activeAssignment = await this.landWorkerRepo.findOne({
+                where: {
+                    land_id: landId,
+                    worker_id: data.assigned_to,
+                    status: LandWorkerStatus.ACTIVE
+                }
+            });
+            if (!activeAssignment) {
+                throw new AppError(400, 'Worker is not actively assigned to this land');
+            }
+
+            const workerProfile = await this.profileRepo.findOne({ where: { user_id: data.assigned_to } });
+            if (workerProfile && workerProfile.availability !== 'available') {
+                throw new AppError(400, 'Worker is currently busy or unavailable');
+            }
+
+            if (workerProfile) {
+                workerProfile.availability = 'busy' as any; // Cast for now if enum is exported differently
+                await this.profileRepo.save(workerProfile);
+            }
+        }
+
         const task = this.taskRepo.create({
             land_id: landId,
             created_by: createdById,
             title: data.title,
             description: data.description || null,
-            type: data.type || TaskType.MAINTENANCE,
-            status: TaskStatus.OPEN,
+            type: data.type || 'maintenance',
+            status: data.assigned_to ? TaskStatus.ASSIGNED : TaskStatus.OPEN,
             reward: data.reward || 0,
-            time_required_minutes: data.time_required_minutes || 30
+            time_required_minutes: data.time_required_minutes || 30,
+            placed_item_id: data.placed_item_id || null,
+            asset_task_id: data.asset_task_id || null,
+            assigned_to: data.assigned_to || null,
         });
 
         return this.taskRepo.save(task);
@@ -80,6 +110,17 @@ class TaskService {
         });
         if (!activeAssignment) {
             throw new AppError(400, 'Worker is not actively assigned to this land');
+        }
+
+        // Check worker profile capability
+        const workerProfile = await this.profileRepo.findOne({ where: { user_id: workerId } });
+        if (workerProfile && workerProfile.availability !== 'available') {
+            throw new AppError(400, 'Worker is currently busy or unavailable');
+        }
+
+        if (workerProfile) {
+            workerProfile.availability = 'busy' as any;
+            await this.profileRepo.save(workerProfile);
         }
 
         task.assigned_to = workerId;
@@ -113,10 +154,11 @@ class TaskService {
         task.proof_video_url = proof.proof_video_url || null;
         task.proof_gps = proof.proof_gps || null;
 
-        // Update worker stats
+        // Update worker stats to available again
         const workerProfile = await this.profileRepo.findOne({ where: { user_id: userId } });
         if (workerProfile) {
             workerProfile.completed_tasks = (workerProfile.completed_tasks || 0) + 1;
+            workerProfile.availability = 'available' as any;
             await this.profileRepo.save(workerProfile);
         }
 

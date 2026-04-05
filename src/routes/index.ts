@@ -36,6 +36,10 @@ router.use('/v1/kyc', kycRoutesV1);
 console.log('Registering /v1/assets routes');
 router.use('/v1/assets', assetRoutesV1);
 
+import assetTaskRoutesV1 from './v1/assetTask.routes.js';
+console.log('Registering /v1/asset-tasks routes');
+router.use('/v1/asset-tasks', assetTaskRoutesV1);
+
 console.log('Registering /v1/lands routes');
 router.use('/v1/lands', landRoutesV1);
 
