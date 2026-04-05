@@ -27,3 +27,6 @@ export { PlacedItem } from './PlacedItem.js';
 export { User } from './User.js';
 export { Land } from './Land.js';
 export { LandRental, PaymentStatus } from './LandRental.js';
+export { MatchRequest, MatchRequestStatus } from './MatchRequest.js';
+export { Notification, NotificationType } from './Notification.js';
+export { Message } from './Message.js';
