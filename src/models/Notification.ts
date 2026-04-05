@@ -11,6 +11,7 @@ export enum NotificationType {
     INVITATION = 'invitation',
     CONTRACT = 'contract',
     WALLET = 'wallet',
+    TASK = 'task',
     SYSTEM = 'system'
 }
 

@@ -4,8 +4,12 @@ import { Land } from '../../models/Land.js';
 import { LandWorker, LandWorkerStatus } from '../../models/LandWorker.js';
 import { LandRental } from '../../models/LandRental.js';
 import { WorkerProfile } from '../../models/WorkerProfile.js';
+import { User } from '../../models/User.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { IsNull, MoreThanOrEqual } from 'typeorm';
+import { firebaseService } from './firebase.service.js';
+import { NotificationType } from '../../models/Notification.js';
+import logger from '../../utils/logger.js';
 
 interface CreateTaskData {
     title: string;
@@ -30,6 +34,7 @@ class TaskService {
     private landWorkerRepo = AppDataSource.getRepository(LandWorker);
     private rentalRepo = AppDataSource.getRepository(LandRental);
     private profileRepo = AppDataSource.getRepository(WorkerProfile);
+    private userRepo = AppDataSource.getRepository(User);
 
     async create(landId: string, createdById: string, data: CreateTaskData) {
         // Verify land exists
@@ -82,7 +87,39 @@ class TaskService {
             assigned_to: data.assigned_to || null,
         });
 
-        return this.taskRepo.save(task);
+        const saved = await this.taskRepo.save(task);
+
+        // 🔔 Send push notification to assigned worker
+        if (data.assigned_to) {
+            try {
+                const investor = await this.userRepo.findOne({
+                    where: { id: createdById },
+                    relations: ['profile']
+                });
+                const investorName = (investor as any)?.profile?.name || investor?.email || 'The investor';
+
+                await firebaseService.sendToUsers(
+                    data.assigned_to,
+                    '🌾 New Task Assigned',
+                    `${investorName} assigned you: "${data.title}"`,
+                    {
+                        type: 'task_assigned',
+                        task_id: saved.id,
+                        land_id: landId,
+                        task_title: data.title,
+                        task_type: data.type || 'maintenance',
+                        reward: String(data.reward || 0),
+                    },
+                    NotificationType.TASK
+                );
+                logger.info(`📲 Task assignment notification sent to worker ${data.assigned_to}`);
+            } catch (notifErr) {
+                // Never block task creation due to notification failure
+                logger.error('Failed to send task notification:', notifErr);
+            }
+        }
+
+        return saved;
     }
 
     async assignTask(taskId: string, workerId: string, userId: string) {
@@ -125,7 +162,36 @@ class TaskService {
 
         task.assigned_to = workerId;
         task.status = TaskStatus.ASSIGNED;
-        return this.taskRepo.save(task);
+        const saved = await this.taskRepo.save(task);
+
+        // 🔔 Send push notification to assigned worker
+        try {
+            const assigner = await this.userRepo.findOne({
+                where: { id: userId },
+                relations: ['profile']
+            });
+            const assignerName = (assigner as any)?.profile?.name || assigner?.email || 'The investor';
+
+            await firebaseService.sendToUsers(
+                workerId,
+                '🌾 New Task Assigned',
+                `${assignerName} assigned you: "${task.title}"`,
+                {
+                    type: 'task_assigned',
+                    task_id: saved.id,
+                    land_id: task.land_id,
+                    task_title: task.title,
+                    task_type: task.type,
+                    reward: String(task.reward || 0),
+                },
+                NotificationType.TASK
+            );
+            logger.info(`📲 Task assignment notification sent to worker ${workerId}`);
+        } catch (notifErr) {
+            logger.error('Failed to send task notification:', notifErr);
+        }
+
+        return saved;
     }
 
     async completeTask(taskId: string, userId: string, proof: CompleteTaskData) {
