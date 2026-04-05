@@ -14,6 +14,7 @@ import proofRoutesV1 from './v1/proof.routes.js';
 import deviceRoutesV1 from './v1/device.routes.js';
 import notificationRoutesV1 from './v1/notification.routes.js';
 
+import matchingRoutesV1 from './v1/matching.routes.js';
 
 const router = Router();
 
@@ -63,6 +64,9 @@ router.use('/v1/products', productRoutesV1);
 
 console.log('Registering /v1/hedera routes');
 router.use('/v1/hedera', hederaRoutesV1);
+
+console.log('Registering /v1/matching routes');
+router.use('/v1/matching', matchingRoutesV1);
 
 import productTypeRoutesV1 from './v1/productType.routes.js';
 console.log('Registering /v1/product-types routes');

@@ -484,3 +484,30 @@ export const getPublicUser = async (req: Request, res: Response, next: NextFunct
         next(error);
     }
 };
+
+export const updateUserLocation = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { latitude, longitude } = req.body;
+        const userId = req.user!.id;
+
+        if (latitude === undefined || longitude === undefined) {
+            throw new AppError(400, 'Latitude and longitude are required');
+        }
+
+        const user = await authService.updateUserLocation(userId, { latitude, longitude });
+
+        res.status(200).json({
+            success: true,
+            message: 'Location updated successfully',
+            data: {
+                id: user.id,
+                email: user.email,
+                location: user.location,
+                updated_at: user.updatedAt
+            }
+        });
+    } catch (error) {
+        console.error('Error in updateUserLocation:', error);
+        next(error);
+    }
+};

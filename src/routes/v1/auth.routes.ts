@@ -9,6 +9,7 @@ const router = Router();
 
 router.get('/me', authenticate, authController.getProfile);
 router.get('/users/:id', authenticate, authController.getPublicUser);
+router.patch('/location', authenticate, authController.updateUserLocation);
 router.post('/register', validateRequest(registerSchema), authController.register);
 router.post('/login', validateRequest(loginSchema), authController.login);
 router.post('/login/verify-2fa', authController.verify2fa);
