@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { SubscriptionPlan } from './SubscriptionPlan.js';
@@ -17,6 +17,7 @@ export class UserSubscription extends BaseEntity {
     @JoinColumn({ name: 'user_id' })
     user!: User;
 
+    @Index('IDX_user_subscriptions_user_id')
     @Column({ type: 'varchar', name: 'user_id' })
     user_id!: string;
 
@@ -24,6 +25,7 @@ export class UserSubscription extends BaseEntity {
     @JoinColumn({ name: 'plan_id' })
     plan!: SubscriptionPlan;
 
+    @Index('IDX_user_subscriptions_plan_id')
     @Column({ type: 'varchar', name: 'plan_id' })
     plan_id!: string;
 

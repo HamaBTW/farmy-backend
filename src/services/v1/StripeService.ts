@@ -12,7 +12,7 @@ export class StripeService {
 
     constructor() {
         this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-            apiVersion: '2026-01-28.clover',
+            apiVersion: '2023-10-16' as any,
         });
     }
 
@@ -32,9 +32,9 @@ export class StripeService {
     }
 
     async createEphemeralKey(customerId: string) {
+        // The global apiVersion '2023-10-16' is now correctly aligned with the native SDK
         return await this.stripe.ephemeralKeys.create(
-            { customer: customerId },
-            { apiVersion: '2026-01-28.clover' }
+            { customer: customerId }
         );
     }
 

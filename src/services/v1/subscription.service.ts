@@ -136,6 +136,7 @@ class SubscriptionService {
         }
 
         // Create Payment Intent and Ephemeral Key
+        console.log(`[SubscriptionService] Creating PaymentIntent for user ${userId}, plan ${planId}, amount ${price}`);
         const paymentIntent = await stripeService.createPaymentIntent(
             Number(price),
             'usd',
@@ -147,6 +148,9 @@ class SubscriptionService {
                 type: 'subscription_upgrade'
             }
         );
+        console.log(`[SubscriptionService] PaymentIntent created: ${paymentIntent.id}`);
+
+        console.log(`[SubscriptionService] Creating Ephemeral Key for customer ${customerId}`);
         const ephemeralKey = await stripeService.createEphemeralKey(customerId);
 
         return {
@@ -250,6 +254,9 @@ class SubscriptionService {
         if (!user || !plan) throw new AppError(404, 'User or Plan not found');
 
         const price = Number(billingCycle === 'monthly' ? plan.price_monthly : plan.price_yearly);
+        if (isNaN(price)) {
+            throw new AppError(400, 'Invalid plan configuration. Check pricing.');
+        }
 
         if (user.role && user.role !== plan.role) {
             throw new AppError(400, `Cannot subscribe to a ${plan.role} plan as a ${user.role}`);
@@ -259,47 +266,71 @@ class SubscriptionService {
             throw new AppError(400, 'Insufficient credits balance');
         }
 
-        // Deduct credits
-        user.credits = Number(user.credits) - price;
-        user.credits_balance = Number(user.credits); // Keep both in sync
+        return await AppDataSource.transaction(async (manager) => {
+            // Reload user inside transaction to avoid race conditions on credits
+            const lockedUser = await manager.findOne(User, {
+                where: { id: userId },
+                lock: { mode: 'pessimistic_write' }
+            });
 
-        const oldSub = await this.expireOldSubscription(user.id);
+            if (!lockedUser) throw new AppError(404, 'User not found in transaction');
 
-        const end_date = new Date();
-        if (billingCycle === 'yearly') {
-            end_date.setFullYear(end_date.getFullYear() + 1);
-        } else {
-            end_date.setMonth(end_date.getMonth() + 1);
-        }
+            if (Number(lockedUser.credits) < price) {
+                throw new AppError(400, 'Insufficient credits balance during execution');
+            }
 
-        const newSub = this.subscriptionRepository.create({
-            user_id: user.id,
-            plan_id: plan.id,
-            status: SubscriptionStatus.ACTIVE,
-            payment_method: 'credits',
-            billing_cycle: billingCycle,
-            auto_renew: false,
-            end_date,
-            entitlements_snapshot: plan.entitlements || {}
+            // Deduct credits
+            lockedUser.credits = Number(lockedUser.credits) - price;
+            lockedUser.credits_balance = Number(lockedUser.credits);
+
+            // Expire old subscription inline
+            const activeSub = await manager.findOne(UserSubscription, {
+                where: { user_id: lockedUser.id, status: SubscriptionStatus.ACTIVE },
+                relations: ['plan']
+            });
+
+            if (activeSub) {
+                activeSub.status = SubscriptionStatus.EXPIRED;
+                await manager.save(activeSub);
+            }
+
+            const end_date = new Date();
+            if (billingCycle === 'yearly') {
+                end_date.setFullYear(end_date.getFullYear() + 1);
+            } else {
+                end_date.setMonth(end_date.getMonth() + 1);
+            }
+
+            // Create new sub
+            const newSub = manager.create(UserSubscription, {
+                user_id: lockedUser.id,
+                plan_id: plan.id,
+                status: SubscriptionStatus.ACTIVE,
+                payment_method: 'credits',
+                billing_cycle: billingCycle,
+                auto_renew: false,
+                end_date,
+                entitlements_snapshot: plan.entitlements || {}
+            });
+
+            await manager.save(newSub);
+
+            lockedUser.current_subscription_id = newSub.id;
+            lockedUser.subscription_status = SubscriptionStatus.ACTIVE;
+            await manager.save(lockedUser);
+
+            const history = manager.create(SubscriptionHistory, {
+                user_id: lockedUser.id,
+                from_plan_id: activeSub ? activeSub.plan_id : null,
+                to_plan_id: plan.id,
+                event_type: SubscriptionEventType.UPGRADE,
+                metadata: { payment_method: 'credits', price_deducted: price }
+            });
+
+            await manager.save(history);
+
+            return newSub;
         });
-
-        await this.subscriptionRepository.save(newSub);
-
-        user.current_subscription_id = newSub.id;
-        user.subscription_status = SubscriptionStatus.ACTIVE;
-        await this.userRepository.save(user);
-
-        const history = this.historyRepository.create({
-            user_id: user.id,
-            from_plan_id: oldSub ? oldSub.plan_id : null,
-            to_plan_id: plan.id,
-            event_type: SubscriptionEventType.UPGRADE,
-            metadata: { payment_method: 'credits', price_deducted: price }
-        });
-
-        await this.historyRepository.save(history);
-
-        return newSub;
     }
 
     // --- Entitlement & Feature Gating Methods ---
