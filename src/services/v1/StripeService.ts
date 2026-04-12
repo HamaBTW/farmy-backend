@@ -7,12 +7,14 @@ if (!process.env.STRIPE_SECRET_KEY) {
     console.warn('⚠️ STRIPE_SECRET_KEY is not set in .env file');
 }
 
+const stripeApiVersion = process.env.STRIPE_API_VERSION || '2024-04-10';
+
 export class StripeService {
     private stripe: Stripe;
 
     constructor() {
         this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-            apiVersion: '2026-01-28.clover',
+            apiVersion: stripeApiVersion as any,
         });
     }
 
@@ -34,7 +36,7 @@ export class StripeService {
     async createEphemeralKey(customerId: string) {
         return await this.stripe.ephemeralKeys.create(
             { customer: customerId },
-            { apiVersion: '2026-01-28.clover' }
+            { apiVersion: stripeApiVersion as any }
         );
     }
 

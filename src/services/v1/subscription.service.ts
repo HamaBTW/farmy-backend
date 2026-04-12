@@ -12,6 +12,25 @@ class SubscriptionService {
     private subscriptionRepository = AppDataSource.getRepository(UserSubscription);
     private historyRepository = AppDataSource.getRepository(SubscriptionHistory);
 
+    private mapStripeIntentStatus(status: string): 'succeeded' | 'processing' | 'requires_action' | 'cancelled' | 'failed' {
+        switch (status) {
+            case 'succeeded':
+                return 'succeeded';
+            case 'processing':
+            case 'requires_capture':
+            case 'requires_confirmation':
+                return 'processing';
+            case 'requires_action':
+                return 'requires_action';
+            case 'canceled':
+                return 'cancelled';
+            case 'requires_payment_method':
+                return 'failed';
+            default:
+                return 'processing';
+        }
+    }
+
     async getPlans(role?: UserRole) {
         if (role) {
             return await this.planRepository.find({ where: { role } });
@@ -101,7 +120,12 @@ class SubscriptionService {
         return activeSub;
     }
 
-    async createStripePaymentIntent(userId: string, planId: string, billingCycle: 'monthly' | 'yearly') {
+    async createStripePaymentIntent(
+        userId: string,
+        planId: string,
+        billingCycle: 'monthly' | 'yearly',
+        requestId?: string
+    ) {
         const user = await this.userRepository.findOne({ where: { id: userId } });
         const plan = await this.planRepository.findOne({ where: { id: planId } });
 
@@ -145,7 +169,8 @@ class SubscriptionService {
                 planId,
                 billingCycle,
                 type: 'subscription_upgrade'
-            }
+            },
+            requestId ? `subscription_upgrade_${userId}_${requestId}` : undefined
         );
         const ephemeralKey = await stripeService.createEphemeralKey(customerId);
 
@@ -218,29 +243,70 @@ class SubscriptionService {
         return newSub;
     }
 
-    /**
-     * Confirms a Stripe payment by verifying the PaymentIntent status directly with Stripe.
-     * This is the primary activation path (webhook is a fallback safety net).
-     */
-    async confirmStripePayment(userId: string, paymentIntentId: string) {
-        // 1. Retrieve the PaymentIntent from Stripe to verify status
-        const paymentIntent = await stripeService.retrievePaymentIntent(paymentIntentId);
+    async getStripePaymentStatus(userId: string, paymentIntentId: string) {
+        const existingSub = await this.subscriptionRepository.findOne({
+            where: { stripe_payment_intent_id: paymentIntentId },
+            relations: ['plan']
+        });
 
-        if (paymentIntent.status !== 'succeeded') {
-            throw new AppError(400, `Payment has not succeeded. Status: ${paymentIntent.status}`);
-        }
-
-        // 2. Verify that the metadata belongs to this user (security check)
-        if (paymentIntent.metadata.userId !== userId) {
+        if (existingSub && existingSub.user_id !== userId) {
             throw new AppError(403, 'Payment does not belong to this user');
         }
 
-        // 3. Activate the subscription using the existing handler (idempotent)
-        const result = await this.handleStripeWebhookSuccess(paymentIntentId, paymentIntent.metadata);
+        if (existingSub && existingSub.status === SubscriptionStatus.ACTIVE) {
+            return {
+                paymentIntentId,
+                status: 'succeeded',
+                stripeStatus: 'succeeded',
+                subscription: existingSub,
+            };
+        }
 
-        // 4. Return fresh subscription data
-        const subscription = await this.getUserSubscription(userId);
-        return subscription;
+        const paymentIntent = await stripeService.retrievePaymentIntent(paymentIntentId);
+        const metadataUserId = paymentIntent.metadata?.userId;
+
+        if (metadataUserId && metadataUserId !== userId) {
+            throw new AppError(403, 'Payment does not belong to this user');
+        }
+
+        const normalizedStatus = this.mapStripeIntentStatus(paymentIntent.status);
+
+        if (normalizedStatus === 'succeeded') {
+            await this.handleStripeWebhookSuccess(paymentIntent.id, paymentIntent.metadata);
+            const refreshedSubscription = await this.getUserSubscription(userId);
+
+            return {
+                paymentIntentId,
+                status: 'succeeded',
+                stripeStatus: paymentIntent.status,
+                subscription: refreshedSubscription,
+            };
+        }
+
+        return {
+            paymentIntentId,
+            status: normalizedStatus,
+            stripeStatus: paymentIntent.status,
+            subscription: null,
+        };
+    }
+
+    /**
+     * Confirms a Stripe payment by reconciling PaymentIntent state from Stripe.
+     * This remains idempotent and safe if webhooks already processed the payment.
+     */
+    async confirmStripePayment(userId: string, paymentIntentId: string) {
+        const paymentState = await this.getStripePaymentStatus(userId, paymentIntentId);
+
+        if (paymentState.status === 'cancelled' || paymentState.status === 'failed') {
+            throw new AppError(400, `Payment was not completed. Status: ${paymentState.stripeStatus}`);
+        }
+
+        if (paymentState.status !== 'succeeded' || !paymentState.subscription) {
+            throw new AppError(409, `Payment is still processing. Status: ${paymentState.stripeStatus}`);
+        }
+
+        return paymentState.subscription;
     }
 
     async upgradeWithCredits(userId: string, planId: string, billingCycle: 'monthly' | 'yearly') {

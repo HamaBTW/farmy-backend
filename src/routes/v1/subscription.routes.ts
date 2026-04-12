@@ -15,6 +15,7 @@ router.get('/has-subscription', subscriptionController.checkSubscriptionExistenc
 router.post('/subscribe/stripe', subscriptionController.createCheckoutSession);
 router.post('/subscribe/credits', subscriptionController.upgradeWithCredits);
 router.post('/subscribe/confirm', subscriptionController.confirmStripePayment);
+router.get('/subscribe/status/:paymentIntentId', subscriptionController.getStripePaymentStatus);
 
 // Admin/Internal only (could be gated further)
 router.post('/seed', subscriptionController.seedPlans);

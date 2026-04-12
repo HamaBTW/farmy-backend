@@ -13,6 +13,15 @@ import { startSubscriptionCron } from './cron/subscriptionCron.js';
 const port = process.env.PORT || 5000;
 const server = createServer(app);
 
+server.on('error', (error: any) => {
+    if (error?.code === 'EADDRINUSE') {
+        logger.error('❌ Port %s is already in use. Stop the existing process or change PORT.', port);
+    } else {
+        logger.error('❌ Server runtime error: %O', error);
+    }
+    process.exit(1);
+});
+
 const startServer = async () => {
     try {
         if (!checkEnvVariables()) {
@@ -23,6 +32,9 @@ const startServer = async () => {
         await createDatabaseIfNotExists();
         await AppDataSource.initialize();
         logger.info('✅ Database connected successfully');
+        logger.info(
+            `🗄️ TypeORM synchronize is ${AppDataSource.options.synchronize ? 'ENABLED' : 'DISABLED'}`
+        );
 
         startSubscriptionCron();
 

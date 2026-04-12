@@ -101,7 +101,7 @@ export class SubscriptionController {
     async createCheckoutSession(req: Request, res: Response) {
         try {
             const userId = (req as any).user.id;
-            const { planKey, billingCycle } = req.body;
+            const { planKey, billingCycle, requestId } = req.body;
 
             if (!planKey || !billingCycle) {
                 return res.status(400).json(buildErrorResponse(
@@ -122,11 +122,33 @@ export class SubscriptionController {
                 ));
             }
 
-            const paymentIntent = await subscriptionService.createStripePaymentIntent(userId, plan.id, billingCycle);
+            const paymentIntent = await subscriptionService.createStripePaymentIntent(userId, plan.id, billingCycle, requestId);
             res.status(200).json(paymentIntent);
         } catch (error: any) {
             const status = resolveStatusCode(error);
             res.status(status).json(buildErrorResponse(error, 'checkout_failed'));
+        }
+    }
+
+    async getStripePaymentStatus(req: Request, res: Response) {
+        try {
+            const userId = (req as any).user.id;
+            const rawPaymentIntentId = req.params.paymentIntentId;
+            const paymentIntentId = Array.isArray(rawPaymentIntentId)
+                ? rawPaymentIntentId[0]
+                : rawPaymentIntentId;
+
+            if (!paymentIntentId) {
+                return res.status(400).json(buildErrorResponse(
+                    { message: 'paymentIntentId is required', code: 'missing_payment_intent' },
+                ));
+            }
+
+            const status = await subscriptionService.getStripePaymentStatus(userId, paymentIntentId);
+            res.status(200).json(status);
+        } catch (error: any) {
+            const status = resolveStatusCode(error);
+            res.status(status).json(buildErrorResponse(error, 'payment_status_failed'));
         }
     }
 

@@ -9,6 +9,19 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
+const parseBooleanEnv = (value: string | undefined, defaultValue: boolean) => {
+    if (value == null || value.trim() === '') return defaultValue;
+
+    const normalized = value.trim().toLowerCase();
+    if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+    if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+
+    return defaultValue;
+};
+
+const dbSynchronize = parseBooleanEnv(process.env.DB_SYNCHRONIZE, false);
+const dbLogging = parseBooleanEnv(process.env.DB_LOGGING, false);
+
 export const createDatabaseIfNotExists = async () => {
     try {
         const connection = await mysql.createConnection({
@@ -34,8 +47,8 @@ export const AppDataSource = new DataSource({
     username: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'farmy',
-    synchronize: true, // Automatically syncs entities with the database, disable in production
-    logging: false, // Enable query logging if needed
+    synchronize: dbSynchronize,
+    logging: dbLogging,
     entities: [path.join(__dirname, '../models/*.{ts,js}')], // Support both TS (dev) and JS (prod)
     migrations: [path.join(__dirname, '/migrations/*.js')], // Use the correct path
     subscribers: [],

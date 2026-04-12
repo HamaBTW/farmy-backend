@@ -14,6 +14,7 @@ import { requestLogger } from './middlewares/requestLogger.middleware.js';
 import { envCheckMiddleware } from './middlewares/envCheck.middleware.js';
 import { generalLimiter } from './middlewares/rateLimiter.middleware.js';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
+import stripeRoutes from './routes/v1/stripe.routes.js';
 import routes from './routes/index.js';
 
 const app: Application = express();
@@ -51,6 +52,9 @@ app.use(compression());
 
 // Serve static files (after CORS so headers are included)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Stripe webhooks must be mounted before express.json so raw body stays intact.
+app.use('/api/v1/stripe', stripeRoutes);
 
 // Body parsing with suggested limits
 app.use(express.json({ limit: '5gb' }));
