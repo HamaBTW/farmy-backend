@@ -3,6 +3,16 @@ import { Land } from '../../models/Land.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { hederaService } from './HederaService.js';
 import { subscriptionService } from './subscription.service.js';
+import { metersToGridCells } from '../../utils/grid.utils.js';
+import {
+    buildPlayableMask,
+    computeBoundaryBoundsMeters,
+    computeGeometryHash,
+    isPlayableCell,
+    normalizeBoundaryRing,
+    validateBoundaryRing,
+} from '../../utils/landGeometry.utils.js';
+import type { LngLatTuple } from '../../utils/landGeometry.utils.js';
 
 interface CreateLandData {
     owner_id: string;
@@ -16,13 +26,72 @@ interface CreateLandData {
     boundaries?: any;
 }
 
+const DEFAULT_LAND_DIMENSION_METERS = 10.0;
+const MAX_GRID_DIMENSION = 256;
+
 class LandService {
     private landRepo = AppDataSource.getRepository(Land);
+    private playableMaskCache = new Map<string, { geometryHash: string; mask: boolean[][] }>();
+
+    private normalizeAndValidateBoundaries(boundaries: unknown): LngLatTuple[] {
+        const normalized = normalizeBoundaryRing(boundaries);
+        if (!normalized) {
+            throw new AppError(400, 'Boundaries must contain at least 3 valid points.');
+        }
+
+        const validation = validateBoundaryRing(normalized);
+        if (!validation.valid) {
+            throw new AppError(400, validation.message);
+        }
+
+        return normalized;
+    }
+
+    private deriveGridDimensionsFromBoundary(boundaryRing: LngLatTuple[]): { width_m: number; height_m: number } {
+        const bounds = computeBoundaryBoundsMeters(boundaryRing);
+        const widthCells = Math.max(1, Math.min(MAX_GRID_DIMENSION, metersToGridCells(bounds.widthMeters)));
+        const heightCells = Math.max(1, Math.min(MAX_GRID_DIMENSION, metersToGridCells(bounds.heightMeters)));
+
+        return {
+            width_m: widthCells,
+            height_m: heightCells,
+        };
+    }
+
+    private getPlayableMaskForLand(land: Land): boolean[][] | null {
+        const normalized = normalizeBoundaryRing(land.boundaries);
+        if (!normalized) {
+            return null;
+        }
+
+        const validation = validateBoundaryRing(normalized);
+        if (!validation.valid) {
+            return null;
+        }
+
+        const geometryHash = computeGeometryHash(normalized, land.grid_width, land.grid_height);
+        const cached = this.playableMaskCache.get(land.id);
+        if (cached && cached.geometryHash === geometryHash) {
+            return cached.mask;
+        }
+
+        const mask = buildPlayableMask(normalized, land.grid_width, land.grid_height);
+        this.playableMaskCache.set(land.id, { geometryHash, mask });
+        return mask;
+    }
 
     async create(data: CreateLandData) {
         // Map legacy grid fields to meters if meters are not provided
-        const width = data.width_m ?? data.grid_width ?? 10.0;
-        const height = data.height_m ?? data.grid_height ?? 10.0;
+        let width = data.width_m ?? data.grid_width ?? DEFAULT_LAND_DIMENSION_METERS;
+        let height = data.height_m ?? data.grid_height ?? DEFAULT_LAND_DIMENSION_METERS;
+        let normalizedBoundaries: LngLatTuple[] | null = null;
+
+        if (data.boundaries !== undefined && data.boundaries !== null) {
+            normalizedBoundaries = this.normalizeAndValidateBoundaries(data.boundaries);
+            const derivedDimensions = this.deriveGridDimensionsFromBoundary(normalizedBoundaries);
+            width = derivedDimensions.width_m;
+            height = derivedDimensions.height_m;
+        }
 
         // Entitlement Check
         const currentCount = await this.landRepo.count({ where: { owner_id: data.owner_id } });
@@ -38,7 +107,7 @@ class LandService {
             width_m: width,
             height_m: height,
             price: data.price ?? 1200,
-            boundaries: data.boundaries
+            boundaries: normalizedBoundaries
         });
         const savedLand = await this.landRepo.save(land);
 
@@ -131,11 +200,25 @@ class LandService {
             data.height_m = data.grid_height;
         }
 
+        if (data.boundaries !== undefined) {
+            if (data.boundaries === null) {
+                data.boundaries = null;
+            } else {
+                const normalizedBoundaries = this.normalizeAndValidateBoundaries(data.boundaries);
+                const derivedDimensions = this.deriveGridDimensionsFromBoundary(normalizedBoundaries);
+                data.boundaries = normalizedBoundaries;
+                data.width_m = derivedDimensions.width_m;
+                data.height_m = derivedDimensions.height_m;
+            }
+        }
+
         // Clean up legacy fields to avoid problems with getters
         const { grid_width, grid_height, ...updateData } = data;
 
         Object.assign(land, updateData);
-        return this.landRepo.save(land);
+        const savedLand = await this.landRepo.save(land);
+        this.playableMaskCache.delete(savedLand.id);
+        return savedLand;
     }
 
     async delete(id: string, userId: string) {
@@ -146,6 +229,7 @@ class LandService {
         }
 
         await this.landRepo.delete(id);
+        this.playableMaskCache.delete(id);
         return { message: 'Land deleted successfully' };
     }
 
@@ -164,7 +248,17 @@ class LandService {
 
     async isPositionValid(landId: string, x: number, y: number): Promise<boolean> {
         const land = await this.findById(landId);
-        return x >= 0 && x < land.grid_width && y >= 0 && y < land.grid_height;
+        const isInRectangularBounds = x >= 0 && x < land.grid_width && y >= 0 && y < land.grid_height;
+        if (!isInRectangularBounds) {
+            return false;
+        }
+
+        const playableMask = this.getPlayableMaskForLand(land);
+        if (!playableMask) {
+            return true;
+        }
+
+        return isPlayableCell(playableMask, x, y);
     }
 }
 

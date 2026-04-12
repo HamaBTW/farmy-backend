@@ -32,12 +32,33 @@
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: array
- *                   items:
- *                     type: array
- *                     items:
- *                       type: object
+ *                   type: object
+ *                   properties:
+ *                     land_id:
+ *                       type: string
+ *                       format: uuid
+ *                     grid_width:
+ *                       type: integer
+ *                     grid_height:
+ *                       type: integer
+ *                     geometry_hash:
+ *                       type: string
  *                       nullable: true
+ *                     has_polygon_boundaries:
+ *                       type: boolean
+ *                     playable_mask:
+ *                       type: array
+ *                       items:
+ *                         type: array
+ *                         items:
+ *                           type: boolean
+ *                     matrix:
+ *                       type: array
+ *                       items:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           nullable: true
  */
 
 /**

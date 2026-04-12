@@ -68,27 +68,46 @@ export const updateProductionSchema = Joi.object({
     conditions: Joi.object().optional().allow(null)
 });
 
+const boundaryPointSchema = Joi.alternatives().try(
+    Joi.array().length(2).ordered(
+        Joi.number().min(-180).max(180).required(),
+        Joi.number().min(-90).max(90).required(),
+    ),
+    Joi.object({
+        longitude: Joi.number().min(-180).max(180).required(),
+        latitude: Joi.number().min(-90).max(90).required(),
+    }),
+    Joi.object({
+        lng: Joi.number().min(-180).max(180).required(),
+        lat: Joi.number().min(-90).max(90).required(),
+    }),
+    Joi.object({
+        x: Joi.number().min(-180).max(180).required(),
+        y: Joi.number().min(-90).max(90).required(),
+    }),
+);
+
 // Land schemas
 export const createLandSchema = Joi.object({
     name: Joi.string().min(2).max(100).required(),
     description: Joi.string().max(500).optional(),
     price: Joi.number().positive().min(0).optional(),
-    width_m: Joi.number().min(1).max(100).optional(),
-    height_m: Joi.number().min(1).max(100).optional(),
-    grid_width: Joi.number().integer().min(1).max(100).optional(), // Maintain backward compatibility
-    grid_height: Joi.number().integer().min(1).max(100).optional(),
-    boundaries: Joi.any().optional()
+    width_m: Joi.number().min(1).max(500).optional(),
+    height_m: Joi.number().min(1).max(500).optional(),
+    grid_width: Joi.number().integer().min(1).max(500).optional(), // Maintain backward compatibility
+    grid_height: Joi.number().integer().min(1).max(500).optional(),
+    boundaries: Joi.array().items(boundaryPointSchema).min(3).optional()
 });
 
 export const updateLandSchema = Joi.object({
     name: Joi.string().min(2).max(100).optional(),
     description: Joi.string().max(500).optional().allow(null),
     price: Joi.number().positive().min(0).optional().allow(null),
-    width_m: Joi.number().min(1).max(100).optional(),
-    height_m: Joi.number().min(1).max(100).optional(),
-    grid_width: Joi.number().integer().min(1).max(100).optional(),
-    grid_height: Joi.number().integer().min(1).max(100).optional(),
-    boundaries: Joi.any().optional().allow(null),
+    width_m: Joi.number().min(1).max(500).optional(),
+    height_m: Joi.number().min(1).max(500).optional(),
+    grid_width: Joi.number().integer().min(1).max(500).optional(),
+    grid_height: Joi.number().integer().min(1).max(500).optional(),
+    boundaries: Joi.array().items(boundaryPointSchema).min(3).optional().allow(null),
     is_active: Joi.boolean().optional()
 });
 
