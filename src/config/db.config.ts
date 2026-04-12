@@ -40,6 +40,58 @@ export const createDatabaseIfNotExists = async () => {
     }
 };
 
+export const ensureAiAssistantSchema = async (dataSource: DataSource) => {
+    const userTableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'users'
+    `) as Array<{ total: number | string }>;
+
+    const userTableExists = Number(userTableRows?.[0]?.total || 0) > 0;
+    if (!userTableExists) {
+        console.warn('Skipping AI assistant schema bootstrap because users table is missing.');
+        return;
+    }
+
+    await dataSource.query(`
+        CREATE TABLE IF NOT EXISTS \`ai_assistant_chats\` (
+            \`id\` varchar(36) NOT NULL,
+            \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+            \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+            \`user_id\` varchar(36) NOT NULL,
+            \`title\` varchar(180) NOT NULL,
+            \`last_message_at\` datetime(6) NULL,
+            \`is_active\` tinyint NOT NULL DEFAULT 1,
+            PRIMARY KEY (\`id\`),
+            KEY \`IDX_ai_assistant_chats_user_active\` (\`user_id\`, \`is_active\`),
+            KEY \`IDX_ai_assistant_chats_last_message\` (\`last_message_at\`),
+            CONSTRAINT \`FK_ai_assistant_chats_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+
+    await dataSource.query(`
+        CREATE TABLE IF NOT EXISTS \`ai_assistant_messages\` (
+            \`id\` varchar(36) NOT NULL,
+            \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+            \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+            \`chat_id\` varchar(36) NOT NULL,
+            \`user_id\` varchar(36) NOT NULL,
+            \`role\` enum('user','assistant','system') NOT NULL,
+            \`content\` text NOT NULL,
+            \`edited_from_message_id\` varchar(36) NULL,
+            \`meta\` text NULL,
+            PRIMARY KEY (\`id\`),
+            KEY \`IDX_ai_assistant_messages_chat_created\` (\`chat_id\`, \`createdAt\`),
+            KEY \`IDX_ai_assistant_messages_user_created\` (\`user_id\`, \`createdAt\`),
+            KEY \`IDX_ai_assistant_messages_edited_from\` (\`edited_from_message_id\`),
+            CONSTRAINT \`FK_ai_assistant_messages_chat\` FOREIGN KEY (\`chat_id\`) REFERENCES \`ai_assistant_chats\`(\`id\`) ON DELETE CASCADE,
+            CONSTRAINT \`FK_ai_assistant_messages_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE CASCADE,
+            CONSTRAINT \`FK_ai_assistant_messages_edited_from\` FOREIGN KEY (\`edited_from_message_id\`) REFERENCES \`ai_assistant_messages\`(\`id\`) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',

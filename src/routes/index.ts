@@ -13,6 +13,7 @@ import hederaRoutesV1 from './v1/hedera.routes.js';
 import proofRoutesV1 from './v1/proof.routes.js';
 import deviceRoutesV1 from './v1/device.routes.js';
 import notificationRoutesV1 from './v1/notification.routes.js';
+import aiRoutesV1 from './v1/ai.routes.js';
 
 
 const router = Router();
@@ -98,6 +99,9 @@ router.use('/v1/devices', deviceRoutesV1);
 
 console.log('Registering /v1/notifications routes');
 router.use('/v1/notifications', notificationRoutesV1);
+
+console.log('Registering /v1/ai routes');
+router.use('/v1/ai', aiRoutesV1);
 
 import investmentAgentRoutesV1 from './v1/investmentAgent.routes.js';
 console.log('Registering /v1/investment-agent routes');
