@@ -25,6 +25,9 @@ export { ItemRequest } from './ItemRequest.js';
 export { PlacedItem } from './PlacedItem.js';
 export { AssetTask } from './AssetTask.js';
 
+// Crop Calendar
+export { CropPlan, CropPlanStatus } from './CropPlan.js';
+
 // Core Entities
 export { User } from './User.js';
 export { Land } from './Land.js';

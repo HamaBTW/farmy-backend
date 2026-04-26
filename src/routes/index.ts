@@ -112,6 +112,10 @@ import farmerAgentRoutesV1 from './v1/farmerAgent.routes.js';
 console.log('Registering /v1/farmer-agent routes');
 router.use('/v1/farmer-agent', farmerAgentRoutesV1);
 
+import cropCalendarRoutesV1 from './v1/cropCalendar.routes.js';
+console.log('Registering /v1/crop-calendar routes');
+router.use('/v1', cropCalendarRoutesV1);
+
 import subscriptionRoutesV1 from './v1/subscription.routes.js';
 console.log('Registering /v1/subscriptions routes');
 router.use('/v1/subscriptions', subscriptionRoutesV1);

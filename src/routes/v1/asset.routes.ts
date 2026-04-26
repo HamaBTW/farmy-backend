@@ -13,6 +13,7 @@ const router = Router();
 
 // Asset Types CRUD
 router.get('/:category/types', assetTypeController.getAllAssetTypes);
+router.get('/:category/types/with-variants', assetTypeController.getAllAssetTypesWithVariants);
 router.get('/:category/types/:id', assetTypeController.getAssetTypeById);
 router.get('/:category/types/:id/variants', assetTypeController.getAssetTypeWithVariants);
 router.post('/:category/types', authenticate, validateRequest(createAssetTypeSchema), assetTypeController.createAssetType);

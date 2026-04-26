@@ -4,7 +4,7 @@ dotenv.config();
 
 import { createServer } from 'http';
 import app from './app.js';
-import { AppDataSource, createDatabaseIfNotExists, ensureAiAssistantSchema } from './config/db.config.js';
+import { AppDataSource, createDatabaseIfNotExists, ensureAiAssistantSchema, ensureCropCalendarSchema } from './config/db.config.js';
 import { checkEnvVariables } from './middlewares/envCheck.middleware.js';
 import { initSocket } from './socket/socket.js';
 import logger from './utils/logger.js';
@@ -32,6 +32,7 @@ const startServer = async () => {
         await createDatabaseIfNotExists();
         await AppDataSource.initialize();
         await ensureAiAssistantSchema(AppDataSource);
+        await ensureCropCalendarSchema(AppDataSource);
         logger.info('✅ Database connected successfully');
         logger.info(
             `🗄️ TypeORM synchronize is ${AppDataSource.options.synchronize ? 'ENABLED' : 'DISABLED'}`

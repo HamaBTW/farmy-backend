@@ -92,6 +92,50 @@ export const ensureAiAssistantSchema = async (dataSource: DataSource) => {
     `);
 };
 
+export const ensureCropCalendarSchema = async (dataSource: DataSource) => {
+    const userTableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'users'
+    `) as Array<{ total: number | string }>;
+
+    const userTableExists = Number(userTableRows?.[0]?.total || 0) > 0;
+    if (!userTableExists) {
+        console.warn('Skipping crop calendar schema bootstrap because users table is missing.');
+        return;
+    }
+
+    // Create crop_plans table
+    await dataSource.query(`
+        CREATE TABLE IF NOT EXISTS \`crop_plans\` (
+            \`id\` varchar(36) NOT NULL,
+            \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+            \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+            \`land_id\` varchar(36) NOT NULL,
+            \`variant_id\` varchar(36) NOT NULL,
+            \`variant_name\` varchar(100) NOT NULL,
+            \`asset_category\` varchar(50) NOT NULL,
+            \`icon_url\` varchar(255) NULL,
+            \`planned_planting_date\` date NOT NULL,
+            \`expected_harvest_date\` date NULL,
+            \`cycle_days\` int NULL,
+            \`growth_days\` int NULL,
+            \`is_perennial\` tinyint NOT NULL DEFAULT 0,
+            \`status\` enum('planned','active','completed','cancelled') NOT NULL DEFAULT 'planned',
+            \`notes\` text NULL,
+            \`completed_at\` datetime(6) NULL,
+            \`created_by\` varchar(36) NULL,
+            PRIMARY KEY (\`id\`),
+            KEY \`IDX_crop_plans_land_status\` (\`land_id\`, \`status\`),
+            KEY \`IDX_crop_plans_planting_date\` (\`planned_planting_date\`),
+            CONSTRAINT \`FK_crop_plans_land\` FOREIGN KEY (\`land_id\`) REFERENCES \`lands\`(\`id\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+    
+    console.log('✅ Crop calendar schema ensured');
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',
