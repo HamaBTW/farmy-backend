@@ -92,6 +92,10 @@ import contractRoutesV1 from './v1/contract.routes.js';
 console.log('Registering /v1/workforce contract routes');
 router.use('/v1/workforce', contractRoutesV1);
 
+import workerPerformanceRoutesV1 from './v1/workerPerformance.routes.js';
+console.log('Registering /v1/workers/performance routes');
+router.use('/v1', workerPerformanceRoutesV1);
+
 console.log('Registering /v1/proofs routes');
 router.use('/v1/proofs', proofRoutesV1);
 
