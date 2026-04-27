@@ -176,6 +176,9 @@ export class Land extends BaseEntity {
     @OneToMany(() => PlacedItem, (item) => item.land)
     placed_items!: Relation<PlacedItem>[];
 
+    @OneToMany('CropPlan', (plan: any) => plan.land)
+    cropPlans!: Relation<any>[];
+
     @OneToMany('LandRental', (rental: LandRental) => rental.land)
     rentals!: Relation<LandRental>[];
 

@@ -47,6 +47,16 @@ class AssetTypeService {
         return repo.find({ where: where as any, order: { name: 'ASC' } as any });
     }
 
+    async findAllWithVariants(category: AssetCategory, includeInactive = false) {
+        const repo = this.getRepository(category);
+        const where = includeInactive ? {} : { is_active: true };
+        return repo.find({
+            where: where as any,
+            order: { name: 'ASC' } as any,
+            relations: ['variants']
+        });
+    }
+
     async findById(category: AssetCategory, id: string) {
         const repo = this.getRepository(category);
         const entity = await repo.findOne({ where: { id } as any });

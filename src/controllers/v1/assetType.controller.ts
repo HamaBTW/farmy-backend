@@ -41,6 +41,21 @@ export const getAllAssetTypes = async (req: Request, res: Response, next: NextFu
     }
 };
 
+export const getAllAssetTypesWithVariants = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const category = validateCategory(req.params.category as string);
+        const includeInactive = req.query.includeInactive === 'true';
+        const result = await assetTypeService.findAllWithVariants(category, includeInactive);
+
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const getAssetTypeById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const category = validateCategory(req.params.category as string);
