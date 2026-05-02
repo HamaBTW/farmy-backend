@@ -107,16 +107,17 @@ export const uploadProfilePicture = async (req: AuthRequest, res: Response, next
             throw new AppError(404, 'User not found');
         }
 
-        // Store old picture to perhaps delete it later
-        // const oldPicture = user.profile?.picture;
+        const requestedType = String(req.body?.type || req.body?.image_type || 'picture').toLowerCase();
+        const isCover = ['cover', 'cover_image'].includes(requestedType);
+        const profileField = isCover ? 'cover_image' : 'picture';
 
         // Handle relative path for frontend access
-        const pictureUrl = `/uploads/profile/${req.file.filename}`;
+        const uploadedUrl = `/uploads/profile/${req.file.filename}`;
 
         const currentProfile: any = user.profile || {};
         const updatedProfile = {
             ...currentProfile,
-            picture: pictureUrl
+            [profileField]: uploadedUrl
         };
 
         // Recalculate completeness score
@@ -133,9 +134,9 @@ export const uploadProfilePicture = async (req: AuthRequest, res: Response, next
 
         res.status(200).json({
             success: true,
-            message: 'Profile picture uploaded successfully',
+            message: isCover ? 'Cover image uploaded successfully' : 'Profile picture uploaded successfully',
             data: {
-                picture: pictureUrl,
+                [profileField]: uploadedUrl,
                 completeness_score: updatedProfile.completeness_score
             }
         });

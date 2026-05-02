@@ -470,10 +470,10 @@ export const changePassword = async (req: AuthRequest, res: Response, next: Next
     }
 };
 
-export const getPublicUser = async (req: Request, res: Response, next: NextFunction) => {
+export const getPublicUser = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
-        const user = await authService.getPublicProfile(id as string);
+        const user = await authService.getPublicProfile(id as string, req.user?.id);
 
         res.status(200).json({
             success: true,
