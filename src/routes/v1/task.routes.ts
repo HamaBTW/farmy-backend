@@ -14,5 +14,6 @@ router.get('/lands/:landId/tasks', authenticate, taskController.getLandTasks);
 // Task-specific actions
 router.patch('/:taskId/assign', authenticate, taskController.assignTask);
 router.post('/:taskId/complete', authenticate, taskController.completeTask);
+router.post('/:taskId/verify', authenticate, taskController.verifyTask);
 
 export default router;

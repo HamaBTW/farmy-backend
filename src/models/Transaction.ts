@@ -13,27 +13,33 @@ export enum TransactionStatus {
 export enum TransactionType {
     SALARY_UPFRONT = 'salary_upfront',
     SALARY_RECURRING = 'salary_recurring',
-    REFUND = 'refund'
+    REFUND = 'refund',
+    WITHDRAWAL = 'withdrawal',
+    TASK_EARNING = 'task_earning',
+    ADJUSTMENT = 'adjustment'
 }
 
 @Entity('transactions')
 export class Transaction extends BaseEntity {
-    @Column({ type: 'varchar', length: 255, unique: true })
-    stripe_payment_intent_id!: string;
+    @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
+    stripe_payment_intent_id!: string | null;
 
-    @Column({ type: 'uuid' })
-    contract_id!: string;
+    @Column({ type: 'varchar', length: 255, unique: true, nullable: true })
+    stripe_transfer_id!: string | null;
 
-    @ManyToOne(() => LandWorkerContract, { onDelete: 'CASCADE' })
+    @Column({ type: 'uuid', nullable: true })
+    contract_id!: string | null;
+
+    @ManyToOne(() => LandWorkerContract, { onDelete: 'CASCADE', nullable: true })
     @JoinColumn({ name: 'contract_id' })
-    contract!: Relation<LandWorkerContract>;
+    contract!: Relation<LandWorkerContract> | null;
 
-    @Column({ type: 'uuid' })
-    investor_id!: string;
+    @Column({ type: 'uuid', nullable: true })
+    investor_id!: string | null;
 
-    @ManyToOne(() => User, { onDelete: 'CASCADE' })
+    @ManyToOne(() => User, { onDelete: 'CASCADE', nullable: true })
     @JoinColumn({ name: 'investor_id' })
-    investor!: Relation<User>;
+    investor!: Relation<User> | null;
 
     @Column({ type: 'uuid' })
     worker_id!: string;

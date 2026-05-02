@@ -136,6 +136,63 @@ export const ensureCropCalendarSchema = async (dataSource: DataSource) => {
     console.log('✅ Crop calendar schema ensured');
 };
 
+const columnExists = async (dataSource: DataSource, tableName: string, columnName: string) => {
+    const rows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE()
+          AND table_name = ?
+          AND column_name = ?
+    `, [tableName, columnName]) as Array<{ total: number | string }>;
+
+    return Number(rows?.[0]?.total || 0) > 0;
+};
+
+const indexExists = async (dataSource: DataSource, tableName: string, indexName: string) => {
+    const rows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.statistics
+        WHERE table_schema = DATABASE()
+          AND table_name = ?
+          AND index_name = ?
+    `, [tableName, indexName]) as Array<{ total: number | string }>;
+
+    return Number(rows?.[0]?.total || 0) > 0;
+};
+
+export const ensureWorkerWalletSchema = async (dataSource: DataSource) => {
+    const tableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'transactions'
+    `) as Array<{ total: number | string }>;
+
+    if (Number(tableRows?.[0]?.total || 0) === 0) {
+        console.warn('Skipping worker wallet schema bootstrap because transactions table is missing.');
+        return;
+    }
+
+    await dataSource.query(`ALTER TABLE \`transactions\` MODIFY \`stripe_payment_intent_id\` varchar(255) NULL;`);
+    await dataSource.query(`ALTER TABLE \`transactions\` MODIFY \`contract_id\` varchar(255) NULL;`);
+    await dataSource.query(`ALTER TABLE \`transactions\` MODIFY \`investor_id\` varchar(255) NULL;`);
+    await dataSource.query(`
+        ALTER TABLE \`transactions\`
+        MODIFY \`type\` enum('salary_upfront','salary_recurring','refund','withdrawal','task_earning','adjustment')
+        NOT NULL DEFAULT 'salary_upfront';
+    `);
+
+    if (!(await columnExists(dataSource, 'transactions', 'stripe_transfer_id'))) {
+        await dataSource.query(`ALTER TABLE \`transactions\` ADD \`stripe_transfer_id\` varchar(255) NULL;`);
+    }
+
+    if (!(await indexExists(dataSource, 'transactions', 'IDX_transactions_stripe_transfer_id'))) {
+        await dataSource.query(`ALTER TABLE \`transactions\` ADD UNIQUE KEY \`IDX_transactions_stripe_transfer_id\` (\`stripe_transfer_id\`);`);
+    }
+
+    console.log('✅ Worker wallet schema ensured');
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',

@@ -5,8 +5,8 @@ import type { InvoiceData, InvoiceLine } from './invoice.service.js';
 const require = createRequire(import.meta.url);
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const PDFDocument = require('pdfkit') as new (
-    options?: PDFKit.PDFDocumentOptions
-) => PDFKit.PDFDocument;
+    options?: any
+) => any;
 
 // ── Brand colours ────────────────────────────────────────────────────────────
 const GREEN_DARK = '#1B4332';
@@ -54,7 +54,7 @@ export class PdfInvoiceService {
     }
 
     // ── Header ────────────────────────────────────────────────────────────────
-    private renderHeader(doc: PDFKit.PDFDocument, data: InvoiceData) {
+    private renderHeader(doc: any, data: InvoiceData) {
         // Background bar
         doc.rect(0, 0, doc.page.width, 110).fill(GREEN_DARK);
 
@@ -73,7 +73,7 @@ export class PdfInvoiceService {
     }
 
     // ── Billed To / Period ────────────────────────────────────────────────────
-    private renderBillingSection(doc: PDFKit.PDFDocument, data: InvoiceData) {
+    private renderBillingSection(doc: any, data: InvoiceData) {
         const y = 130;
 
         // BILLED TO box
@@ -97,7 +97,7 @@ export class PdfInvoiceService {
     }
 
     // ── Line item table ───────────────────────────────────────────────────────
-    private renderLineTable(doc: PDFKit.PDFDocument, data: InvoiceData) {
+    private renderLineTable(doc: any, data: InvoiceData) {
         const startY = doc.y + 10;
         const colX = { date: 50, desc: 115, type: 285, pm: 370, amount: 460 };
         const rowH = 24;
@@ -150,7 +150,7 @@ export class PdfInvoiceService {
     }
 
     // ── Totals ────────────────────────────────────────────────────────────────
-    private renderTotals(doc: PDFKit.PDFDocument, data: InvoiceData) {
+    private renderTotals(doc: any, data: InvoiceData) {
         const x = 360;
         let y = doc.y + 10;
         const w = 190;
@@ -178,7 +178,7 @@ export class PdfInvoiceService {
     }
 
     // ── Blockchain verification section ───────────────────────────────────────
-    private renderBlockchainSection(doc: PDFKit.PDFDocument, data: InvoiceData) {
+    private renderBlockchainSection(doc: any, data: InvoiceData) {
         if (data.lines.length === 0) return;
 
         // Page break if needed
@@ -213,7 +213,7 @@ export class PdfInvoiceService {
     }
 
     // ── Footer ────────────────────────────────────────────────────────────────
-    private renderFooter(doc: PDFKit.PDFDocument) {
+    private renderFooter(doc: any) {
         const pageHeight = doc.page.height;
         doc.rect(0, pageHeight - 40, doc.page.width, 40).fill(GREEN_DARK);
         doc.font('Helvetica').fontSize(8).fillColor(GREEN_LIGHT)

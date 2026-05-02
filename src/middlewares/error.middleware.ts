@@ -17,6 +17,7 @@ export class AppError extends Error {
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Something went wrong! Please try again later.';
+    const isProduction = process.env.NODE_ENV === 'production';
 
     if (err.isOperational) {
         res.status(statusCode).json({
@@ -29,7 +30,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
 
         res.status(500).json({
             status: 'error',
-            message: err.message || 'Something went wrong! Please try again later.',
+            message: isProduction ? 'Something went wrong! Please try again later.' : message,
         });
     }
 };
