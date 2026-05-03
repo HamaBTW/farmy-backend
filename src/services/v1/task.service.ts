@@ -5,6 +5,8 @@ import { LandWorker, LandWorkerStatus } from '../../models/LandWorker.js';
 import { LandRental } from '../../models/LandRental.js';
 import { WorkerProfile } from '../../models/WorkerProfile.js';
 import { User } from '../../models/User.js';
+import { WorkerBalance } from '../../models/WorkerBalance.js';
+import { Transaction, TransactionStatus, TransactionType } from '../../models/Transaction.js';
 import { AppError } from '../../middlewares/error.middleware.js';
 import { IsNull, MoreThanOrEqual } from 'typeorm';
 import { firebaseService } from './firebase.service.js';
@@ -36,6 +38,8 @@ class TaskService {
     private rentalRepo = AppDataSource.getRepository(LandRental);
     private profileRepo = AppDataSource.getRepository(WorkerProfile);
     private userRepo = AppDataSource.getRepository(User);
+    private workerBalanceRepo = AppDataSource.getRepository(WorkerBalance);
+    private transactionRepo = AppDataSource.getRepository(Transaction);
 
     async create(landId: string, createdById: string, data: CreateTaskData) {
         // Verify land exists
@@ -254,6 +258,68 @@ class TaskService {
             }
         } catch (e) {
             logger.error('Failed to emit worker_task_completed:', e);
+        }
+
+        return savedTask;
+    }
+
+    async verifyTask(taskId: string, userId: string) {
+        const task = await this.taskRepo.findOne({ where: { id: taskId } });
+        if (!task) {
+            throw new AppError(404, 'Task not found');
+        }
+
+        const hasAuth = await this.checkLandAuthority(task.land_id, userId);
+        if (!hasAuth) {
+            throw new AppError(403, 'You do not have permission to verify tasks on this land');
+        }
+
+        if (task.status !== TaskStatus.COMPLETED) {
+            throw new AppError(400, 'Only completed tasks can be verified');
+        }
+
+        if (!task.assigned_to) {
+            throw new AppError(400, 'Task is not assigned to anyone');
+        }
+
+        task.status = TaskStatus.VERIFIED;
+        const savedTask = await this.taskRepo.save(task);
+
+        // Process reward
+        if (task.reward && task.reward > 0) {
+            let balance = await this.workerBalanceRepo.findOne({ where: { worker_id: task.assigned_to } });
+            if (!balance) {
+                balance = this.workerBalanceRepo.create({
+                    worker_id: task.assigned_to,
+                    available_balance: 0,
+                    pending_balance: 0
+                });
+            }
+            
+            balance.available_balance = Number(balance.available_balance) + Number(task.reward);
+            await this.workerBalanceRepo.save(balance);
+
+            const transaction = this.transactionRepo.create({
+                worker_id: task.assigned_to,
+                amount: task.reward,
+                currency: 'usd',
+                status: TransactionStatus.SUCCEEDED,
+                type: TransactionType.TASK_EARNING,
+                metadata: {
+                    task_id: task.id,
+                    land_id: task.land_id
+                }
+            });
+            await this.transactionRepo.save(transaction);
+            
+            // Notify worker
+            firebaseService.sendToUsers(
+                task.assigned_to,
+                'Task Verified! 💰',
+                `You earned $${task.reward} for completing "${task.title}".`,
+                { type: 'task_verified', task_id: task.id },
+                NotificationType.WALLET
+            ).catch(err => logger.error('Failed to notify worker of task verification:', err));
         }
 
         return savedTask;

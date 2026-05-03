@@ -358,11 +358,24 @@ class AuthService {
         return { message: 'Password changed successfully' };
     }
 
-    private sanitizeProfile(user: User, requesterId?: string): Partial<User> {
-        const isOwner = requesterId === user.id;
-        const profile = user.profile;
+    private normalizeProfile(profile: any): Record<string, any> {
+        if (!profile) return {};
+        if (typeof profile === 'string') {
+            try {
+                const parsed = JSON.parse(profile);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch {
+                return {};
+            }
+        }
+        return typeof profile === 'object' ? profile : {};
+    }
 
-        if (!profile) return user;
+    private sanitizeProfile(user: User, requesterId?: string): Record<string, any> {
+        const isOwner = requesterId === user.id;
+        const profile = this.normalizeProfile(user.profile);
+
+        const contactIsPublic = isOwner || profile.privacy_settings?.show_contact_info !== false;
 
         // If not owner and profile is not discoverable, return minimal info
         if (!isOwner && profile.privacy_settings?.discoverable === false) {
@@ -372,20 +385,16 @@ class AuthService {
                 is_verified: user.is_verified,
                 profile: {
                     name: 'Anonymous User',
-                    picture: null
-                } as any
+                    picture: null,
+                    cover_image: null,
+                    privacy_settings: { discoverable: false }
+                }
             };
         }
 
         const sanitizedProfile = { ...profile };
 
         if (!isOwner) {
-            // Hide contact info if not allowed
-            if (profile.privacy_settings?.show_contact_info === false) {
-                delete (user as any).email;
-                delete (user as any).phone;
-            }
-
             // Field-level visibility
             if (profile.privacy_settings?.field_visibility) {
                 const visibility = profile.privacy_settings.field_visibility;
@@ -395,19 +404,33 @@ class AuthService {
                     }
                 }
             }
-
-            // Always hide sensitive structural fields from public
-            delete sanitizedProfile.farmer_details;
-            delete sanitizedProfile.investor_details;
         }
 
+        if (user.role !== UserRole.FARMER) delete sanitizedProfile.farmer_details;
+        if (user.role !== UserRole.INVESTOR) delete sanitizedProfile.investor_details;
+
+        sanitizedProfile.privacy_settings = {
+            discoverable: sanitizedProfile.privacy_settings?.discoverable ?? true,
+            show_contact_info: contactIsPublic,
+        };
+
         return {
-            ...user,
-            profile: sanitizedProfile
+            id: user.id,
+            ...(contactIsPublic && user.email ? { email: user.email } : {}),
+            ...(contactIsPublic && user.phone ? { phone: user.phone } : {}),
+            role: user.role,
+            is_verified: user.is_verified,
+            auth_provider: user.auth_provider,
+            createdAt: user.createdAt,
+            profile: sanitizedProfile,
         };
     }
 
     async getPublicProfile(userId: string, requesterId?: string) {
+        if (!userId?.trim()) {
+            throw new AppError(400, 'Valid user id is required');
+        }
+
         const user = await this.userRepository.findOne({
             where: { id: userId },
             select: ['id', 'email', 'phone', 'profile', 'is_verified', 'role', 'auth_provider', 'createdAt']

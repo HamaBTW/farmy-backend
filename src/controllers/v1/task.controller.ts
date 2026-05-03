@@ -95,3 +95,20 @@ export const getMyTasks = async (req: AuthRequest, res: Response, next: NextFunc
         next(error);
     }
 };
+
+export const verifyTask = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const result = await taskService.verifyTask(
+            req.params.taskId as string,
+            req.user!.id
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Task verified successfully',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
