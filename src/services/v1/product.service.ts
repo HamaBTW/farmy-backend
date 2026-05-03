@@ -28,6 +28,8 @@ interface UpdateProductData {
     status?: ProductStatus;
     images?: string[];
     newImages?: string[];
+    land_id?: string | null;
+    land_rental_id?: string | null;
 }
 
 class ProductService {
@@ -35,6 +37,34 @@ class ProductService {
     private userRepo = AppDataSource.getRepository(User);
 
     async create(data: CreateProductData) {
+        // Sanitize empty strings from multipart forms
+        if (!data.land_id || data.land_id.trim() === '') data.land_id = undefined;
+        if (!data.land_rental_id || data.land_rental_id.trim() === '') data.land_rental_id = undefined;
+
+        if (data.land_id && data.land_rental_id) {
+            throw new AppError(400, 'A product cannot be linked to both a land and a land rental simultaneously.');
+        }
+
+        if (data.land_id) {
+            const { Land } = await import('../../models/Land.js');
+            const land = await AppDataSource.getRepository(Land).findOne({ 
+                where: { id: data.land_id, owner_id: data.owner_id } 
+            });
+            if (!land) {
+                throw new AppError(403, 'You do not own the selected land or it does not exist.');
+            }
+        }
+
+        if (data.land_rental_id) {
+            const { LandRental } = await import('../../models/LandRental.js');
+            const rental = await AppDataSource.getRepository(LandRental).findOne({ 
+                where: { id: data.land_rental_id, investor_id: data.owner_id } 
+            });
+            if (!rental) {
+                throw new AppError(403, 'You do not rent the selected land or it does not exist.');
+            }
+        }
+
         const product = this.productRepo.create({
             ...data,
             status: ProductStatus.AVAILABLE
@@ -87,18 +117,89 @@ class ProductService {
             throw new AppError(403, 'You are not authorized to update this product');
         }
 
-        // Handle image updates
-        if (data.newImages && data.newImages.length > 0) {
-            // Append new images to existing ones
-            // Ensure images array exists
-            const currentImages = product.images || [];
-            data.images = [...currentImages, ...data.newImages];
-            delete data.newImages; // Remove auxiliary property
+        // Sanitize empty strings from multipart forms
+        if ('land_id' in data && (!data.land_id || (typeof data.land_id === 'string' && data.land_id.trim() === ''))) {
+            data.land_id = null;
+        }
+        if ('land_rental_id' in data && (!data.land_rental_id || (typeof data.land_rental_id === 'string' && data.land_rental_id.trim() === ''))) {
+            data.land_rental_id = null;
         }
 
-        Object.assign(product, data);
+        // Handle land origin updates with mutual exclusivity
+        if ('land_id' in data || 'land_rental_id' in data) {
+            if (data.land_id && data.land_rental_id) {
+                throw new AppError(400, 'A product cannot be linked to both a land and a land rental simultaneously.');
+            }
 
-        return this.productRepo.save(product);
+            if (data.land_id) {
+                const { Land } = await import('../../models/Land.js');
+                const land = await AppDataSource.getRepository(Land).findOne({
+                    where: { id: data.land_id, owner_id: userId }
+                });
+                if (!land) {
+                    throw new AppError(403, 'You do not own the selected land or it does not exist.');
+                }
+                product.land_id = data.land_id;
+                product.land_rental_id = null;
+                // Clear relation objects to prevent TypeORM from reverting FK changes
+                product.land = land;
+                product.land_rental = null;
+            } else if (data.land_rental_id) {
+                const { LandRental } = await import('../../models/LandRental.js');
+                const rental = await AppDataSource.getRepository(LandRental).findOne({
+                    where: { id: data.land_rental_id, investor_id: userId }
+                });
+                if (!rental) {
+                    throw new AppError(403, 'You do not rent the selected land or it does not exist.');
+                }
+                product.land_rental_id = data.land_rental_id;
+                product.land_id = null;
+                // Clear relation objects to prevent TypeORM from reverting FK changes
+                product.land_rental = rental;
+                product.land = null;
+            } else {
+                // Both are null/empty — unlink
+                product.land_id = null;
+                product.land_rental_id = null;
+                product.land = null;
+                product.land_rental = null;
+            }
+
+            delete data.land_id;
+            delete data.land_rental_id;
+        }
+
+        // Handle image updates
+        if (data.newImages && data.newImages.length > 0) {
+            const currentImages = product.images || [];
+            data.images = [...currentImages, ...data.newImages];
+            delete data.newImages;
+        }
+
+        // Apply remaining fields
+        const { land_id: _lid, land_rental_id: _lrid, newImages: _ni, ...safeData } = data as any;
+        Object.assign(product, safeData);
+
+        // Use query builder to ensure FK columns are written directly
+        await this.productRepo
+            .createQueryBuilder()
+            .update()
+            .set({
+                title: product.title,
+                description: product.description,
+                price: product.price,
+                quantity: product.quantity,
+                unit: product.unit,
+                status: product.status,
+                images: product.images,
+                land_id: product.land_id,
+                land_rental_id: product.land_rental_id,
+            })
+            .where('id = :id', { id })
+            .execute();
+
+        // Return the fully hydrated product
+        return this.findById(id);
     }
 
     async delete(id: string, userId: string) {
