@@ -189,6 +189,10 @@ import farmerDashboardRoutesV1 from './v1/farmerDashboard.routes.js';
 console.log('Registering /v1/farmer dashboard routes');
 router.use('/v1/farmer', farmerDashboardRoutesV1);
 
+import roiRoutesV1 from './v1/roi.routes.js';
+console.log('Registering /v1/investor/roi routes');
+router.use('/v1/investor/roi', roiRoutesV1);
+
 import cropCalendarRoutesV1 from './v1/cropCalendar.routes.js';
 console.log('Registering /v1/crop-calendar routes');
 router.use('/v1', cropCalendarRoutesV1);
