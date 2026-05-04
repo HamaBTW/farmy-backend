@@ -124,3 +124,17 @@ export const getUnderperformers = async (req: AuthRequest, res: Response, next: 
         next(error);
     }
 };
+
+export const getWorkerStatsById = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { workerId } = req.params;
+        const result = await workerPerformanceService.getWorkerGlobalStats(workerId);
+
+        res.status(200).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};

@@ -294,6 +294,84 @@ class WorkerPerformanceService {
             })
             .slice(0, limit);
     }
+    /**
+     * Get global performance metrics for a specific worker across all lands
+     */
+    async getWorkerGlobalStats(workerUserId: string): Promise<WorkerPerformanceData> {
+        const worker = await this.userRepo.findOne({
+            where: { id: workerUserId },
+            relations: ['profile']
+        });
+
+        if (!worker) {
+            throw new AppError(404, 'Worker not found');
+        }
+
+        // Get all tasks assigned to this worker that are completed or verified
+        const tasks = await this.taskRepo.find({
+            where: {
+                assigned_to: workerUserId,
+                status: In([TaskStatus.COMPLETED, TaskStatus.VERIFIED])
+            },
+            relations: ['land']
+        });
+
+        // Get land info
+        const landMap = new Map<string, string>();
+        let totalCompleted = 0;
+        let verifiedCount = 0;
+        let rejectedCount = 0;
+        let totalCompletionTime = 0;
+        let timedTasksCount = 0;
+
+        for (const task of tasks) {
+            totalCompleted++;
+            if (task.land_id && task.land) {
+                landMap.set(task.land_id, task.land.name);
+            }
+
+            if (task.status === TaskStatus.VERIFIED) {
+                verifiedCount++;
+            } else {
+                // Completed but not verified yet or rejected
+                rejectedCount++;
+            }
+
+            // Calculate completion time if available
+            if (task.completed_at && task.createdAt) {
+                const duration = task.completed_at.getTime() - task.createdAt.getTime();
+                totalCompletionTime += duration / (1000 * 60); // minutes
+                timedTasksCount++;
+            }
+        }
+
+        const totalVerifiable = verifiedCount + rejectedCount;
+        const successRate = totalVerifiable > 0
+            ? (verifiedCount / totalVerifiable) * 100
+            : 0;
+
+        // Simple performance score logic
+        const performanceScore = Math.round(
+            (Math.min(totalCompleted / 5, 1) * 30) + // 30% based on experience (up to 5 tasks)
+            (successRate * 0.7) // 70% based on success rate
+        );
+
+        return {
+            workerId: workerUserId,
+            workerName: worker.profile?.name || worker.email || 'Unknown Worker',
+            workerProfilePicture: worker.profile?.picture || null,
+            totalTasksCompleted: totalCompleted,
+            verifiedProofs: verifiedCount,
+            rejectedProofs: rejectedCount,
+            verificationSuccessRate: Math.round(successRate * 100) / 100,
+            averageCompletionTimeMinutes: timedTasksCount > 0
+                ? Math.round(totalCompletionTime / timedTasksCount)
+                : null,
+            performanceScore: Math.min(100, performanceScore),
+            landIds: Array.from(landMap.keys()),
+            landNames: Array.from(landMap.values())
+        };
+    }
 }
 
 export const workerPerformanceService = new WorkerPerformanceService();
