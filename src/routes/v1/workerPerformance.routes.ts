@@ -13,4 +13,7 @@ router.get('/workers/performance/top', authenticate, workerPerformanceController
 // Get underperformers (needs attention)
 router.get('/workers/performance/underperformers', authenticate, workerPerformanceController.getUnderperformers);
 
+// Get specific worker stats
+router.get('/workers/:workerId/stats', authenticate, workerPerformanceController.getWorkerStatsById);
+
 export default router;
