@@ -193,6 +193,28 @@ export const ensureWorkerWalletSchema = async (dataSource: DataSource) => {
     console.log('✅ Worker wallet schema ensured');
 };
 
+export const ensureProductsSchema = async (dataSource: DataSource) => {
+    const tableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'products'
+    `) as Array<{ total: number | string }>;
+
+    if (Number(tableRows?.[0]?.total || 0) === 0) {
+        console.warn('Skipping products schema fix because products table is missing.');
+        return;
+    }
+
+    // Drop legacy 'name' column if it exists (model uses 'title')
+    if (await columnExists(dataSource, 'products', 'name')) {
+        await dataSource.query(`ALTER TABLE \`products\` DROP COLUMN \`name\`;`);
+        console.log('✅ Dropped legacy "name" column from products table');
+    }
+
+    console.log('✅ Products schema ensured');
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',
