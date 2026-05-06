@@ -1,6 +1,9 @@
 import { OAuth2Client } from 'google-auth-library';
 import appleSignin from 'apple-signin-auth';
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
+import fs from 'fs';
+import path from 'path';
 import { AppError } from '../../middlewares/error.middleware.js';
 
 class OAuthService {
@@ -142,16 +145,60 @@ class OAuthService {
 
     async verifyAppleToken(idToken: string, rawNonce?: string) {
         try {
-            // Verify the Apple ID token
+            console.log('🍎 [OAuthService] Verifying Apple token...');
+            console.log('🍎 [OAuthService] Token length:', idToken.length);
+            console.log('🍎 [OAuthService] Has nonce:', !!rawNonce);
+            console.log('🍎 [OAuthService] APPLE_CLIENT_ID:', process.env.APPLE_CLIENT_ID);
+            console.log('🍎 [OAuthService] APPLE_KEY_ID:', process.env.APPLE_KEY_ID ? 'configured' : 'not configured');
+            console.log('🍎 [OAuthService] APPLE_PRIVATE_KEY:', process.env.APPLE_PRIVATE_KEY ? 'configured' : 'not configured');
+
+            // Enhanced verification options for Apple Sign-In
             const verifyOptions: any = {};
+            
+            // Use nonce if provided
             if (rawNonce) {
                 verifyOptions.nonce = rawNonce;
+                console.log('🍎 [OAuthService] Using nonce for verification');
             }
 
+            // Use client secret if APPLE_PRIVATE_KEY and APPLE_KEY_ID are available
+            if (process.env.APPLE_PRIVATE_KEY && process.env.APPLE_KEY_ID) {
+                try {
+                    const rawKey = process.env.APPLE_PRIVATE_KEY || '';
+                    let privateKey: string;
+                    
+                    if (rawKey.includes('-----BEGIN PRIVATE KEY-----')) {
+                        // It's the key content itself, handle potential newline issues from .env
+                        privateKey = rawKey.replace(/\\n/g, '\n');
+                        console.log('🍎 [OAuthService] Using private key from environment variable string');
+                    } else {
+                        // It's a file path
+                        const privateKeyPath = path.resolve(rawKey);
+                        privateKey = fs.readFileSync(privateKeyPath, 'utf8');
+                        console.log('🍎 [OAuthService] Using private key from file path:', privateKeyPath);
+                    }
+                    
+                    verifyOptions.clientId = process.env.APPLE_CLIENT_ID;
+                    verifyOptions.keyId = process.env.APPLE_KEY_ID;
+                    verifyOptions.teamId = process.env.APPLE_TEAM_ID;
+                    verifyOptions.privateKey = privateKey;
+                    
+                    console.log('🍎 [OAuthService] Using enhanced verification with private key');
+                } catch (keyError: any) {
+                    console.warn('🍎 [OAuthService] Failed to load private key, falling back to basic verification:', keyError.message);
+                    // Continue with basic verification if private key loading fails
+                }
+            }
+
+            console.log('🍎 [OAuthService] Calling apple-signin-auth verifyIdToken...');
             const claims = await appleSignin.verifyIdToken(idToken, verifyOptions);
+            console.log('🍎 [OAuthService] Token verified successfully');
 
             // Extract user info from claims
             const { sub, email, email_verified } = claims;
+            console.log('🍎 [OAuthService] Claims - sub:', sub ? 'present' : 'missing');
+            console.log('🍎 [OAuthService] Claims - email:', email ? 'present' : 'missing');
+            console.log('🍎 [OAuthService] Claims - email_verified:', email_verified);
 
             if (!sub) {
                 throw new AppError(401, 'Invalid Apple token: missing subject');
@@ -167,7 +214,7 @@ class OAuthService {
                 emailVerified: email_verified === 'true' || email_verified === true,
             };
         } catch (error: any) {
-            console.error('Apple Token Verification Error:', error);
+            console.error('🍎 [OAuthService] Token Verification Error:', error);
             if (error instanceof AppError) throw error;
             throw new AppError(401, 'Apple authentication failed: ' + (error.message || 'Invalid token'));
         }

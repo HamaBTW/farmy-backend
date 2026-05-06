@@ -456,33 +456,48 @@ export const githubLogin = async (req: Request, res: Response, next: NextFunctio
 export const appleLogin = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { idToken, rawNonce, profile } = req.body;
+        console.log('🍎 [Apple Login] Request received');
+        console.log('🍎 [Apple Login] Token length:', idToken?.length || 0);
+        console.log('🍎 [Apple Login] Has nonce:', !!rawNonce);
+        console.log('🍎 [Apple Login] Has profile:', !!profile);
 
         if (!idToken) {
+            console.log('🍎 [Apple Login] Error: No ID token provided');
             throw new AppError(400, 'Apple ID token is required');
         }
 
         // Verify Apple token
+        console.log('🍎 [Apple Login] Verifying Apple token...');
         const appleUser = await oAuthService.verifyAppleToken(idToken, rawNonce);
+        console.log('🍎 [Apple Login] Apple token verified successfully');
+        console.log('🍎 [Apple Login] Apple ID:', appleUser.id);
+        console.log('🍎 [Apple Login] Email provided:', !!appleUser.email);
 
         // Apple may not provide email on subsequent sign-ins
         // Handle gracefully - user might be returning
         if (!appleUser.email) {
+            console.log('🍎 [Apple Login] No email in token, checking for existing user...');
             // Try to find user by apple_id first
             const existingUser = await authService.findUserByAppleId(appleUser.id);
             if (!existingUser) {
+                console.log('🍎 [Apple Login] Error: No existing user found and no email provided');
                 throw new AppError(400, 'Apple Sign-In requires email on first sign-in. Please sign in with Apple again.');
             }
+            console.log('🍎 [Apple Login] Existing user found by Apple ID:', existingUser.id);
             // User exists, proceed with login
         }
 
+        console.log('🍎 [Apple Login] Processing social login...');
         const result = await authService.socialLogin(
             'apple',
             appleUser.id,
             appleUser.email || '', // May be empty for returning users
             profile || {}
         );
+        console.log('🍎 [Apple Login] Social login processed');
 
         if ('require2fa' in result && result.require2fa) {
+            console.log('🍎 [Apple Login] 2FA required for user:', result.userId);
             return res.status(200).json({
                 success: true,
                 message: '2FA required',
@@ -494,6 +509,7 @@ export const appleLogin = async (req: Request, res: Response, next: NextFunction
         }
 
         const { user, tokens } = result as { user: any, tokens: any };
+        console.log('🍎 [Apple Login] Success - User:', user.email, 'ID:', user.id);
 
         res.status(200).json({
             success: true,
@@ -512,7 +528,7 @@ export const appleLogin = async (req: Request, res: Response, next: NextFunction
             }
         });
     } catch (error) {
-        console.error('Error in appleLogin:', error);
+        console.error('🍎 [Apple Login] Error:', error);
         next(error);
     }
 };
