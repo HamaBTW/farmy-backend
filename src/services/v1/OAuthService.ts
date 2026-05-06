@@ -1,4 +1,5 @@
 import { OAuth2Client } from 'google-auth-library';
+import appleSignin from 'apple-signin-auth';
 import axios from 'axios';
 import { AppError } from '../../middlewares/error.middleware.js';
 
@@ -136,6 +137,39 @@ class OAuthService {
         } catch (error: any) {
             console.error('Google Token Exchange Error:', error.response?.data || error.message);
             throw new AppError(401, 'Failed to exchange Google code');
+        }
+    }
+
+    async verifyAppleToken(idToken: string, rawNonce?: string) {
+        try {
+            // Verify the Apple ID token
+            const verifyOptions: any = {};
+            if (rawNonce) {
+                verifyOptions.nonce = rawNonce;
+            }
+
+            const claims = await appleSignin.verifyIdToken(idToken, verifyOptions);
+
+            // Extract user info from claims
+            const { sub, email, email_verified } = claims;
+
+            if (!sub) {
+                throw new AppError(401, 'Invalid Apple token: missing subject');
+            }
+
+            // Apple only returns email on first sign-in
+            // If email is null/undefined, user has signed in before or uses private relay
+            const userEmail = email as string | undefined;
+
+            return {
+                id: sub as string,
+                email: userEmail,
+                emailVerified: email_verified === 'true' || email_verified === true,
+            };
+        } catch (error: any) {
+            console.error('Apple Token Verification Error:', error);
+            if (error instanceof AppError) throw error;
+            throw new AppError(401, 'Apple authentication failed: ' + (error.message || 'Invalid token'));
         }
     }
 }

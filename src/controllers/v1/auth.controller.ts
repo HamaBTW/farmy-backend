@@ -453,6 +453,70 @@ export const githubLogin = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
+export const appleLogin = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { idToken, rawNonce, profile } = req.body;
+
+        if (!idToken) {
+            throw new AppError(400, 'Apple ID token is required');
+        }
+
+        // Verify Apple token
+        const appleUser = await oAuthService.verifyAppleToken(idToken, rawNonce);
+
+        // Apple may not provide email on subsequent sign-ins
+        // Handle gracefully - user might be returning
+        if (!appleUser.email) {
+            // Try to find user by apple_id first
+            const existingUser = await authService.findUserByAppleId(appleUser.id);
+            if (!existingUser) {
+                throw new AppError(400, 'Apple Sign-In requires email on first sign-in. Please sign in with Apple again.');
+            }
+            // User exists, proceed with login
+        }
+
+        const result = await authService.socialLogin(
+            'apple',
+            appleUser.id,
+            appleUser.email || '', // May be empty for returning users
+            profile || {}
+        );
+
+        if ('require2fa' in result && result.require2fa) {
+            return res.status(200).json({
+                success: true,
+                message: '2FA required',
+                data: {
+                    require2fa: true,
+                    userId: result.userId
+                }
+            });
+        }
+
+        const { user, tokens } = result as { user: any, tokens: any };
+
+        res.status(200).json({
+            success: true,
+            message: 'Logged in with Apple successfully',
+            data: {
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    role: user.role,
+                    is_verified: user.is_verified,
+                    is_banned: user.is_banned,
+                    auth_provider: user.auth_provider,
+                    is_two_factor_enabled: user.is_two_factor_enabled
+                },
+                ...tokens
+            }
+        });
+    } catch (error) {
+        console.error('Error in appleLogin:', error);
+        next(error);
+    }
+};
+
 export const changePassword = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const { oldPassword, newPassword } = req.body;

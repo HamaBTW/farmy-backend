@@ -126,8 +126,11 @@ export class User extends BaseEntity {
     @Column({ type: 'varchar', unique: true, nullable: true })
     github_id!: string | null;
 
+    @Column({ type: 'varchar', unique: true, nullable: true })
+    apple_id!: string | null;
+
     @Column({ type: 'varchar', default: 'email' })
-    auth_provider!: string; // 'email', 'google', 'github'
+    auth_provider!: string; // 'email', 'google', 'github', 'apple'
 
     @Column({ type: 'varchar', nullable: true, select: false })
     two_factor_secret!: string | null;

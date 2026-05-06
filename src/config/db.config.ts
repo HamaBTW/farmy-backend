@@ -215,6 +215,34 @@ export const ensureProductsSchema = async (dataSource: DataSource) => {
     console.log('✅ Products schema ensured');
 };
 
+export const ensureAppleSignInSchema = async (dataSource: DataSource) => {
+    const tableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'users'
+    `) as Array<{ total: number | string }>;
+
+    if (Number(tableRows?.[0]?.total || 0) === 0) {
+        console.warn('Skipping Apple Sign-In schema bootstrap because users table is missing.');
+        return;
+    }
+
+    // Add apple_id column if it doesn't exist
+    if (!(await columnExists(dataSource, 'users', 'apple_id'))) {
+        await dataSource.query(`ALTER TABLE \`users\` ADD \`apple_id\` varchar(255) NULL;`);
+        console.log('✅ Added apple_id column to users table');
+    }
+
+    // Add unique index for apple_id if it doesn't exist
+    if (!(await indexExists(dataSource, 'users', 'IDX_users_apple_id'))) {
+        await dataSource.query(`ALTER TABLE \`users\` ADD UNIQUE KEY \`IDX_users_apple_id\` (\`apple_id\`);`);
+        console.log('✅ Added unique index on apple_id');
+    }
+
+    console.log('✅ Apple Sign-In schema ensured');
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',

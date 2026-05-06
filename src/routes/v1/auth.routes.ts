@@ -25,6 +25,7 @@ router.get('/google/login', authController.googleLoginInit);
 router.get('/google/callback', authController.googleLoginCallback);
 router.get('/google/status', authController.googleLoginStatus);
 router.post('/github', authController.githubLogin);
+router.post('/apple', authController.appleLogin);
 
 // 2FA Setup/Manage (Protected)
 router.get('/2fa/setup', authenticate, twoFactorController.setup2FA);

@@ -276,22 +276,29 @@ class AuthService {
         return this.generateTokens(refreshToken.user);
     }
 
-    async socialLogin(provider: 'google' | 'github', providerId: string, email: string, profile: any) {
-        let user = await this.userRepository.findOne({
-            where: provider === 'google' ? { google_id: providerId } : { github_id: providerId }
-        });
+    async socialLogin(provider: 'google' | 'github' | 'apple', providerId: string, email: string, profile: any) {
+        // Build the where clause based on provider
+        let whereClause: any = {};
+        if (provider === 'google') whereClause = { google_id: providerId };
+        else if (provider === 'github') whereClause = { github_id: providerId };
+        else if (provider === 'apple') whereClause = { apple_id: providerId };
+
+        let user = await this.userRepository.findOne({ where: whereClause });
 
         if (!user) {
-            // Check if user exists with the same email
-            user = await this.userRepository.findOne({ where: { email } });
+            // Check if user exists with the same email (only if email is provided)
+            if (email) {
+                user = await this.userRepository.findOne({ where: { email } });
+            }
 
             if (user) {
                 // Link the provider to the existing user
                 if (provider === 'google') user.google_id = providerId;
-                else user.github_id = providerId;
+                else if (provider === 'github') user.github_id = providerId;
+                else if (provider === 'apple') user.apple_id = providerId;
 
                 // Only set it if it was null/empty (unlikely) 
-                // We DON'T change 'email' to 'google'/'github' to avoid locking them out of password login
+                // We DON'T change 'email' to 'google'/'github'/'apple' to avoid locking them out of password login
                 if (!user.auth_provider) {
                     user.auth_provider = provider;
                 }
@@ -301,6 +308,13 @@ class AuthService {
                 await this.userRepository.save(user);
             } else {
                 // Create a new user
+                // Apple may not provide email on subsequent sign-ins
+                if (!email) {
+                    // Generate a placeholder email based on Apple ID
+                    // This is required for account creation
+                    throw new Error('Apple authentication requires email on first sign-in. Please try again.');
+                }
+
                 const salt = await bcrypt.genSalt(10);
                 const randomPassword = Math.random().toString(36).slice(-10);
                 const password_hash = await bcrypt.hash(randomPassword, salt);
@@ -313,6 +327,7 @@ class AuthService {
                     profile,
                     google_id: provider === 'google' ? providerId : null,
                     github_id: provider === 'github' ? providerId : null,
+                    apple_id: provider === 'apple' ? providerId : null,
                     auth_provider: provider
                 });
                 await this.userRepository.save(user);
@@ -424,6 +439,12 @@ class AuthService {
             createdAt: user.createdAt,
             profile: sanitizedProfile,
         };
+    }
+
+    async findUserByAppleId(appleId: string) {
+        return await this.userRepository.findOne({
+            where: { apple_id: appleId }
+        });
     }
 
     async getPublicProfile(userId: string, requesterId?: string) {
