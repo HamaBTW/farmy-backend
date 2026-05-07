@@ -1,7 +1,8 @@
-import { Entity, Column, ManyToOne, JoinColumn, Relation } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Relation, OneToMany } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { User } from './User.js';
 import { Land } from './Land.js';
+import { JobApplication } from './JobApplication.js';
 
 export enum JobRequestStatus {
     OPEN = 'open',
@@ -48,4 +49,7 @@ export class JobRequest extends BaseEntity {
 
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     salary!: number | null;
+
+    @OneToMany(() => JobApplication, (application) => application.job)
+    applications!: Relation<JobApplication[]>;
 }

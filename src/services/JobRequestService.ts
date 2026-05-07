@@ -35,7 +35,23 @@ export class JobRequestService {
             query.andWhere('job.task_type = :taskType', { taskType: filters.task_type });
         }
 
-        return await query.getMany();
+        if (filters.min_salary) {
+            query.andWhere('job.salary >= :minSalary', { minSalary: filters.min_salary });
+        }
+
+        if (filters.max_salary) {
+            query.andWhere('job.salary <= :maxSalary', { maxSalary: filters.max_salary });
+        }
+
+        if (filters.duration) {
+            query.andWhere('job.duration = :duration', { duration: filters.duration });
+        }
+
+        if (filters.farmer_id) {
+            query.andWhere('job.farmer_id = :farmerId', { farmerId: filters.farmer_id });
+        }
+
+        return await query.orderBy('job.createdAt', 'DESC').getMany();
     }
 
     static async getRecommendedJobs(userId: string): Promise<any[]> {
@@ -66,5 +82,18 @@ export class JobRequestService {
 
         // Sort by match score descending
         return scoredJobs.sort((a, b) => b.matchScore - a.matchScore);
+    }
+
+    static async updateJobRequest(id: string, farmerId: string, data: Partial<JobRequest>): Promise<JobRequest> {
+        const job = await this.jobRequestRepo.findOne({
+            where: { id, farmer_id: farmerId }
+        });
+
+        if (!job) {
+            throw new Error('Job request not found or unauthorized');
+        }
+
+        Object.assign(job, data);
+        return await this.jobRequestRepo.save(job);
     }
 }

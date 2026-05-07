@@ -35,4 +35,26 @@ export class JobRequestController {
             res.status(500).json({ message: error.message });
         }
     }
+
+    static async getMyJobs(req: Request, res: Response) {
+        try {
+            const farmerId = (req as any).user.id;
+            const jobs = await JobRequestService.getJobRequests({ farmer_id: farmerId });
+            res.json(jobs);
+        } catch (error: any) {
+            res.status(500).json({ message: error.message });
+        }
+    }
+
+    static async update(req: Request, res: Response) {
+        try {
+            const { id } = req.params;
+            const farmerId = (req as any).user.id;
+            const updatedJob = await JobRequestService.updateJobRequest(id, farmerId, req.body);
+            res.json(updatedJob);
+        } catch (error: any) {
+            console.error('Error updating job request:', error);
+            res.status(400).json({ message: error.message });
+        }
+    }
 }

@@ -282,6 +282,41 @@ export const ensureJobRequestSchema = async (dataSource: DataSource) => {
     console.log('✅ Job request schema ensured');
 };
 
+export const ensureJobApplicationSchema = async (dataSource: DataSource) => {
+    const jobRequestTableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'job_requests'
+    `) as Array<{ total: number | string }>;
+
+    const jobRequestTableExists = Number(jobRequestTableRows?.[0]?.total || 0) > 0;
+    if (!jobRequestTableExists) {
+        console.warn('Skipping job application schema bootstrap because job_requests table is missing.');
+        return;
+    }
+
+    await dataSource.query(`
+        CREATE TABLE IF NOT EXISTS \`job_applications\` (
+            \`id\` varchar(36) NOT NULL,
+            \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+            \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+            \`job_id\` varchar(36) NOT NULL,
+            \`worker_id\` varchar(36) NOT NULL,
+            \`status\` enum('pending','approved','rejected','cancelled') NOT NULL DEFAULT 'pending',
+            \`notes\` text NULL,
+            PRIMARY KEY (\`id\`),
+            UNIQUE KEY \`IDX_job_applications_worker_job\` (\`job_id\`, \`worker_id\`),
+            KEY \`IDX_job_applications_job\` (\`job_id\`),
+            KEY \`IDX_job_applications_worker\` (\`worker_id\`),
+            CONSTRAINT \`FK_job_applications_job\` FOREIGN KEY (\`job_id\`) REFERENCES \`job_requests\`(\`id\`) ON DELETE CASCADE,
+            CONSTRAINT \`FK_job_applications_worker\` FOREIGN KEY (\`worker_id\`) REFERENCES \`users\`(\`id\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+
+    console.log('✅ Job application schema ensured');
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',

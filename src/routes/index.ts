@@ -213,4 +213,8 @@ import jobRequestRoutesV1 from './v1/jobRequest.routes.js';
 console.log('Registering /v1/job-requests routes');
 router.use('/v1/job-requests', jobRequestRoutesV1);
 
+import jobApplicationRoutesV1 from './v1/jobApplication.routes.js';
+console.log('Registering /v1/job-applications routes');
+router.use('/v1/job-applications', jobApplicationRoutesV1);
+
 export default router;
