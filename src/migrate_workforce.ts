@@ -24,7 +24,7 @@ async function migrate() {
                 ALTER TABLE land_workers 
                 ADD UNIQUE INDEX IF NOT EXISTS unique_land_worker (land_id, worker_id)
             `);
-        } catch (e) {
+        } catch (e: any) {
             console.log('Unique index might already exist or failed:', e.message);
         }
         
