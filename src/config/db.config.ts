@@ -317,6 +317,44 @@ export const ensureJobApplicationSchema = async (dataSource: DataSource) => {
     console.log('✅ Job application schema ensured');
 };
 
+export const ensureWorkforceSchema = async (dataSource: DataSource) => {
+    const tableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'land_workers'
+    `) as Array<{ total: number | string }>;
+
+    if (Number(tableRows?.[0]?.total || 0) === 0) {
+        console.warn('Skipping workforce schema bootstrap because land_workers table is missing.');
+        return;
+    }
+
+    // Add hiring_source column if it doesn't exist
+    if (!(await columnExists(dataSource, 'land_workers', 'hiring_source'))) {
+        await dataSource.query(`
+            ALTER TABLE \`land_workers\` 
+            ADD \`hiring_source\` enum('invitation','job_application','manual') NOT NULL DEFAULT 'manual',
+            ADD \`started_at\` datetime NULL,
+            ADD \`ended_at\` datetime NULL;
+        `);
+        console.log('✅ Added hiring_source and period columns to land_workers table');
+    }
+
+    // Add unique index if it doesn't exist
+    if (!(await indexExists(dataSource, 'land_workers', 'unique_land_worker'))) {
+        // Try-catch because TypeORM might have created a similar index with a different name
+        try {
+            await dataSource.query(`ALTER TABLE \`land_workers\` ADD UNIQUE KEY \`unique_land_worker\` (\`land_id\`, \`worker_id\`);`);
+            console.log('✅ Added unique index on land_workers(land_id, worker_id)');
+        } catch (e) {
+            console.log('ℹ️ Skipping unique index creation (might already exist with different name)');
+        }
+    }
+
+    console.log('✅ Workforce schema ensured');
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',
