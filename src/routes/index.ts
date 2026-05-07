@@ -209,7 +209,8 @@ import vendorDeliveryRoutesV1 from './v1/vendorDelivery.routes.js';
 console.log('Registering /v1/vendor/deliveries routes');
 router.use('/v1/vendor/deliveries', vendorDeliveryRoutesV1);
 
+import jobRequestRoutesV1 from './v1/jobRequest.routes.js';
+console.log('Registering /v1/job-requests routes');
+router.use('/v1/job-requests', jobRequestRoutesV1);
+
 export default router;
-
-
-

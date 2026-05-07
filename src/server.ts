@@ -4,7 +4,7 @@ dotenv.config();
 
 import { createServer } from 'http';
 import app from './app.js';
-import { AppDataSource, createDatabaseIfNotExists, ensureAiAssistantSchema, ensureCropCalendarSchema, ensureWorkerWalletSchema, ensureProductsSchema, ensureAppleSignInSchema } from './config/db.config.js';
+import { AppDataSource, createDatabaseIfNotExists, ensureAiAssistantSchema, ensureCropCalendarSchema, ensureWorkerWalletSchema, ensureProductsSchema, ensureAppleSignInSchema, ensureJobRequestSchema } from './config/db.config.js';
 import { checkEnvVariables } from './middlewares/envCheck.middleware.js';
 import { initSocket } from './socket/socket.js';
 import logger from './utils/logger.js';
@@ -36,6 +36,7 @@ const startServer = async () => {
         await ensureWorkerWalletSchema(AppDataSource);
         await ensureProductsSchema(AppDataSource);
         await ensureAppleSignInSchema(AppDataSource);
+        await ensureJobRequestSchema(AppDataSource);
         logger.info('✅ Database connected successfully');
         logger.info(
             `🗄️ TypeORM synchronize is ${AppDataSource.options.synchronize ? 'ENABLED' : 'DISABLED'}`

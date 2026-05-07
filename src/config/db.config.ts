@@ -243,6 +243,45 @@ export const ensureAppleSignInSchema = async (dataSource: DataSource) => {
     console.log('✅ Apple Sign-In schema ensured');
 };
 
+export const ensureJobRequestSchema = async (dataSource: DataSource) => {
+    const userTableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'users'
+    `) as Array<{ total: number | string }>;
+
+    const userTableExists = Number(userTableRows?.[0]?.total || 0) > 0;
+    if (!userTableExists) {
+        console.warn('Skipping job request schema bootstrap because users table is missing.');
+        return;
+    }
+
+    await dataSource.query(`
+        CREATE TABLE IF NOT EXISTS \`job_requests\` (
+            \`id\` varchar(36) NOT NULL,
+            \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+            \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+            \`farmer_id\` varchar(36) NOT NULL,
+            \`land_id\` varchar(36) NOT NULL,
+            \`title\` varchar(255) NOT NULL,
+            \`description\` text NOT NULL,
+            \`required_skills\` text NULL,
+            \`duration\` varchar(255) NULL,
+            \`task_type\` varchar(255) NULL,
+            \`status\` enum('open','closed') NOT NULL DEFAULT 'open',
+            \`salary\` decimal(10,2) NULL,
+            PRIMARY KEY (\`id\`),
+            KEY \`IDX_job_requests_farmer\` (\`farmer_id\`),
+            KEY \`IDX_job_requests_land\` (\`land_id\`),
+            CONSTRAINT \`FK_job_requests_farmer\` FOREIGN KEY (\`farmer_id\`) REFERENCES \`users\`(\`id\`) ON DELETE CASCADE,
+            CONSTRAINT \`FK_job_requests_land\` FOREIGN KEY (\`land_id\`) REFERENCES \`lands\`(\`id\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+
+    console.log('✅ Job request schema ensured');
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',
