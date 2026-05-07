@@ -332,13 +332,20 @@ export const ensureWorkforceSchema = async (dataSource: DataSource) => {
 
     // Add hiring_source column if it doesn't exist
     if (!(await columnExists(dataSource, 'land_workers', 'hiring_source'))) {
-        await dataSource.query(`
-            ALTER TABLE \`land_workers\` 
-            ADD \`hiring_source\` enum('invitation','job_application','manual') NOT NULL DEFAULT 'manual',
-            ADD \`started_at\` datetime NULL,
-            ADD \`ended_at\` datetime NULL;
-        `);
-        console.log('✅ Added hiring_source and period columns to land_workers table');
+        await dataSource.query(`ALTER TABLE \`land_workers\` ADD \`hiring_source\` enum('invitation','job_application','manual') NOT NULL DEFAULT 'manual';`);
+        console.log('✅ Added hiring_source column to land_workers table');
+    }
+
+    // Add started_at column if it doesn't exist
+    if (!(await columnExists(dataSource, 'land_workers', 'started_at'))) {
+        await dataSource.query(`ALTER TABLE \`land_workers\` ADD \`started_at\` datetime NULL;`);
+        console.log('✅ Added started_at column to land_workers table');
+    }
+
+    // Add ended_at column if it doesn't exist
+    if (!(await columnExists(dataSource, 'land_workers', 'ended_at'))) {
+        await dataSource.query(`ALTER TABLE \`land_workers\` ADD \`ended_at\` datetime NULL;`);
+        console.log('✅ Added ended_at column to land_workers table');
     }
 
     // Add unique index if it doesn't exist
