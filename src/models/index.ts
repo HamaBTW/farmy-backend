@@ -35,7 +35,7 @@ export { LandRental, PaymentStatus } from './LandRental.js';
 
 // Worker System
 export { WorkerProfile, VerificationStatus, WorkerAvailability } from './WorkerProfile.js';
-export { LandWorker, LandWorkerStatus } from './LandWorker.js';
+export { LandWorker, LandWorkerStatus, HiringSource } from './LandWorker.js';
 export { Task, TaskStatus } from './Task.js';
 
 // Worker Lifecycle

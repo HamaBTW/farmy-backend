@@ -9,6 +9,8 @@ import { getIO } from '../../socket/socket.js';
 import { In } from 'typeorm';
 import { firebaseService } from './firebase.service.js';
 import { NotificationType } from '../../models/Notification.js';
+import { JobApplication, JobApplicationStatus } from '../../models/JobApplication.js';
+import { LandWorker, LandWorkerStatus, HiringSource } from '../../models/LandWorker.js';
 
 class InvitationService {
     private invitationRepo = AppDataSource.getRepository(LandWorkerInvitation);
@@ -59,6 +61,26 @@ class InvitationService {
             }
         });
         if (existingApproved) throw new AppError(409, 'Worker already has an approved invitation for this land');
+
+        // Check if worker is already active in the land workforce
+        const landWorkerRepo = AppDataSource.getRepository(LandWorker);
+        const existingLandWorker = await landWorkerRepo.findOne({
+            where: { land_id: landId, worker_id: data.worker_id }
+        });
+        if (existingLandWorker) throw new AppError(409, 'Worker is already part of the workforce for this land');
+
+        // Check for pending job applications for this land
+        const applicationRepo = AppDataSource.getRepository(JobApplication);
+        const existingApplication = await applicationRepo.createQueryBuilder('app')
+            .innerJoin('app.job', 'job')
+            .where('app.worker_id = :workerId', { workerId: data.worker_id })
+            .andWhere('job.land_id = :landId', { landId })
+            .andWhere('app.status = :status', { status: JobApplicationStatus.PENDING })
+            .getOne();
+            
+        if (existingApplication) {
+            throw new AppError(409, 'This worker has an active job application for this land. Please review it in the Job Requests section instead.');
+        }
 
         // Create invitation with 7 day expiry
         const expiresAt = new Date();
@@ -128,6 +150,27 @@ class InvitationService {
 
         if (response === 'approve') {
             invitation.status = InvitationStatus.INVITATION_APPROVED;
+
+            // Automatically add to unified land_workers workforce
+            const landWorkerRepo = AppDataSource.getRepository(LandWorker);
+            
+            // Final safety check for race conditions
+            const exists = await landWorkerRepo.findOne({
+                where: { land_id: invitation.land_id, worker_id: workerId }
+            });
+
+            if (!exists) {
+                const landWorker = landWorkerRepo.create({
+                    land_id: invitation.land_id,
+                    worker_id: workerId,
+                    assigned_by: invitation.farmer_id,
+                    role: 'general', // Default role
+                    status: LandWorkerStatus.ACTIVE,
+                    hiring_source: HiringSource.INVITATION,
+                    started_at: new Date()
+                });
+                await landWorkerRepo.save(landWorker);
+            }
         } else {
             invitation.status = InvitationStatus.INVITATION_DECLINED;
         }

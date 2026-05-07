@@ -18,7 +18,13 @@ export class JobRequestController {
 
     static async getAll(req: Request, res: Response) {
         try {
-            const filters = req.query;
+            const filters: any = { ...req.query };
+            
+            // If user is logged in, pass their ID to filter out jobs on lands where they already work
+            if ((req as any).user) {
+                filters.worker_id = (req as any).user.id;
+            }
+            
             const jobs = await JobRequestService.getJobRequests(filters);
             res.json(jobs);
         } catch (error: any) {

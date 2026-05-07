@@ -1,6 +1,6 @@
 import { AppDataSource } from '../config/db.config.js';
-import { JobRequest, JobRequestStatus, WorkerProfile, Land } from '../models/index.js';
-import { In } from 'typeorm';
+import { JobRequest, JobRequestStatus, WorkerProfile, Land, LandWorker, LandWorkerStatus, Task, TaskStatus } from '../models/index.js';
+import { In, Not } from 'typeorm';
 
 export class JobRequestService {
     private static jobRequestRepo = AppDataSource.getRepository(JobRequest);
@@ -22,6 +22,34 @@ export class JobRequestService {
             status: JobRequestStatus.OPEN
         });
         return await this.jobRequestRepo.save(jobRequest);
+    }
+
+    private static async getActiveLandsForWorker(workerId: string): Promise<string[]> {
+        const landWorkerRepo = AppDataSource.getRepository(LandWorker);
+        const taskRepo = AppDataSource.getRepository(Task);
+
+        // 1. Get lands where worker is ACTIVE in land_workers
+        const activeLandWorkers = await landWorkerRepo.find({
+            where: { worker_id: workerId, status: LandWorkerStatus.ACTIVE },
+            select: ['land_id']
+        });
+
+        // 2. Get lands where worker has active tasks
+        // Note: Even if status is OPEN, if it's assigned_to this worker, it counts as active engagement
+        const activeTasks = await taskRepo.find({
+            where: {
+                assigned_to: workerId,
+                status: In([TaskStatus.OPEN, TaskStatus.ASSIGNED, TaskStatus.IN_PROGRESS])
+            },
+            select: ['land_id']
+        });
+
+        const landIds = new Set([
+            ...activeLandWorkers.map(lw => lw.land_id),
+            ...activeTasks.map(t => t.land_id)
+        ]);
+
+        return Array.from(landIds);
     }
 
     static async getJobRequests(filters: any = {}): Promise<JobRequest[]> {
@@ -51,6 +79,13 @@ export class JobRequestService {
             query.andWhere('job.farmer_id = :farmerId', { farmerId: filters.farmer_id });
         }
 
+        if (filters.worker_id) {
+            const activeLandIds = await this.getActiveLandsForWorker(filters.worker_id);
+            if (activeLandIds.length > 0) {
+                query.andWhere('job.land_id NOT IN (:...activeLandIds)', { activeLandIds });
+            }
+        }
+
         return await query.orderBy('job.createdAt', 'DESC').getMany();
     }
 
@@ -58,12 +93,19 @@ export class JobRequestService {
         // Fetch worker profile
         const profile = await this.workerProfileRepo.findOne({ where: { user_id: userId } });
         if (!profile || !profile.skills) {
-            return await this.getJobRequests();
+            return await this.getJobRequests({ worker_id: userId });
         }
 
         const workerSkills = profile.skills.map(s => s.toLowerCase());
+        
+        // Filter out jobs on active lands for recommended too
+        const activeLandIds = await this.getActiveLandsForWorker(userId);
+        
         const allJobs = await this.jobRequestRepo.find({
-            where: { status: JobRequestStatus.OPEN },
+            where: { 
+                status: JobRequestStatus.OPEN,
+                ...(activeLandIds.length > 0 ? { land_id: Not(In(activeLandIds)) } : {})
+            },
             relations: ['land', 'land.owner', 'farmer']
         });
 

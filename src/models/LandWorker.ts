@@ -1,4 +1,4 @@
-import { Entity, Column, ManyToOne, JoinColumn, Relation } from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Relation, Unique } from 'typeorm';
 import { BaseEntity } from './BaseEntity.js';
 import { Land } from './Land.js';
 import { User } from './User.js';
@@ -9,7 +9,14 @@ export enum LandWorkerStatus {
     SUSPENDED = 'suspended'
 }
 
+export enum HiringSource {
+    INVITATION = 'invitation',
+    JOB_APPLICATION = 'job_application',
+    MANUAL = 'manual'
+}
+
 @Entity('land_workers')
+@Unique(['land_id', 'worker_id'])
 export class LandWorker extends BaseEntity {
     @Column({ type: 'uuid' })
     land_id!: string;
@@ -44,6 +51,13 @@ export class LandWorker extends BaseEntity {
         default: LandWorkerStatus.ACTIVE
     })
     status!: LandWorkerStatus;
+
+    @Column({
+        type: 'enum',
+        enum: HiringSource,
+        default: HiringSource.MANUAL
+    })
+    hiring_source!: HiringSource;
 
     @Column({ type: 'datetime', nullable: true })
     started_at!: Date | null;
