@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { JobRequestService } from '../services/JobRequestService.js';
+import { JobRequestService } from '../../services/JobRequestService.js';
 
 export class JobRequestController {
     static async create(req: Request, res: Response) {
@@ -54,7 +54,7 @@ export class JobRequestController {
 
     static async update(req: Request, res: Response) {
         try {
-            const { id } = req.params;
+            const id = req.params.id as string;
             const farmerId = (req as any).user.id;
             const updatedJob = await JobRequestService.updateJobRequest(id, farmerId, req.body);
             res.json(updatedJob);

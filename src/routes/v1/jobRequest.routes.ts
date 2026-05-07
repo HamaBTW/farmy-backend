@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { JobRequestController } from '../../controllers/JobRequestController.js';
+import { JobRequestController } from '../../controllers/v1/jobRequest.controller.js';
 import { authenticate } from '../../middlewares/auth.middleware.js';
 import { validateRequest } from '../../middlewares/validation.middleware.js';
 import { createJobRequestSchema } from '../../validators/v1/jobRequest.validator.js';

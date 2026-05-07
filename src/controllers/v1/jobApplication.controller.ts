@@ -5,7 +5,7 @@ import { JobApplicationStatus } from '../../models/index.js';
 export class JobApplicationController {
     static async apply(req: Request, res: Response) {
         try {
-            const { jobId } = req.params;
+            const jobId = req.params.jobId as string;
             const { notes } = req.body;
             const workerId = (req as any).user.id;
 
@@ -28,7 +28,7 @@ export class JobApplicationController {
 
     static async getJobApplications(req: Request, res: Response) {
         try {
-            const { jobId } = req.params;
+            const jobId = req.params.jobId as string;
             const farmerId = (req as any).user.id;
             const applications = await JobApplicationService.getJobApplications(jobId, farmerId);
             res.json(applications);
@@ -39,7 +39,7 @@ export class JobApplicationController {
 
     static async updateStatus(req: Request, res: Response) {
         try {
-            const { applicationId } = req.params;
+            const applicationId = req.params.applicationId as string;
             const { status } = req.body;
             const farmerId = (req as any).user.id;
 
@@ -47,7 +47,7 @@ export class JobApplicationController {
                 return res.status(400).json({ message: 'Invalid status' });
             }
 
-            const application = await JobApplicationService.updateStatus(applicationId, farmerId, status);
+            const application = await JobApplicationService.updateStatus(applicationId, farmerId, status as JobApplicationStatus);
             res.json(application);
         } catch (error: any) {
             res.status(400).json({ message: error.message });
