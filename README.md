@@ -189,4 +189,4 @@ npm start
 
 ---
 
-© 2024 Farmy Platform. All rights reserved.
+© 2026 Farmy Platform. All rights reserved.
