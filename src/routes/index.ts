@@ -13,6 +13,7 @@ import hederaRoutesV1 from './v1/hedera.routes.js';
 import proofRoutesV1 from './v1/proof.routes.js';
 import deviceRoutesV1 from './v1/device.routes.js';
 import notificationRoutesV1 from './v1/notification.routes.js';
+import feedbackRoutesV1 from './v1/feedback.routes.js';
 
 import aiRoutesV1 from './v1/ai.routes.js';
 
@@ -216,5 +217,8 @@ router.use('/v1/job-requests', jobRequestRoutesV1);
 import jobApplicationRoutesV1 from './v1/jobApplication.routes.js';
 console.log('Registering /v1/job-applications routes');
 router.use('/v1/job-applications', jobApplicationRoutesV1);
+
+console.log('Registering /v1/feedback routes');
+router.use('/v1/feedback', feedbackRoutesV1);
 
 export default router;

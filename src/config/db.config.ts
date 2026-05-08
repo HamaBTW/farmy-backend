@@ -362,6 +362,45 @@ export const ensureWorkforceSchema = async (dataSource: DataSource) => {
     console.log('✅ Workforce schema ensured');
 };
 
+export const ensureFeedbackSchema = async (dataSource: DataSource) => {
+    const tableRows = await dataSource.query(`
+        SELECT COUNT(*) AS total
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE()
+          AND table_name = 'feedbacks'
+    `) as Array<{ total: number | string }>;
+
+    if (Number(tableRows?.[0]?.total || 0) > 0) {
+        console.log('✅ Feedback schema already exists');
+        return;
+    }
+
+    await dataSource.query(`
+        CREATE TABLE \`feedbacks\` (
+            \`id\` varchar(36) NOT NULL,
+            \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+            \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+            \`title\` varchar(255) NOT NULL,
+            \`description\` text NOT NULL,
+            \`category\` enum('bug','feature_request','product_report','land_report','worker_report','payment_issue','wallet_issue','marketplace_issue','abuse','general') NOT NULL DEFAULT 'general',
+            \`status\` enum('pending','in_review','resolved','rejected') NOT NULL DEFAULT 'pending',
+            \`priority\` enum('low','medium','high','critical') NOT NULL DEFAULT 'medium',
+            \`user_id\` varchar(36) NOT NULL,
+            \`related_entity_id\` varchar(36) DEFAULT NULL,
+            \`related_entity_type\` varchar(50) DEFAULT NULL,
+            \`admin_notes\` text DEFAULT NULL,
+            \`attachments\` text DEFAULT NULL,
+            PRIMARY KEY (\`id\`),
+            KEY \`IDX_feedbacks_user\` (\`user_id\`),
+            KEY \`IDX_feedbacks_category\` (\`category\`),
+            KEY \`IDX_feedbacks_status\` (\`status\`),
+            CONSTRAINT \`FK_feedbacks_user\` FOREIGN KEY (\`user_id\`) REFERENCES \`users\`(\`id\`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+    `);
+
+    console.log('✅ Feedback schema ensured');
+};
+
 export const AppDataSource = new DataSource({
     type: 'mysql',
     host: process.env.DB_HOST || 'localhost',

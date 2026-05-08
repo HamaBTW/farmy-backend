@@ -58,4 +58,5 @@ export { AiAssistantChat } from './AiAssistantChat.js';
 export { AiAssistantMessage, AiAssistantMessageRole } from './AiAssistantMessage.js';
 export { JobRequest, JobRequestStatus } from './JobRequest.js';
 export { JobApplication, JobApplicationStatus } from './JobApplication.js';
+export { Feedback, FeedbackCategory, FeedbackStatus, FeedbackPriority } from './Feedback.js';
 
