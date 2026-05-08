@@ -3,7 +3,9 @@ import { Feedback, FeedbackStatus } from '../models/Feedback.js';
 import { getIO } from '../socket/socket.js';
 
 export class FeedbackService {
-    private static feedbackRepo = AppDataSource.getRepository(Feedback);
+    private static get feedbackRepo() {
+        return AppDataSource.getRepository(Feedback);
+    }
 
     static async createFeedback(data: Partial<Feedback>) {
         const feedback = this.feedbackRepo.create(data);

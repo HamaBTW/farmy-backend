@@ -376,7 +376,7 @@ export const ensureFeedbackSchema = async (dataSource: DataSource) => {
     }
 
     await dataSource.query(`
-        CREATE TABLE \`feedbacks\` (
+        CREATE TABLE IF NOT EXISTS \`feedbacks\` (
             \`id\` varchar(36) NOT NULL,
             \`createdAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
             \`updatedAt\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
