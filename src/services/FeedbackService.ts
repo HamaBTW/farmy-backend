@@ -1,12 +1,22 @@
 import { AppDataSource } from '../config/db.config.js';
 import { Feedback, FeedbackStatus } from '../models/Feedback.js';
+import { getIO } from '../socket/socket.js';
 
 export class FeedbackService {
     private static feedbackRepo = AppDataSource.getRepository(Feedback);
 
     static async createFeedback(data: Partial<Feedback>) {
         const feedback = this.feedbackRepo.create(data);
-        return await this.feedbackRepo.save(feedback);
+        const savedFeedback = await this.feedbackRepo.save(feedback);
+        
+        // Notify user via socket
+        try {
+            getIO().to(savedFeedback.user_id).emit('feedback_created', savedFeedback);
+        } catch (e) {
+            console.error('Socket emit error (create):', e);
+        }
+        
+        return savedFeedback;
     }
 
     static async getMyFeedbacks(userId: string) {
@@ -41,13 +51,31 @@ export class FeedbackService {
         feedback.status = status;
         if (adminNotes) feedback.admin_notes = adminNotes;
 
-        return await this.feedbackRepo.save(feedback);
+        const updated = await this.feedbackRepo.save(feedback);
+        
+        // Notify user via socket
+        try {
+            getIO().to(updated.user_id).emit('feedback_updated', updated);
+        } catch (e) {
+            console.error('Socket emit error (update):', e);
+        }
+
+        return updated;
     }
 
     static async deleteFeedback(id: string, userId: string) {
         const feedback = await this.feedbackRepo.findOne({ where: { id, user_id: userId } });
         if (!feedback) throw new Error('Feedback not found or unauthorized');
 
-        return await this.feedbackRepo.remove(feedback);
+        await this.feedbackRepo.remove(feedback);
+        
+        // Notify user via socket
+        try {
+            getIO().to(userId).emit('feedback_deleted', { id });
+        } catch (e) {
+            console.error('Socket emit error (delete):', e);
+        }
+        
+        return true;
     }
 }
