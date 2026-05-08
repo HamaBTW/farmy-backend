@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo.png" width="120" alt="Farmy Logo">
+</p>
+
 # Farmy Backend Platform
 
 [![Node.js](https://img.shields.io/badge/Node.js-v20+-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
