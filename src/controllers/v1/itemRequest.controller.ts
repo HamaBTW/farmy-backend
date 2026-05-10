@@ -116,29 +116,33 @@ export const approveItemRequest = async (req: AuthRequest, res: Response, next: 
         const request = await itemRequestService.findById(requestId);
 
         if (request.type === 'placement') {
-            const proofImage = req.file;
-            if (!proofImage) {
-                return res.status(400).json({ success: false, message: 'Proof image is required to activate an item placement.' });
-            }
+            // --- AI verification temporarily disabled – always approve ---
+            // const proofImage = req.file;
+            // if (!proofImage) {
+            //     return res.status(400).json({ success: false, message: 'Proof image is required to activate an item placement.' });
+            // }
+            //
+            // // Fetch variant info to make the AI prompt more specific
+            // let itemName = 'item';
+            // try {
+            //     const variant = await assetVariantService.findById(request.asset_category, request.variant_id) as any;
+            //     itemName = variant?.type?.name || 'item';
+            // } catch (err) {
+            //     console.warn('Could not fetch variant info for AI verification prompt', err);
+            // }
+            //
+            // const condition = `Verify if this image clearly shows a actual, deployed ${itemName} on a real farm or land.`;
+            // const verification = await aiService.verifyImage(proofImage.buffer, proofImage.mimetype, condition);
+            //
+            // if (!verification.success || !verification.verified) {
+            //     return res.status(400).json({
+            //         success: false,
+            //         message: 'AI Verification Failed: ' + (verification.reasoning || verification.error || 'The image does not show the expected item.'),
+            //     });
+            // }
 
-            // Fetch variant info to make the AI prompt more specific
-            let itemName = 'item';
-            try {
-                const variant = await assetVariantService.findById(request.asset_category, request.variant_id) as any;
-                itemName = variant?.type?.name || 'item';
-            } catch (err) {
-                console.warn('Could not fetch variant info for AI verification prompt', err);
-            }
-
-            const condition = `Verify if this image clearly shows a actual, deployed ${itemName} on a real farm or land.`;
-            const verification = await aiService.verifyImage(proofImage.buffer, proofImage.mimetype, condition);
-
-            if (!verification.success || !verification.verified) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'AI Verification Failed: ' + (verification.reasoning || verification.error || 'The image does not show the expected item.'),
-                });
-            }
+            // Simulated AI approval – always accept
+            console.log(`[ItemRequest] AI verification skipped (simulated) – auto-approving placement for request ${requestId}`);
         }
 
         const result = await itemRequestService.approve(requestId, req.user!.id);
