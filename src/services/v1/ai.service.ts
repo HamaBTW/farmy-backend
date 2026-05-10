@@ -78,7 +78,7 @@ const baseUploadDir = path.join(__dirname, '../../uploads');
 
 class AiService {
     private ai: GoogleGenAI;
-    private verifyModel = 'gemma-3-27b-it'; // Optimized for fast verification
+    private verifyModel = 'gemma-4-31b-it'; // Latest multimodal Gemma 4 model as of 2026
     private assistantModel = process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash';
     private chatRepo = AppDataSource.getRepository(AiAssistantChat);
     private messageRepo = AppDataSource.getRepository(AiAssistantMessage);
