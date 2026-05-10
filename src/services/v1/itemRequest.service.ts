@@ -511,19 +511,23 @@ class ItemRequestService {
         return this.placedItemRepo.save(item);
     }
     async place(requestId: string, userId: string, x: number, y: number, rotation: number = 0) {
+        console.log(`[ItemRequestService] Placing request ${requestId} for user ${userId} at (${x}, ${y})`);
         const request = await this.findById(requestId);
 
         if (request.user_id !== userId) {
+            console.warn(`[ItemRequestService] Permission denied: Request user ${request.user_id} !== current user ${userId}`);
             throw new AppError(403, 'You do not have permission to place this item');
         }
 
         if (request.status !== ItemRequestStatus.APPROVED) {
+            console.warn(`[ItemRequestService] Invalid status: ${request.status}`);
             throw new AppError(400, `Cannot place item. Request status is ${request.status}`);
         }
 
         // Check if already placed or pending placement
         const existingPlacement = await this.placedItemRepo.findOne({ where: { request_id: requestId } });
         if (existingPlacement) {
+            console.warn(`[ItemRequestService] Item already has a placement: ${existingPlacement.id}`);
             throw new AppError(400, 'Item already has a placement. Please move it if it is already active.');
         }
 
@@ -536,16 +540,25 @@ class ItemRequestService {
                 where: { land_id: request.land_id, investor_id: userId }
             });
             if (!rental) {
+                console.warn(`[ItemRequestService] Permission denied for land ${request.land_id}`);
                 throw new AppError(403, 'You do not have permission to place items on this land');
             }
         }
 
         // Verify position
         const isValid = await landService.isPositionValid(request.land_id, x, y);
-        if (!isValid) throw new AppError(400, 'Position is outside land boundaries');
+        if (!isValid) {
+            console.warn(`[ItemRequestService] Position (${x}, ${y}) is outside land boundaries`);
+            throw new AppError(400, 'Position is outside land boundaries');
+        }
 
         const isOccupied = await landService.isPositionOccupied(request.land_id, x, y);
-        if (isOccupied) throw new AppError(400, 'Position is already occupied');
+        if (isOccupied) {
+            console.warn(`[ItemRequestService] Position (${x}, ${y}) is already occupied`);
+            throw new AppError(400, 'Position is already occupied');
+        }
+
+        console.log(`[ItemRequestService] Creating placed item shadow...`);
 
         // Create Placed Item (Inactive Shadow)
         // Link it to the BUY request ID so the inventory knows it's placed

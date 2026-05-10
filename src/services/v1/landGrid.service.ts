@@ -60,6 +60,8 @@ class LandGridService {
             throw new AppError(404, 'Land not found');
         }
 
+        console.log(`[LandGridService] Found ${land.placed_items?.length || 0} placed items for land ${landId}`);
+
         const matrix: (any | null)[][] = land.getGridMatrix();
         const { playableMask, geometryHash, boundaryRing } = this.resolveLandGeometry(land);
         const variantCache = new Map<string, any>();

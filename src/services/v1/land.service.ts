@@ -243,7 +243,9 @@ class LandService {
 
     async isPositionOccupied(landId: string, x: number, y: number): Promise<boolean> {
         const land = await this.findByIdWithItems(landId);
-        return land.placed_items.some(item => item.position_x === x && item.position_y === y && item.is_active);
+        // We consider a position occupied if ANY item (active or pending) is there.
+        // This prevents overlapping placements even for items awaiting approval.
+        return land.placed_items.some(item => item.position_x === x && item.position_y === y);
     }
 
     async isPositionValid(landId: string, x: number, y: number): Promise<boolean> {
@@ -259,6 +261,27 @@ class LandService {
         }
 
         return isPlayableCell(playableMask, x, y);
+    }
+    async findFirstAvailableCell(landId: string): Promise<{ x: number, y: number }> {
+        const land = await this.findByIdWithItems(landId);
+        const playableMask = this.getPlayableMaskForLand(land);
+        
+        for (let y = 0; y < land.grid_height; y++) {
+            for (let x = 0; x < land.grid_width; x++) {
+                // Check if playable
+                const playable = !playableMask || isPlayableCell(playableMask, x, y);
+                if (!playable) continue;
+
+                // Check if occupied
+                const occupied = land.placed_items.some(item => item.position_x === x && item.position_y === y);
+                if (!occupied) {
+                    return { x, y };
+                }
+            }
+        }
+
+        // Emergency fallback: just use (0,0) if somehow nothing is found
+        return { x: 0, y: 0 };
     }
 }
 
