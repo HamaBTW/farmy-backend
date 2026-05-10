@@ -117,7 +117,8 @@ export const createItemRequestSchema = Joi.object({
     asset_category: Joi.string().valid(...assetCategories).required(),
     variant_id: Joi.string().uuid().required(),
     position_x: Joi.number().integer().min(0).required(),
-    position_y: Joi.number().integer().min(0).required()
+    position_y: Joi.number().integer().min(0).required(),
+    payment_method_id: Joi.string().optional()
 });
 
 export const rejectItemRequestSchema = Joi.object({

@@ -48,24 +48,56 @@ class ItemRequestService {
         }
 
         // Verify position is valid
-        const isValid = await landService.isPositionValid(data.land_id, data.position_x, data.position_y);
-        if (!isValid) {
-            throw new AppError(400, 'Position is outside land boundaries');
+        let posX = data.position_x;
+        let posY = data.position_y;
+
+        console.log(`[ItemRequestService] Initial position check: (${posX}, ${posY}) for land ${data.land_id}`);
+        
+        let isValid = await landService.isPositionValid(data.land_id, posX, posY);
+        let isOccupied = await landService.isPositionOccupied(data.land_id, posX, posY);
+
+        if (!isValid || isOccupied) {
+            console.warn(`[ItemRequestService] Position (${posX}, ${posY}) is ${!isValid ? 'invalid' : 'occupied'}. Finding fallback...`);
+            
+            const land = await landService.findById(data.land_id);
+            const mask = (landService as any).getPlayableMaskForLand(land);
+            const landWithItems = await landService.findByIdWithItems(data.land_id);
+            
+            let found = false;
+            // Search for first available valid cell
+            for (let y = 0; y < land.grid_height && !found; y++) {
+                for (let x = 0; x < land.grid_width && !found; x++) {
+                    const cellValid = !mask || (mask[y] && mask[y][x]);
+                    const cellOccupied = landWithItems.placed_items.some(i => i.position_x === x && i.position_y === y && i.is_active);
+                    
+                    if (cellValid && !cellOccupied) {
+                        posX = x;
+                        posY = y;
+                        found = true;
+                        console.log(`[ItemRequestService] Found fallback position: (${posX}, ${posY})`);
+                    }
+                }
+            }
+
+            if (!found) {
+                throw new AppError(400, 'No available space on this land for new items.');
+            }
         }
 
-        // Check if position is already occupied
-        const isOccupied = await landService.isPositionOccupied(data.land_id, data.position_x, data.position_y);
-        if (isOccupied) {
-            throw new AppError(400, 'Position is already occupied');
-        }
+        // Update data with potentially new position
+        data.position_x = posX;
+        data.position_y = posY;
 
         // Get variant and price
+        console.log(`[ItemRequestService] Looking up variant ${data.variant_id} for category ${data.asset_category}`);
         const variant = await assetVariantService.getVariantWithPrice(data.asset_category, data.variant_id);
         if (!(variant as any).is_available) {
+            console.warn(`[ItemRequestService] Variant ${data.variant_id} is not available`);
             throw new AppError(400, 'This variant is not available for purchase');
         }
 
         const price = (variant as any).final_price;
+        console.log(`[ItemRequestService] Price: ${price}`);
 
         const user = await this.userRepo.findOne({ where: { id: data.user_id } });
         if (!user) throw new AppError(404, 'User not found');
