@@ -9,6 +9,7 @@ import {
     getDeliveryByOrder,
     getDeliveryById,
     getMyDeliveries,
+    getAdminDeliveries,
     updateDeliveryStatus,
     updateDeliveryLocation
 } from '../../controllers/v1/delivery.controller.js';
@@ -28,6 +29,9 @@ router.get('/order/:orderId', getDeliveryByOrder);
 
 // Get delivery tracking info by delivery ID
 router.get('/:id', getDeliveryById);
+
+// Admin: list all deliveries
+router.get('/admin/all', authorize('admin'), getAdminDeliveries);
 
 // ── Seller / Admin routes (write) ────────────────────────────
 

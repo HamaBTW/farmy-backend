@@ -80,6 +80,41 @@ export const getWorkerProfileById = async (req: AuthRequest, res: Response, next
     }
 };
 
+export const getAdminProfiles = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const filters = {
+            status: req.query.status as string | undefined,
+            search: req.query.search as string | undefined,
+            region: req.query.region as string | undefined,
+            submittedAt: req.query.submittedAt as string | undefined,
+            sortBy: req.query.sortBy as string | undefined,
+            sortOrder: req.query.sortOrder as 'ASC' | 'DESC' | undefined,
+            page: req.query.page ? parseInt(req.query.page as string) : 1,
+            limit: req.query.limit ? parseInt(req.query.limit as string) : 10
+        };
+
+        const result = await workerProfileService.findAllAdmin(filters);
+
+        res.status(200).json({
+            success: true,
+            data: result.profiles.map(p => ({
+                ...p,
+                status: p.verification_status,
+                dailyRate: (p.hourly_rate || 0) * 8
+            })),
+            stats: result.stats,
+            pagination: {
+                total: result.total,
+                page: filters.page,
+                limit: filters.limit,
+                totalPages: Math.ceil(result.total / filters.limit)
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 export const verifyWorkerProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const result = await workerProfileService.verifyProfile(

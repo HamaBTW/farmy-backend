@@ -138,8 +138,8 @@ router.use('/v1/product-types', productTypeRoutesV1);
 
 // Worker System Routes
 import workerProfileRoutesV1 from './v1/workerProfile.routes.js';
-console.log('Registering /v1/worker-profile routes');
-router.use('/v1/worker-profile', workerProfileRoutesV1);
+console.log('Registering /v1/worker-profiles routes');
+router.use('/v1/worker-profiles', workerProfileRoutesV1);
 
 import workerWalletRoutesV1 from './v1/workerWallet.routes.js';
 console.log('Registering /v1/worker-wallet routes');
@@ -189,6 +189,14 @@ router.use('/v1/farmer-agent', farmerAgentRoutesV1);
 import farmerDashboardRoutesV1 from './v1/farmerDashboard.routes.js';
 console.log('Registering /v1/farmer dashboard routes');
 router.use('/v1/farmer', farmerDashboardRoutesV1);
+
+import adminDashboardRoutesV1 from './v1/adminDashboard.routes.js';
+console.log('Registering /v1/admin dashboard routes');
+router.use('/v1/admin', adminDashboardRoutesV1);
+
+import userManagementRoutesV1 from './v1/userManagement.routes.js';
+console.log('Registering /v1/users management routes');
+router.use('/v1/users', userManagementRoutesV1);
 
 import roiRoutesV1 from './v1/roi.routes.js';
 console.log('Registering /v1/investor/roi routes');

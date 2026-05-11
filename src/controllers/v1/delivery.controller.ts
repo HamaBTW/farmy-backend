@@ -65,6 +65,36 @@ export const getMyDeliveries = async (req: AuthRequest, res: Response, next: Nex
     }
 };
 
+// ─── LIST all deliveries for admin ───────────────────────────
+
+export const getAdminDeliveries = async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const { status, search, page, limit } = req.query;
+        const result = await deliveryService.findAllAdmin({
+            status: status as string,
+            search: search as string,
+            page: page ? parseInt(page as string) : 1,
+            limit: limit ? parseInt(limit as string) : 10
+        });
+
+        const data = result.data.map(d => deliveryService.buildTrackingResponse(d));
+
+        res.status(200).json({
+            success: true,
+            data,
+            pagination: {
+                total: result.total,
+                page: page ? parseInt(page as string) : 1,
+                limit: limit ? parseInt(limit as string) : 10,
+                totalPages: Math.ceil(result.total / (limit ? parseInt(limit as string) : 10))
+            },
+            stats: result.stats
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // ─── UPDATE delivery status (role-based) ─────────────────────
 
 export const updateDeliveryStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {

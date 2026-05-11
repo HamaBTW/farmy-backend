@@ -147,9 +147,60 @@ class DeliveryService {
 
         return this.deliveryRepo.find({
             where,
-            relations: ['order', 'buyer', 'seller'],
+            relations: ['order', 'buyer', 'seller', 'driver'],
             order: { createdAt: 'DESC' }
         });
+    }
+
+    /**
+     * Admin: list all deliveries with pagination and filtering.
+     */
+    async findAllAdmin(filters: { status?: string; search?: string; page?: number; limit?: number } = {}) {
+        const { status, search, page = 1, limit = 10 } = filters;
+        const qb = this.deliveryRepo
+            .createQueryBuilder('d')
+            .leftJoinAndSelect('d.order', 'order')
+            .leftJoinAndSelect('d.buyer', 'buyer')
+            .leftJoinAndSelect('d.seller', 'seller')
+            .leftJoinAndSelect('d.driver', 'driver');
+
+        if (status && status !== 'all') {
+            qb.andWhere('d.delivery_status = :status', { status });
+        }
+
+        if (search) {
+            qb.andWhere('(d.delivery_address LIKE :search OR buyer.email LIKE :search OR seller.email LIKE :search)', { search: `%${search}%` });
+        }
+
+        const skip = (page - 1) * limit;
+        qb.skip(skip).take(limit);
+        qb.orderBy('d.createdAt', 'DESC');
+
+        const [deliveries, total] = await qb.getManyAndCount();
+
+        // Get Stats
+        const stats = await this.deliveryRepo
+            .createQueryBuilder('d')
+            .select('d.delivery_status', 'status')
+            .addSelect('COUNT(*)', 'count')
+            .groupBy('d.delivery_status')
+            .getRawMany();
+
+        const formattedStats = {
+            total,
+            created: parseInt(stats.find(s => s.status === DeliveryStatus.ORDER_CREATED)?.count || '0'),
+            in_transit: stats
+                .filter(s => [DeliveryStatus.CONFIRMED, DeliveryStatus.PREPARING, DeliveryStatus.OUT_FOR_DELIVERY, DeliveryStatus.NEARBY].includes(s.status))
+                .reduce((acc, curr) => acc + parseInt(curr.count), 0),
+            delivered: parseInt(stats.find(s => s.status === DeliveryStatus.DELIVERED)?.count || '0'),
+            cancelled: parseInt(stats.find(s => s.status === DeliveryStatus.CANCELLED)?.count || '0')
+        };
+
+        return {
+            data: deliveries,
+            total,
+            stats: formattedStats
+        };
     }
 
     // ─── STATUS UPDATE ───────────────────────────────────────

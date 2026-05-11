@@ -19,6 +19,9 @@ router.get('/marketplace', authenticate, workerProfileController.getMarketplace)
 // Get specific worker profile
 router.get('/:profileId', authenticate, workerProfileController.getWorkerProfileById);
 
+// Admin: get all profiles
+router.get('/admin/profiles', authenticate, authorize('admin'), workerProfileController.getAdminProfiles);
+
 // Admin: verify/reject worker profile
 router.patch('/:profileId/verify', authenticate, authorize('admin'), workerProfileController.verifyWorkerProfile);
 

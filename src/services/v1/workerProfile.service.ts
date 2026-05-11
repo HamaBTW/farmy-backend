@@ -132,6 +132,90 @@ class WorkerProfileService {
         return qb.getMany();
     }
 
+    async findAllAdmin(filters: { 
+        status?: string; 
+        search?: string; 
+        region?: string;
+        submittedAt?: string;
+        sortBy?: string;
+        sortOrder?: 'ASC' | 'DESC';
+        page?: number; 
+        limit?: number 
+    } = {}) {
+        const { status, search, region, submittedAt, sortBy, sortOrder = 'DESC', page = 1, limit = 10 } = filters;
+        const qb = this.profileRepo
+            .createQueryBuilder('wp')
+            .innerJoinAndSelect('wp.user', 'user');
+
+        if (status && status !== 'all') {
+            qb.andWhere('wp.verification_status = :status', { status });
+        }
+
+        if (search) {
+            qb.andWhere('(user.email LIKE :search OR user.profile->>"$.name" LIKE :search)', { search: `%${search}%` });
+        }
+
+        if (region) {
+            qb.andWhere('user.profile->>"$.city" LIKE :region', { region: `%${region}%` });
+        }
+
+        if (submittedAt) {
+            qb.andWhere('DATE(wp.createdAt) = :submittedAt', { submittedAt });
+        }
+
+        const skip = (page - 1) * limit;
+        qb.skip(skip).take(limit);
+
+        // Sorting
+        if (sortBy) {
+            const order = sortOrder === 'ASC' ? 'ASC' : 'DESC';
+            switch (sortBy) {
+                case 'name':
+                    qb.orderBy('user.profile->>"$.name"', order);
+                    break;
+                case 'dailyRate':
+                    qb.orderBy('wp.hourly_rate', order);
+                    break;
+                case 'rating':
+                    qb.orderBy('wp.rating', order);
+                    break;
+                case 'status':
+                    qb.orderBy('wp.verification_status', order);
+                    break;
+                case 'createdAt':
+                default:
+                    qb.orderBy('wp.createdAt', order);
+                    break;
+            }
+        } else {
+            qb.orderBy('wp.createdAt', 'DESC');
+        }
+
+        const [profiles, total] = await qb.getManyAndCount();
+
+        // Get Stats
+        const stats = await this.profileRepo
+            .createQueryBuilder('wp')
+            .innerJoin('wp.user', 'user') // Ensure user exists for stats too
+            .select('wp.verification_status', 'status')
+            .addSelect('COUNT(*)', 'count')
+            .groupBy('wp.verification_status')
+            .getRawMany();
+
+        const formattedStats = {
+            pending: parseInt(stats.find(s => s.status === VerificationStatus.PENDING)?.count || '0'),
+            verified: parseInt(stats.find(s => s.status === VerificationStatus.VERIFIED)?.count || '0'),
+            rejected: parseInt(stats.find(s => s.status === VerificationStatus.REJECTED)?.count || '0'),
+            total: total
+        };
+
+        return {
+            profiles,
+            total,
+            stats: formattedStats
+        };
+    }
+
     async verifyProfile(profileId: string, status: VerificationStatus) {
         const profile = await this.profileRepo.findOne({ where: { id: profileId } });
         if (!profile) {
